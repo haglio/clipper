@@ -1,8 +1,7 @@
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set shell = CreateObject("WScript.Shell")
 
-scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
-projectRoot = fso.GetParentFolderName(scriptDir)
+projectRoot = fso.GetParentFolderName(WScript.ScriptFullName)
 launcherLog = projectRoot & "\state\clipper_launcher.log"
 
 Function Quote(s)

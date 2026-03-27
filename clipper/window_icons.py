@@ -4,11 +4,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .paths import MODULE_DIR
+from .config import PROJECT_DIR
 
 
 def clipper_icon_path() -> Path:
-    return MODULE_DIR / "clipper.ico"
+    return PROJECT_DIR / "clipper.ico"
 
 
 def set_tk_window_icon(root: Any) -> None:

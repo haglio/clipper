@@ -1,5 +1,5 @@
 param(
-    [string]$ShortcutPath = 'clipper\Clipper.lnk',
+    [string]$ShortcutPath = 'Clipper.lnk',
     [string]$AppId = 'FunTime.Clipper'
 )
 
