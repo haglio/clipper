@@ -2,7 +2,9 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 Set shell = CreateObject("WScript.Shell")
 
 projectRoot = fso.GetParentFolderName(WScript.ScriptFullName)
-launcherLog = projectRoot & "\state\clipper_launcher.log"
+stateDir = projectRoot & "\state"
+If Not fso.FolderExists(stateDir) Then fso.CreateFolder(stateDir)
+launcherLog = stateDir & "\clipper_launcher.log"
 
 Function Quote(s)
   Quote = Chr(34) & s & Chr(34)
