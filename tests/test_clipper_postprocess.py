@@ -52,3 +52,4 @@ def test_clip_postprocess_cli_runs_as_direct_script():
 
     assert result.returncode == 0
     assert "Normalize clip loop shape" in result.stdout
+    assert "register" in result.stdout

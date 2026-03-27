@@ -41,9 +41,9 @@ def main():
     )
     ap.add_argument(
         "--mode",
-        choices=["flow", "blend"],
-        default="flow",
-        help="Bridge generation mode (default: flow)",
+        choices=["flow", "blend", "register"],
+        default="register",
+        help="Seam smoothing mode: register (align via keypoints, default), flow (optical flow warp), blend (simple crossfade)",
     )
     length_group = ap.add_mutually_exclusive_group()
     length_group.add_argument(
@@ -64,6 +64,12 @@ def main():
         type=int,
         default=0,
         help="Also softly pull the first/last N frames toward each other before bridge generation",
+    )
+    ap.add_argument(
+        "--seam-ms",
+        type=float,
+        default=250.0,
+        help="RIFE seam convergence duration per side in ms (default: 250). Set to 0 to disable.",
     )
     ap.add_argument(
         "--copy-audio",

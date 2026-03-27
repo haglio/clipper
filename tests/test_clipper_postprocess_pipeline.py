@@ -52,6 +52,20 @@ def test_build_output_frames_append_keeps_original_and_adds_bridge():
     assert _values(out_frames[:4]) == [1, 2, 3, 4]
 
 
+def test_build_output_frames_register_mode_falls_back_on_tiny_frames():
+    """Register mode should fall back gracefully on 1x1 frames with no keypoints."""
+    out_frames, normalized_n = build_output_frames(
+        _frames([10, 20, 30, 40, 50, 60]),
+        loop_mode="base-tip-base",
+        bridge_frames=1,
+        mode="register",
+        keep_length=True,
+        symmetric_blend=0,
+    )
+    assert normalized_n == 6
+    assert len(out_frames) == 6
+
+
 def test_build_output_frames_rejects_keep_length_when_bridge_is_too_long():
     with pytest.raises(RuntimeError, match="--keep-length bridge is too long"):
         build_output_frames(
