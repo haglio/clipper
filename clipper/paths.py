@@ -25,8 +25,9 @@ ENTER_KEYS = {13, 10}
 TAB_KEYS = {9}
 
 MODULE_DIR = Path(__file__).resolve().parent
-SESSIONS_DIR = MODULE_DIR / "sessions"
-RAW_CLIPS_DIR = MODULE_DIR / "raw_clips"
+PROJECT_DIR = MODULE_DIR.parent
+SESSIONS_DIR = PROJECT_DIR / "sessions"
+RAW_CLIPS_DIR = PROJECT_DIR / "raw_clips"
 CLIPS_DIR = Path("C:/path/to/suite-root/videos/robot_hand/clips")
 AUDIO_DIR = Path("C:/path/to/suite-root/videos/robot_hand/audio")
 LAST_SESSION_FILE = SESSIONS_DIR / ".last_session.txt"

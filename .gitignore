@@ -1,5 +1,5 @@
-clipper/raw_clips/
-clipper/sessions/
+raw_clips/
+sessions/
 state/
 
 .venv/

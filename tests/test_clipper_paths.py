@@ -45,11 +45,11 @@ from clipper.paths import (
 # ---------------------------------------------------------------------------
 
 class TestPathConstants:
-    def test_sessions_dir_under_module_dir(self):
-        assert SESSIONS_DIR.parent == MODULE_DIR
+    def test_sessions_dir_under_project_root(self):
+        assert SESSIONS_DIR.parent == MODULE_DIR.parent
 
-    def test_raw_clips_dir_under_module_dir(self):
-        assert RAW_CLIPS_DIR.parent == MODULE_DIR
+    def test_raw_clips_dir_under_project_root(self):
+        assert RAW_CLIPS_DIR.parent == MODULE_DIR.parent
 
     def test_clips_dir_is_absolute(self):
         assert CLIPS_DIR.is_absolute()
