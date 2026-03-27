@@ -68,13 +68,13 @@ def launcher_dialog() -> dict[str, Any]:
     result: dict[str, Any] = {"ok": False}
 
     def browse_json() -> None:
-        p = dialog.askopenfilename(filetypes=[("JSON files", "*.json"), ("All files", "*.*")])
+        p = dialog.askopenfilename(initialdir=r"C:\path\to\suite-root\projects\clipper\sessions", filetypes=[("JSON files", "*.json"), ("All files", "*.*")])
         if p:
             session_json.set(p)
             mode.set("load")
 
     def browse_video() -> None:
-        p = dialog.askopenfilename(filetypes=[("Video files", "*.mp4 *.mkv *.mov *.avi *.webm"), ("All files", "*.*")])
+        p = dialog.askopenfilename(initialdir=r"C:\path\to\suite-root\videos\videos\2D", filetypes=[("Video files", "*.mp4 *.mkv *.mov *.avi *.webm"), ("All files", "*.*")])
         if p:
             video_file.set(p)
             mode.set("new")
