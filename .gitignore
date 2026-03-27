@@ -1,0 +1,11 @@
+clipper/raw_clips/
+clipper/sessions/
+state/
+
+.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.tmp-pytest-*/
+pytest-cache-files-*/
