@@ -18,6 +18,32 @@ from .vlc_prefill import detect_vlc_session_prefill
 from .window_icons import set_tk_window_icon
 
 APP_DISPLAY_NAME = "Clipper"
+_TIMESTAMP_SEPARATORS = frozenset(":.")
+
+
+def timestamp_segment_at(text: str, cursor: int) -> tuple[int, int]:
+    """Return (start, end) of the timestamp segment around *cursor*.
+
+    A segment is the run of characters between separator characters (``:``, ``.``)
+    or the string boundaries.  The returned range is suitable for
+    ``Entry.selection_range(start, end)``.
+    """
+    start = cursor
+    while start > 0 and text[start - 1] not in _TIMESTAMP_SEPARATORS:
+        start -= 1
+    end = cursor
+    while end < len(text) and text[end] not in _TIMESTAMP_SEPARATORS:
+        end += 1
+    return start, end
+
+
+def _select_timestamp_segment(widget: Any) -> None:
+    """Double-click handler: select only the segment under the cursor."""
+    cursor = widget.index("insert")
+    text = widget.get()
+    start, end = timestamp_segment_at(text, cursor)
+    widget.selection_range(start, end)
+    widget.icursor(end)
 LAUNCHER_PREFILL_FALLBACK_NOTE = "If VLC is open, Clipper will try to prefill this section."
 
 
@@ -137,7 +163,9 @@ def launcher_dialog() -> dict[str, Any]:
     tk.Entry(frame2, textvariable=video_file, width=84).grid(row=2, column=1, sticky="we", pady=6, padx=(0, 8))
     tk.Button(frame2, text="Browse...", command=browse_video, width=12).grid(row=2, column=2, sticky="e", pady=6)
     tk.Label(frame2, text="Timestamp (hh:mm:ss)", font=("Segoe UI", 10)).grid(row=3, column=0, sticky="w", padx=(28, 8), pady=6)
-    tk.Entry(frame2, textvariable=timestamp, width=20).grid(row=3, column=1, sticky="w", pady=6)
+    ts_entry = tk.Entry(frame2, textvariable=timestamp, width=20)
+    ts_entry.grid(row=3, column=1, sticky="w", pady=6)
+    ts_entry.bind("<Double-Button-1>", lambda e: (_select_timestamp_segment(e.widget), "break")[-1])
     tk.Label(frame2, text="Seconds", font=("Segoe UI", 10)).grid(row=4, column=0, sticky="w", padx=(28, 8), pady=6)
     tk.Entry(frame2, textvariable=seconds, width=10).grid(row=4, column=1, sticky="w", pady=6)
     tk.Label(frame2, text="Loop mode", font=("Segoe UI", 10)).grid(row=5, column=0, sticky="w", padx=(28, 8), pady=6)

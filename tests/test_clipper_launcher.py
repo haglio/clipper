@@ -7,6 +7,7 @@ from clipper.launcher import (
     default_launcher_mode_for_session,
     default_launcher_mode,
     prefill_note_text,
+    timestamp_segment_at,
 )
 
 
@@ -53,3 +54,35 @@ class TestPrefillNoteText:
 
     def test_uses_fallback_note_when_missing(self):
         assert prefill_note_text(None) == LAUNCHER_PREFILL_FALLBACK_NOTE
+
+
+class TestTimestampSegmentAt:
+    """Double-click in a timestamp field should select only the segment
+    bounded by the nearest ``:`` or ``.`` separators."""
+
+    def test_selects_hours(self):
+        assert timestamp_segment_at("01:23:45.678", 1) == (0, 2)
+
+    def test_selects_minutes(self):
+        assert timestamp_segment_at("01:23:45.678", 4) == (3, 5)
+
+    def test_selects_seconds(self):
+        assert timestamp_segment_at("01:23:45.678", 7) == (6, 8)
+
+    def test_selects_milliseconds(self):
+        assert timestamp_segment_at("01:23:45.678", 10) == (9, 12)
+
+    def test_cursor_at_start_of_segment(self):
+        assert timestamp_segment_at("01:23:45", 3) == (3, 5)
+
+    def test_cursor_at_end_of_string(self):
+        assert timestamp_segment_at("01:23:45", 8) == (6, 8)
+
+    def test_cursor_at_beginning_of_string(self):
+        assert timestamp_segment_at("01:23:45", 0) == (0, 2)
+
+    def test_no_separators(self):
+        assert timestamp_segment_at("12345", 2) == (0, 5)
+
+    def test_empty_string(self):
+        assert timestamp_segment_at("", 0) == (0, 0)
