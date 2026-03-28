@@ -9,3 +9,6 @@ __pycache__/
 .pytest_cache/
 .tmp-pytest-*/
 pytest-cache-files-*/
+
+# Claude Code local config
+.claude/
