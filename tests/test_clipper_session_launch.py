@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -41,13 +42,32 @@ def test_build_state_from_launch_info_loads_saved_session():
     last_session_file.write_text.assert_called_once_with("C:\\demo.json", encoding="utf-8")
 
 
-def test_build_state_from_launch_info_creates_new_state_and_autosaves():
-    current_payload = {"session_name": "demo"}
-    state = MagicMock()
-    state.current_payload.return_value = current_payload
+def test_build_state_from_launch_info_creates_new_session_via_create_session():
+    session_path = Path("C:\\sessions\\demo.json")
+    payload = {
+        "video_path": "/video.mp4",
+        "session_name": "demo",
+        "loaded_start": 375,
+        "loaded_end": 524,
+        "active_start": 375,
+        "active_end": 524,
+        "current": 375,
+        "seconds_per_step": 1.0,
+        "fps": 30.0,
+        "total_frames": 900,
+    }
+    state = SimpleNamespace(
+        session_path="",
+        original_session_payload={},
+        protect_existing_save_data=False,
+    )
+    last_session_file = MagicMock()
 
     with patch("clipper.session_launch.parse_timestamp", return_value=12.5), \
-         patch("clipper.session_launch.make_video_state", return_value=state) as make_state:
+         patch("clipper.session_launch.create_session", return_value=session_path) as mock_create, \
+         patch("clipper.session_launch.read_json", return_value=payload), \
+         patch("clipper.session_launch.make_video_state", return_value=state) as make_state, \
+         patch("clipper.session_launch.LAST_SESSION_FILE", last_session_file):
         result = build_state_from_launch_info(
             {
                 "mode": "new",
@@ -59,10 +79,14 @@ def test_build_state_from_launch_info_creates_new_state_and_autosaves():
             }
         )
 
+    mock_create.assert_called_once_with(
+        "/video.mp4", 12.5, session_name="demo", seconds=5.0, loop_mode="tip-base",
+    )
     assert result is state
-    make_state.assert_called_once_with("/video.mp4", "demo", 12.5, 5.0, loop_mode="tip-base")
-    state.autosave_session.assert_called_once_with()
-    assert state.original_session_payload == current_payload
+    assert state.session_path == str(session_path)
+    assert state.original_session_payload == payload
+    assert state.protect_existing_save_data is True
+    last_session_file.write_text.assert_called_once()
 
 
 def test_launch_state_raises_system_exit_when_launcher_is_cancelled():
