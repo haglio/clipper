@@ -14,7 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .paths import SESSIONS_DIR
+from .paths import LAST_SESSION_FILE, SESSIONS_DIR
 from .runtime_support import hidden_subprocess_kwargs
 from .utils import sanitize_name
 
@@ -131,6 +131,7 @@ def create_session(
     session_path = sessions_dir / f"{session_name}.json"
     if session_path.exists():
         logger.info("Session already exists: %s", session_path)
+        _update_last_session(session_path)
         return session_path
 
     payload = build_session_payload(
@@ -158,7 +159,15 @@ def create_session(
         raise
 
     logger.info("Created session: %s", session_path)
+    _update_last_session(session_path)
     return session_path
+
+
+def _update_last_session(session_path: Path) -> None:
+    try:
+        LAST_SESSION_FILE.write_text(str(session_path), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -154,6 +154,36 @@ def test_create_session_sanitizes_name(tmp_path):
     assert result.name == "Bad__Name.json"
 
 
+def test_create_session_updates_last_session_file(tmp_path):
+    last_session = tmp_path / ".last_session.txt"
+    with _mock_ffprobe(), \
+         patch("clipper.create_session.LAST_SESSION_FILE", last_session):
+        result = create_session(
+            r"C:\videos\TestVideo.mp4",
+            10.0,
+            sessions_dir=tmp_path,
+        )
+
+    assert last_session.exists()
+    assert last_session.read_text(encoding="utf-8") == str(result)
+
+
+def test_create_session_updates_last_session_even_when_existing(tmp_path):
+    existing = tmp_path / "TestVideo.json"
+    existing.write_text('{"existing": true}', encoding="utf-8")
+    last_session = tmp_path / ".last_session.txt"
+
+    with _mock_ffprobe(), \
+         patch("clipper.create_session.LAST_SESSION_FILE", last_session):
+        result = create_session(
+            r"C:\videos\TestVideo.mp4",
+            10.0,
+            sessions_dir=tmp_path,
+        )
+
+    assert last_session.read_text(encoding="utf-8") == str(result)
+
+
 def test_create_session_ffprobe_failure(tmp_path):
     with patch(
         "clipper.create_session._ffprobe_video_metadata",
