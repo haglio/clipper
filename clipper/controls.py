@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
-import cv2
-
 from .editing import (
     accept_suggested_in,
     accept_suggested_out,
@@ -12,11 +8,9 @@ from .editing import (
     set_mark_out,
     shift_active_range,
 )
-from .exit_prompt import EXIT_PROMPT_BUTTON_NAMES, EXIT_PROMPT_CHOICES, queue_exit_prompt_action
 from .export import start_export_job
 from .loaded_bounds import contract_left, contract_right, extend_left, extend_right
 from .navigation import (
-    index_for_timeline_x,
     move_current_left,
     move_current_right,
     toggle_wrap_mode,
@@ -43,73 +37,7 @@ from .paths import (
     WRAP_TOGGLE_KEYS,
 )
 from .playback import change_speed, toggle_loop_pause
-from .state import (
-    VideoState,
-)
-
-Rect = tuple[int, int, int, int]
-
-
-def point_in_rect(x: int, y: int, rect: Rect) -> bool:
-    x1, y1, x2, y2 = rect
-    return x1 <= x <= x2 and y1 <= y <= y2
-
-
-def on_mouse(event: int, x: int, y: int, flags: int, userdata: Any | None) -> None:
-    if not isinstance(userdata, VideoState):
-        return
-    state = userdata
-    state.mouse_x = x
-    state.mouse_y = y
-    if event == cv2.EVENT_LBUTTONDOWN:
-        if state.exit_prompt_visible:
-            for choice in EXIT_PROMPT_CHOICES:
-                rect = state.buttons.get(EXIT_PROMPT_BUTTON_NAMES[choice])
-                if rect and point_in_rect(x, y, rect):
-                    queue_exit_prompt_action(state, choice)
-                    return
-            return
-        for name, rect in list(state.buttons.items()):
-            if point_in_rect(x, y, rect):
-                if name == "speed_down":
-                    change_speed(state, -0.25)
-                elif name == "speed_up":
-                    change_speed(state, +0.25)
-                elif name == "play_pause":
-                    toggle_loop_pause(state)
-                elif name == "export":
-                    start_export_job(state)
-                elif name == "extend_left" and state.loaded_start > 0:
-                    extend_left(state)
-                elif name == "contract_left" and (state.active_start - state.loaded_start) >= state.base_step:
-                    contract_left(state)
-                elif name == "contract_right" and (state.loaded_end - state.active_end) >= state.base_step:
-                    contract_right(state)
-                elif name == "extend_right" and state.loaded_end < state.total_frames - 1:
-                    extend_right(state)
-                elif name == "shift_left":
-                    shift_active_range(state, -1)
-                elif name == "shift_right":
-                    shift_active_range(state, 1)
-                elif name == "mark_in" and state.current < state.active_end:
-                    set_mark_in(state)
-                elif name == "mark_out" and state.current > state.active_start:
-                    set_mark_out(state)
-                elif name == "wrap":
-                    toggle_wrap_mode(state)
-                elif name == "loop_mode":
-                    cycle_loop_mode(state)
-                elif name == "overlay_close" and state.export_job:
-                    state.export_job.dismissed = True
-                elif name == "timeline":
-                    state.current = index_for_timeline_x(state, rect[0], rect[2], x)
-                    state.render_rev += 1
-                break
-        else:
-            tl = state.buttons.get("timeline")
-            if tl and point_in_rect(x, y, tl):
-                state.current = index_for_timeline_x(state, tl[0], tl[2], x)
-                state.render_rev += 1
+from .state import VideoState
 
 
 def handle_key(state: VideoState, key: int) -> None:

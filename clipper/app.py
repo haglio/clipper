@@ -5,9 +5,7 @@ import sys
 
 from .config import PROJECT_DIR
 from .logging_utils import configure_logging, install_exception_logging
-from .launcher import messagebox, tk
 from .session_launch import launch_state
-from .ui import run_ui
 
 CLIPPER_APP_USER_MODEL_ID = "FunTime.Clipper"
 
@@ -38,20 +36,24 @@ def main() -> int:
     _set_windows_app_user_model_id()
     logger = _init_logger()
     try:
+        from PyQt6.QtWidgets import QApplication, QMessageBox
+
+        _app = QApplication.instance() or QApplication(sys.argv)
         state = launch_state()
-        run_ui(state)
-        return 0
+
+        from .gui.app import ClipperApp
+
+        clipper_app = ClipperApp(state)
+        return clipper_app.run()
     except SystemExit:
         raise
     except Exception as exc:
         logger.exception("Clipper crashed")
-        if tk is not None:
-            root = tk.Tk()
-            root.withdraw()
-            try:
-                messagebox.showerror("Clipper", f"ERROR: {exc}")
-            finally:
-                root.destroy()
-        else:
+        try:
+            from PyQt6.QtWidgets import QApplication, QMessageBox
+
+            _app = QApplication.instance() or QApplication(sys.argv)
+            QMessageBox.critical(None, "Clipper", f"ERROR: {exc}")
+        except Exception:
             print(f"ERROR: {exc}", file=sys.stderr)
         return 1

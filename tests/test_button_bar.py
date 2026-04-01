@@ -49,15 +49,19 @@ class TestSignals:
         assert results == ["export"]
 
 
-class TestPlayPauseLabel:
-    def test_default_is_play(self, bar):
-        assert "Play" in bar.play_pause_btn.text() or "play" in bar.play_pause_btn.text().lower()
+class TestPlayPauseIcon:
+    def test_default_has_icon(self, bar):
+        assert not bar.play_pause_btn.icon().isNull()
 
-    def test_set_playing(self, bar):
+    def test_icon_changes_on_playing(self, bar):
+        before = bar.play_pause_btn.icon().pixmap(16, 16).toImage()
         bar.set_playing(True)
-        assert "pause" in bar.play_pause_btn.text().lower()
+        after = bar.play_pause_btn.icon().pixmap(16, 16).toImage()
+        assert before != after
 
-    def test_set_paused(self, bar):
+    def test_icon_restores_on_pause(self, bar):
+        initial = bar.play_pause_btn.icon().pixmap(16, 16).toImage()
         bar.set_playing(True)
         bar.set_playing(False)
-        assert "play" in bar.play_pause_btn.text().lower()
+        restored = bar.play_pause_btn.icon().pixmap(16, 16).toImage()
+        assert initial == restored

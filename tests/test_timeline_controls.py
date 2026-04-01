@@ -85,17 +85,11 @@ class TestSignals:
         assert results == [1]
 
 
-class TestWrapLabel:
-    def test_set_wrap_mode_blue(self, ctl):
-        ctl.set_wrap_mode("blue")
-        assert "blue" in ctl.wrap_btn.text().lower() or "loaded" in ctl.wrap_btn.text().lower()
-
-    def test_set_wrap_mode_yellow(self, ctl):
-        ctl.set_wrap_mode("yellow")
-        assert "yellow" in ctl.wrap_btn.text().lower() or "active" in ctl.wrap_btn.text().lower()
-
-
 class TestLoopModeLabel:
-    def test_set_loop_mode(self, ctl):
+    def test_set_loop_mode_uses_label(self, ctl):
         ctl.set_loop_mode("base-tip-base")
-        assert "base" in ctl.loop_mode_btn.text().lower()
+        assert ctl.loop_mode_btn.text() == "base-tip-base"
+
+    def test_set_loop_mode_unknown_falls_back_to_raw(self, ctl):
+        ctl.set_loop_mode("unknown-mode")
+        assert ctl.loop_mode_btn.text() == "unknown-mode"

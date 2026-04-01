@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PyQt6.QtWidgets import QDialog
+
 from .create_session import create_session
-from .launcher import launcher_dialog
+from .gui.launcher_dialog import LauncherDialog
 from .paths import LAST_SESSION_FILE, ensure_runtime_dirs
 from .state import VideoState
 from .state_factory import make_video_state
 from .utils import parse_timestamp, read_json
+from .vlc_prefill import detect_vlc_session_prefill
 
 
 def _load_state_from_session_file(session_path: Path) -> VideoState:
@@ -46,7 +49,17 @@ def build_state_from_launch_info(info: dict) -> VideoState:
 
 def launch_state() -> VideoState:
     ensure_runtime_dirs()
-    info = launcher_dialog()
-    if not info.get("ok"):
+    last_session = LAST_SESSION_FILE.read_text(encoding="utf-8").strip() if LAST_SESSION_FILE.exists() else ""
+    dialog = LauncherDialog(last_session=last_session)
+
+    vlc_prefill = detect_vlc_session_prefill()
+    if vlc_prefill:
+        dialog.session_name_edit.setText(vlc_prefill.session_name)
+        dialog.video_file_edit.setText(vlc_prefill.video_file)
+        dialog.timestamp_edit.setText(vlc_prefill.timestamp)
+        dialog.new_radio.setChecked(True)
+
+    if dialog.exec() != QDialog.DialogCode.Accepted:
         raise SystemExit(0)
+    info = dialog.build_result()
     return build_state_from_launch_info(info)

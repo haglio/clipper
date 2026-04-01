@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from PyQt6.QtCore import QSize, pyqtSignal
 from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QWidget
-from PyQt6.QtCore import pyqtSignal
+
+import qtawesome as qta
+
+_ICON_COLOR = "#ddd"
+_ICON_SIZE = QSize(14, 14)
 
 
 class ButtonBar(QWidget):
@@ -17,10 +22,16 @@ class ButtonBar(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
 
-        self.speed_down_btn = QPushButton("-")
-        self.speed_up_btn = QPushButton("+")
-        self.play_pause_btn = QPushButton("Play")
-        self.export_btn = QPushButton("Export")
+        self._icon_play = qta.icon("fa5s.play", color=_ICON_COLOR)
+        self._icon_pause = qta.icon("fa5s.pause", color=_ICON_COLOR)
+
+        self.speed_down_btn = QPushButton(qta.icon("fa5s.minus", color=_ICON_COLOR), "")
+        self.speed_up_btn = QPushButton(qta.icon("fa5s.plus", color=_ICON_COLOR), "")
+        self.play_pause_btn = QPushButton(self._icon_play, "")
+        self.export_btn = QPushButton("export")
+
+        for btn in (self.speed_down_btn, self.speed_up_btn, self.play_pause_btn):
+            btn.setIconSize(_ICON_SIZE)
 
         self.speed_down_btn.clicked.connect(self.speed_down_clicked)
         self.speed_up_btn.clicked.connect(self.speed_up_clicked)
@@ -35,4 +46,6 @@ class ButtonBar(QWidget):
         layout.addWidget(self.export_btn)
 
     def set_playing(self, playing: bool) -> None:
-        self.play_pause_btn.setText("Pause" if playing else "Play")
+        self.play_pause_btn.setIcon(
+            self._icon_pause if playing else self._icon_play
+        )

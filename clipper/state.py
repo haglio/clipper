@@ -63,10 +63,6 @@ class VideoState:
     dirty: bool = False
     protect_existing_save_data: bool = False
     last_saved_payload: dict[str, Any] | None = None
-    hover_text: str = ""
-    buttons: dict[str, tuple[int, int, int, int]] = field(default_factory=dict)
-    mouse_x: int = 0
-    mouse_y: int = 0
     render_rev: int = 0
     loop_paused: bool = False
     paused_loop_idx: int | None = None

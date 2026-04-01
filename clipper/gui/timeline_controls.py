@@ -38,7 +38,7 @@ class TimelineControls(QWidget):
         self.mark_out_btn = QPushButton("]")
 
         # Wrap and loop mode
-        self.wrap_btn = QPushButton("Wrap: loaded")
+        self.wrap_btn = QPushButton("wrap")
         self.loop_mode_btn = QPushButton("base-tip-base")
 
         # Wire signals
@@ -78,8 +78,9 @@ class TimelineControls(QWidget):
         layout.addLayout(mode_row)
 
     def set_wrap_mode(self, mode: str) -> None:
-        label = "loaded" if mode == "blue" else "active"
-        self.wrap_btn.setText(f"Wrap: {label}")
+        self.wrap_btn.setText("wrap")
 
     def set_loop_mode(self, mode: str) -> None:
-        self.loop_mode_btn.setText(mode)
+        from clipper.loop_modes import LOOP_MODE_LABELS
+
+        self.loop_mode_btn.setText(LOOP_MODE_LABELS.get(mode, mode))

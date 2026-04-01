@@ -3,8 +3,6 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-import cv2
-
 from clipper.exit_prompt import (
     cycle_exit_prompt_focus,
     finish_exit_prompt_action,
@@ -12,10 +10,7 @@ from clipper.exit_prompt import (
     request_exit,
     show_exit_prompt,
 )
-from clipper.controls import handle_key, on_mouse
-from clipper import render as clipper_render
-from clipper.render_canvas import HOTKEY_LEGEND_ROWS, _format_cursor_counter, _format_loop_frame_counter
-from clipper.ui import build_ui
+from clipper.controls import handle_key
 
 from tests.test_clipper_state import _make_state
 
@@ -172,146 +167,3 @@ class TestExitPromptControls:
         state.autosave_session.assert_not_called()
 
 
-class TestMouseControls:
-    def test_clicking_play_pause_button_toggles_loop_pause(self):
-        state = _make_state()
-        build_ui(state)
-        x1, y1, x2, y2 = state.buttons["play_pause"]
-        on_mouse(cv2.EVENT_LBUTTONDOWN, (x1 + x2) // 2, (y1 + y2) // 2, 0, state)
-        assert state.loop_paused is True
-
-    def test_build_ui_sets_play_icon_when_paused(self):
-        state = _make_state()
-        state.loop_paused = True
-        icons: list[str | None] = []
-
-        def capture_button(_img, _rect, text, **kwargs):
-            if text == "":
-                icons.append(kwargs.get("icon"))
-
-        with patch.object(clipper_render, "draw_button", side_effect=capture_button):
-            build_ui(state)
-
-        assert "play" in icons
-
-    def test_clicking_loop_mode_button_cycles_mode(self):
-        state = _make_state(loop_mode="base-tip-base")
-        build_ui(state)
-        x1, y1, x2, y2 = state.buttons["loop_mode"]
-        on_mouse(cv2.EVENT_LBUTTONDOWN, (x1 + x2) // 2, (y1 + y2) // 2, 0, state)
-        assert state.loop_mode == "tip-base-tip"
-
-    def test_clicking_shift_right_button_shifts_active_range(self):
-        state = _make_state(active_start=10, active_end=20, current=15)
-        build_ui(state)
-        x1, y1, x2, y2 = state.buttons["shift_right"]
-        on_mouse(cv2.EVENT_LBUTTONDOWN, (x1 + x2) // 2, (y1 + y2) // 2, 0, state)
-        assert state.active_start == 20
-        assert state.active_end == 30
-
-    def test_clicking_exit_choice_sets_that_action(self):
-        state = _make_state()
-        state.exit_prompt_visible = True
-        build_ui(state)
-        x1, y1, x2, y2 = state.buttons["exit_cancel"]
-
-        on_mouse(cv2.EVENT_LBUTTONDOWN, (x1 + x2) // 2, (y1 + y2) // 2, 0, state)
-
-        assert state.exit_prompt_focus == "cancel"
-        assert state.exit_prompt_action == "cancel"
-
-
-class TestLayout:
-    def test_speed_and_play_buttons_are_square_and_evenly_spaced(self):
-        state = _make_state()
-        build_ui(state)
-        speed_down = state.buttons["speed_down"]
-        speed_up = state.buttons["speed_up"]
-        play_pause = state.buttons["play_pause"]
-
-        def width(rect):
-            return rect[2] - rect[0]
-
-        def height(rect):
-            return rect[3] - rect[1]
-
-        def gap(left, right):
-            return right[0] - left[2]
-
-        assert width(speed_down) == height(speed_down)
-        assert width(speed_up) == height(speed_up)
-        assert width(play_pause) == height(play_pause)
-        assert gap(speed_down, speed_up) == gap(speed_up, play_pause)
-
-    def test_hotkey_legend_rows_match_ui_order_and_wording_rules(self):
-        assert HOTKEY_LEGEND_ROWS == (
-            (
-                (("-", "+"), " or ", "speed"),
-                (("space",), "", "play or pause preview"),
-                (("enter",), "", "export"),
-            ),
-            (
-                (("a", "s"), " or ", "adjust left bound"),
-                (("<", ">"), " or ", "shift in-out"),
-                (("left", "right"), " or ", "move cursor"),
-                (("i", "["), "/", "mark in"),
-                (("o", "]"), "/", "mark out"),
-                (("d", "f"), " or ", "adjust right bound"),
-            ),
-            (
-                (("(", ")"), " or ", "accept in or out suggestion"),
-                (("w",), "", "toggle cursor wrap mode"),
-                (("l",), "", "cycle loop type"),
-            ),
-        )
-
-    def test_timeline_draws_frame_ticks_for_loaded_range(self):
-        state = _make_state(total_frames=20, loaded_start=10, loaded_end=14, active_start=11, active_end=13, current=12)
-
-        with patch("clipper.render_timeline.cv2.circle") as circle:
-            build_ui(state)
-
-        tick_calls = [call for call in circle.call_args_list if call.args[2] == 1]
-        assert len(tick_calls) == state.loaded_count * 2
-
-    def test_loop_frame_counter_zero_pads_current_position_and_includes_total(self):
-        assert _format_loop_frame_counter(9, 15) == "09/15"
-        assert _format_loop_frame_counter(99, 100) == "099/100"
-
-    def test_cursor_counter_zero_pads_current_position_and_loaded_max(self):
-        assert _format_cursor_counter(20, 103) == "020/103"
-        assert _format_cursor_counter(4, 9) == "04/09"
-
-    def test_shift_buttons_render_above_timeline_and_mark_wrap_controls_render_below(self):
-        state = _make_state(active_start=10, active_end=30, current=20)
-        build_ui(state)
-        timeline = state.buttons["timeline"]
-        shift_left = state.buttons["shift_left"]
-        shift_right = state.buttons["shift_right"]
-        mark_in = state.buttons["mark_in"]
-        mark_out = state.buttons["mark_out"]
-        wrap = state.buttons["wrap"]
-
-        assert shift_left[3] <= timeline[1]
-        assert shift_right[3] <= timeline[1]
-        assert mark_in[1] >= timeline[3]
-        assert mark_out[1] >= timeline[3]
-        assert wrap[1] > mark_in[3]
-
-    def test_exit_overlay_uses_focus_border_instead_of_active_fill(self):
-        state = _make_state()
-        state.exit_prompt_visible = True
-        state.exit_prompt_focus = "discard"
-        captured: dict[str, dict[str, object]] = {}
-
-        def capture_button(_img, _rect, text, **kwargs):
-            captured[text] = kwargs
-
-        with patch.object(clipper_render, "draw_button", side_effect=capture_button):
-            build_ui(state)
-
-        assert captured["save and exit"].get("active", False) is False
-        assert captured["save and exit"].get("focused", False) is False
-        assert captured["exit w/o save"].get("active", False) is False
-        assert captured["exit w/o save"].get("focused", False) is True
-        assert captured["cancel exit"].get("active", False) is False

@@ -6,7 +6,7 @@ from PyQt6.QtCore import QRectF, Qt
 from PyQt6.QtGui import QImage, QPainter
 from PyQt6.QtWidgets import QWidget
 
-from shared_ui.colors import BG_SECONDARY
+from shared_ui.colors import BG_SECONDARY, BORDER_SUBTLE
 
 
 class VideoPane(QWidget):
@@ -16,6 +16,9 @@ class VideoPane(QWidget):
         super().__init__(parent)
         self._image: QImage | None = None
         self.setMinimumSize(320, 240)
+        self.setStyleSheet(
+            f"border: 1px solid {BORDER_SUBTLE.name()}; background: {BG_SECONDARY.name()};"
+        )
 
     def current_image(self) -> QImage | None:
         return self._image

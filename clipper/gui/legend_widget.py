@@ -16,9 +16,28 @@ from shared_ui.colors import (
 )
 from shared_ui.fonts import FONT_MONO, SIZE_SMALL, SIZE_TINY
 
-from clipper.render_canvas import HOTKEY_LEGEND_ROWS
-
 LegendEntry = tuple[tuple[str, ...], str, str]
+
+HOTKEY_LEGEND_ROWS: tuple[tuple[LegendEntry, ...], ...] = (
+    (
+        (("-", "+"), " or ", "speed"),
+        (("space",), "", "play or pause preview"),
+        (("enter",), "", "export"),
+    ),
+    (
+        (("a", "s"), " or ", "adjust left bound"),
+        (("<", ">"), " or ", "shift in-out"),
+        (("left", "right"), " or ", "move cursor"),
+        (("i", "["), "/", "mark in"),
+        (("o", "]"), "/", "mark out"),
+        (("d", "f"), " or ", "adjust right bound"),
+    ),
+    (
+        (("(", ")"), " or ", "accept in or out suggestion"),
+        (("w",), "", "toggle cursor wrap mode"),
+        (("l",), "", "cycle loop type"),
+    ),
+)
 
 
 class LegendWidget(QWidget):
@@ -28,6 +47,21 @@ class LegendWidget(QWidget):
         super().__init__(parent)
         self.legend_rows: tuple[tuple[LegendEntry, ...], ...] = HOTKEY_LEGEND_ROWS
         self.setMinimumHeight(80)
+
+    def _row_width(self, p: QPainter, row, key_font, label_font, join_font) -> int:
+        """Pre-calculate the total pixel width of a legend row."""
+        w = 0
+        for keys, joiner, label in row:
+            for i, key in enumerate(keys):
+                if i > 0 and joiner:
+                    p.setFont(join_font)
+                    w += p.fontMetrics().horizontalAdvance(joiner) + 4
+                p.setFont(key_font)
+                tw = p.fontMetrics().horizontalAdvance(key)
+                w += max(tw + 12, 24) + 2
+            p.setFont(label_font)
+            w += p.fontMetrics().horizontalAdvance(f": {label}") + 16
+        return w
 
     def paintEvent(self, event) -> None:
         p = QPainter(self)
@@ -43,7 +77,8 @@ class LegendWidget(QWidget):
 
         for row_idx, row in enumerate(self.legend_rows):
             y = row_idx * row_height
-            x = 8
+            rw = self._row_width(p, row, key_font, label_font, join_font)
+            x = max(8, (self.width() - rw) // 2)
 
             for keys, joiner, label in row:
                 for i, key in enumerate(keys):

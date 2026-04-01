@@ -17,6 +17,11 @@ Clipper is a standalone Pygame/OpenCV video clip editor, extracted from the fun_
 - **Entry point**: `python -m clipper` -> `__main__.py` -> `app.py:main()` -> launcher dialog -> UI.
 - **Launcher chain**: `Clipper.lnk` -> `wscript.exe` -> `launch_clipper.vbs` -> `python -m clipper`.
 
+## Communication rules
+
+- **Answer questions before doing work.** When the user asks questions or raises concerns, respond to each one. Do not silently go off and do a batch of work instead of engaging with the conversation.
+- **Don't assume the next step.** Wait for the user to confirm direction before starting work, especially after a check-in or review.
+
 ## Repo-specific gotchas
 
 - The test environment is the project `.venv`, not system Python or Conda.

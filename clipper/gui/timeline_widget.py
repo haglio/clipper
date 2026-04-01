@@ -10,7 +10,6 @@ from shared_ui.colors import (
     BG_PRIMARY,
     BORDER_TICK,
     BORDER_TIMELINE,
-    BORDER_WRAP,
     TIMELINE_ACTIVE,
     TIMELINE_CURSOR,
     TIMELINE_LOADED,
@@ -36,7 +35,8 @@ class TimelineWidget(QWidget):
         self.suggested_in: int | None = None
         self.suggested_out: int | None = None
         self.wrap_mode: str = "blue"
-        self.setMinimumHeight(30)
+        self.setMinimumHeight(24)
+        self.setFixedHeight(24)
 
     # -- Public setters -------------------------------------------------------
 
@@ -108,6 +108,14 @@ class TimelineWidget(QWidget):
         ax2 = self.x_for_index(self.active_end)
         p.fillRect(ax1, 0, ax2 - ax1, h, TIMELINE_ACTIVE)
 
+        # Frame tick dots (top and bottom)
+        tick_pen = QPen(BORDER_TICK, 1)
+        p.setPen(tick_pen)
+        for i in range(self.loaded_start, self.loaded_end + 1):
+            tx = self.x_for_index(i)
+            p.drawPoint(tx, 2)
+            p.drawPoint(tx, h - 3)
+
         # Suggested in/out dotted lines
         if self.suggested_in is not None:
             self._draw_dotted_line(p, self.x_for_index(self.suggested_in), h, TIMELINE_SUGGESTED_IN)
@@ -127,23 +135,9 @@ class TimelineWidget(QWidget):
         p.setPen(pen)
         p.drawRect(0, 0, w - 1, h - 1)
 
-        # Wrap mode indicator lines
-        if self.wrap_mode == "blue":
-            wrap_lo, wrap_hi = self.loaded_start, self.loaded_end
-        else:
-            wrap_lo, wrap_hi = self.active_start, self.active_end
-        wx1 = self.x_for_index(wrap_lo)
-        wx2 = self.x_for_index(wrap_hi)
-        wrap_pen = QPen(BORDER_WRAP, 1)
-        p.setPen(wrap_pen)
-        mid_y = h + 6
-        p.drawLine(wx1, mid_y, wx2, mid_y)
-        p.drawLine(wx1, mid_y - 4, wx1, mid_y + 4)
-        p.drawLine(wx2, mid_y - 4, wx2, mid_y + 4)
-
         p.end()
 
     def _draw_dotted_line(self, p: QPainter, x: int, h: int, color: QColor) -> None:
         pen = QPen(color, 2, Qt.PenStyle.DashLine)
         p.setPen(pen)
-        p.drawLine(x, -4, x, h + 4)
+        p.drawLine(x, 0, x, h)

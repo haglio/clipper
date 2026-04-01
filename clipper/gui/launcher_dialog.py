@@ -102,8 +102,11 @@ class LauncherDialog(QDialog):
         }
 
     def _browse_session(self) -> None:
+        from clipper.paths import SESSIONS_DIR
+
+        start_dir = str(SESSIONS_DIR) if SESSIONS_DIR.is_dir() else ""
         path, _ = QFileDialog.getOpenFileName(
-            self, "Select Session JSON", "", "JSON Files (*.json)"
+            self, "Select Session JSON", start_dir, "JSON Files (*.json)"
         )
         if path:
             self.session_json_edit.setText(path)
