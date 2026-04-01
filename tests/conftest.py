@@ -40,6 +40,21 @@ def _cleanup_tmp_root():
         pass
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _preserve_last_session():
+    """Save and restore .last_session.txt so tests don't clobber the user's state."""
+    from clipper.paths import LAST_SESSION_FILE
+
+    had_file = LAST_SESSION_FILE.exists()
+    original = LAST_SESSION_FILE.read_text(encoding="utf-8") if had_file else None
+    yield
+    if original is not None:
+        LAST_SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
+        LAST_SESSION_FILE.write_text(original, encoding="utf-8")
+    elif LAST_SESSION_FILE.exists():
+        LAST_SESSION_FILE.unlink()
+
+
 def _write_config(tmp_path: Path, overrides: dict | None = None) -> Path:
     """Write a minimal valid config JSON to tmp_path and return the path."""
     # Create stub directories / files that config validation expects.
