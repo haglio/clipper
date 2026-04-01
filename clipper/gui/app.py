@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import ctypes
 import sys
 from typing import TYPE_CHECKING
 
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
+
+from clipper.window_icons import clipper_icon_path
 
 from .main_window import ClipperMainWindow
 from .playback_timer import PlaybackTimer
@@ -22,18 +23,18 @@ class ClipperApp:
     def __init__(self, state: VideoState):
         self._state = state
 
-        # Set Windows App ID for taskbar grouping
-        try:
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
-                "Clipper.VideoEditor"
-            )
-        except (AttributeError, OSError):
-            pass
+        # AppUserModelID is already set by app.main() before we get here;
+        # do NOT override it — it must stay "FunTime.Clipper" to match the
+        # shortcut so Windows groups the taskbar entry correctly.
 
         self._app = QApplication.instance()
         if self._app is None:
             self._app = QApplication(sys.argv)
         self._app.setApplicationName("Clipper")
+
+        icon_path = clipper_icon_path()
+        if icon_path.exists():
+            self._app.setWindowIcon(QIcon(str(icon_path)))
 
         self.window = ClipperMainWindow(state)
         self.playback_timer = PlaybackTimer()
