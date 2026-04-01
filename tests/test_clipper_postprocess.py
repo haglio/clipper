@@ -42,7 +42,7 @@ class TestNormalizeLoopMode:
 
 
 def test_clip_postprocess_cli_runs_as_direct_script():
-    script_path = Path("clipper/clip_postprocess.py")
+    script_path = Path(__file__).resolve().parent.parent / "clipper" / "clip_postprocess.py"
     result = subprocess.run(
         [sys.executable, str(script_path), "--help"],
         capture_output=True,
