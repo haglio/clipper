@@ -30,13 +30,14 @@ SESSIONS_DIR = PROJECT_DIR / "sessions"
 RAW_CLIPS_DIR = PROJECT_DIR / "raw_clips"
 CLIPS_DIR = Path("C:/path/to/suite-root/videos/robot_hand/clips")
 AUDIO_DIR = Path("C:/path/to/suite-root/videos/robot_hand/audio")
+FRAMES_DIR = Path("C:/path/to/suite-root/videos/robot_hand/frames")
 LAST_SESSION_FILE = SESSIONS_DIR / ".last_session.txt"
 CLIP_POSTPROCESS_SCRIPT = MODULE_DIR / "clip_postprocess.py"
 LOOP_FIX_SCRIPT = CLIP_POSTPROCESS_SCRIPT
 
 
 def ensure_runtime_dirs() -> None:
-    for directory in (SESSIONS_DIR, RAW_CLIPS_DIR, CLIPS_DIR, AUDIO_DIR):
+    for directory in (SESSIONS_DIR, RAW_CLIPS_DIR, CLIPS_DIR, AUDIO_DIR, FRAMES_DIR):
         directory.mkdir(parents=True, exist_ok=True)
 
 
@@ -50,6 +51,7 @@ __all__ = [
     "BOUNDS_EXTEND_RIGHT_KEYS",
     "CLIPS_DIR",
     "CLIP_POSTPROCESS_SCRIPT",
+    "FRAMES_DIR",
     "ENTER_KEYS",
     "ESC_KEYS",
     "LAST_SESSION_FILE",

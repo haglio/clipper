@@ -4,7 +4,8 @@ import subprocess
 import time
 
 from .export_steps import export_full_audio_mp3, export_raw_clip, run_clip_postprocess
-from .paths import AUDIO_DIR, CLIPS_DIR, RAW_CLIPS_DIR
+from .frame_cache_export import generate_frame_cache
+from .paths import AUDIO_DIR, CLIPS_DIR, FRAMES_DIR, RAW_CLIPS_DIR
 from .state import ExportJob, VideoState
 from .utils import sanitize_name
 from .threading_utils import start_daemon_thread
@@ -31,6 +32,12 @@ def _run_export_pipeline(state: VideoState, job: ExportJob) -> None:
     if not ok:
         _mark_export_failure(job, detail, "fix_status")
         return
+    cache_path = FRAMES_DIR / f"{session_base}.rhcache"
+    try:
+        job.stage = "generating frame cache"
+        generate_frame_cache(clip_path, cache_path)
+    except Exception:
+        pass
     ok, detail = export_full_audio_mp3(state, audio_path, job)
     if not ok:
         _mark_export_failure(job, detail, "audio_status")
