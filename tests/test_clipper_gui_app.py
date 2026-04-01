@@ -57,3 +57,8 @@ class TestConstruction:
     def test_window_has_state(self, mock_state):
         app = ClipperApp(mock_state)
         assert app.window._state is mock_state
+
+    def test_sets_application_icon(self, mock_state):
+        app = ClipperApp(mock_state)
+        qapp = QApplication.instance()
+        assert not qapp.windowIcon().isNull()
