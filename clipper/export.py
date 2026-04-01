@@ -7,6 +7,7 @@ from .export_steps import export_full_audio_mp3, export_raw_clip, run_clip_postp
 from .frame_cache_export import generate_frame_cache
 from .paths import AUDIO_DIR, CLIPS_DIR, FRAMES_DIR, RAW_CLIPS_DIR
 from .state import ExportJob, VideoState
+from .topaz_enhance import enhance_clip, topaz_available
 from .utils import sanitize_name
 from .threading_utils import start_daemon_thread
 
@@ -32,6 +33,15 @@ def _run_export_pipeline(state: VideoState, job: ExportJob) -> None:
     if not ok:
         _mark_export_failure(job, detail, "fix_status")
         return
+    if topaz_available():
+        try:
+            job.stage = "enhancing with Topaz Video AI"
+            enhanced_path = clip_path.with_stem(clip_path.stem + "_enhanced")
+            result = enhance_clip(clip_path, enhanced_path)
+            enhanced_path.replace(clip_path)
+            job.stage = f"enhanced: {result['output_frames']} frames @ {result['output_resolution']}"
+        except Exception:
+            pass
     cache_path = FRAMES_DIR / f"{session_base}.rhcache"
     try:
         job.stage = "generating frame cache"
