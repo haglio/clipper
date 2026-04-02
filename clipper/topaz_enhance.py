@@ -42,7 +42,7 @@ def _compute_upscale_factor(
         estimated_cache_mb = (out_w * out_h * 0.5 * target_frames) / (1024 * 1024)
         # H.265 video is much smaller, so MB cap is generous; check RAM instead
         estimated_ram_mb = (out_w * out_h * 3 * target_frames) / (1024 * 1024)
-        if estimated_ram_mb <= 2000:
+        if estimated_cache_mb <= max_mb and estimated_ram_mb <= 2000:
             return scale
     return 1
 
