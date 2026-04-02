@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from shared_ui.colors import (
-    ACCENT_ERROR_TEXT,
+    RED,
     BG_PRIMARY,
     TEXT_PRIMARY,
     TEXT_SECONDARY,
@@ -143,7 +143,7 @@ class ClipperMainWindow(QMainWindow):
         self.warning_label = QLabel()
         self.warning_label.setFont(_MONO_FONT_SM)
         self.warning_label.setStyleSheet(
-            f"color: {ACCENT_ERROR_TEXT.name()}; background: transparent;"
+            f"color: {RED.name()}; background: transparent;"
         )
         self.warning_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
