@@ -24,7 +24,7 @@ from shared_ui.colors import (
     TIMELINE_ACTIVE,
     TIMELINE_LOADED,
 )
-from shared_ui.fonts import FONT_MONO, SIZE_BODY, SIZE_HEADING, SIZE_SMALL, mono_font
+from shared_ui.fonts import FONT_UI, SIZE_BODY, SIZE_HEADING, SIZE_SMALL, make_font
 
 from clipper.editing import (
     accept_suggested_in,
@@ -51,10 +51,10 @@ if TYPE_CHECKING:
     from clipper.state import VideoState
 
 _LABEL_STYLE = f"color: {TEXT_SECONDARY.name()}; background: transparent;"
-_MONO_FONT_SM = mono_font(SIZE_SMALL)
+_UI_FONT_SM = make_font(FONT_UI, SIZE_SMALL)
 _BTN_STYLE = f"""
     QPushButton {{
-        font-family: "{FONT_MONO}", Consolas, monospace;
+        font-family: "{FONT_UI}";
         font-size: {SIZE_SMALL}pt;
         color: {TEXT_PRIMARY.name()};
         background: #585858;
@@ -119,29 +119,29 @@ class ClipperMainWindow(QMainWindow):
 
         self.session_label = QLabel(state.session_name)
         self.session_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.session_label.setFont(mono_font(SIZE_HEADING, bold=True))
+        self.session_label.setFont(make_font(FONT_UI, SIZE_HEADING, bold=True))
 
         self.file_info_label = QLabel(
             f"file: {os.path.basename(state.path)}    fps: {state.fps:.3f}"
         )
         self.file_info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.file_info_label.setFont(_MONO_FONT_SM)
+        self.file_info_label.setFont(_UI_FONT_SM)
         self.file_info_label.setStyleSheet(_LABEL_STYLE)
 
         self.cursor_label = QLabel()
-        self.cursor_label.setFont(_MONO_FONT_SM)
+        self.cursor_label.setFont(_UI_FONT_SM)
         self.cursor_label.setStyleSheet(_LABEL_STYLE)
 
         self.loop_label = QLabel()
-        self.loop_label.setFont(_MONO_FONT_SM)
+        self.loop_label.setFont(_UI_FONT_SM)
         self.loop_label.setStyleSheet(_LABEL_STYLE)
 
         self.speed_label = QLabel()
-        self.speed_label.setFont(_MONO_FONT_SM)
+        self.speed_label.setFont(_UI_FONT_SM)
         self.speed_label.setStyleSheet(_LABEL_STYLE)
 
         self.warning_label = QLabel()
-        self.warning_label.setFont(_MONO_FONT_SM)
+        self.warning_label.setFont(_UI_FONT_SM)
         self.warning_label.setStyleSheet(
             f"color: {RED.name()}; background: transparent;"
         )
@@ -174,13 +174,13 @@ class ClipperMainWindow(QMainWindow):
 
         # Pane headers
         left_header = QLabel("frame at cursor")
-        left_header.setFont(mono_font(SIZE_HEADING))
+        left_header.setFont(make_font(FONT_UI, SIZE_HEADING))
         left_header.setStyleSheet(_LABEL_STYLE)
         left_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         left_header.setContentsMargins(0, 6, 0, 6)
 
         right_header = QLabel("loop preview")
-        right_header.setFont(mono_font(SIZE_HEADING))
+        right_header.setFont(make_font(FONT_UI, SIZE_HEADING))
         right_header.setStyleSheet(_LABEL_STYLE)
         right_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         right_header.setContentsMargins(0, 6, 0, 6)

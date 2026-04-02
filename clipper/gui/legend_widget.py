@@ -14,7 +14,7 @@ from shared_ui.colors import (
     TEXT_LEGEND_LABEL,
     TEXT_PRIMARY,
 )
-from shared_ui.fonts import FONT_MONO, SIZE_SMALL, SIZE_TINY
+from shared_ui.fonts import FONT_UI, SIZE_SMALL, SIZE_TINY
 
 LegendEntry = tuple[tuple[str, ...], str, str]
 
@@ -68,10 +68,10 @@ class LegendWidget(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), BG_PRIMARY)
 
-        key_font = QFont(FONT_MONO, SIZE_SMALL)
+        key_font = QFont(FONT_UI, SIZE_SMALL)
         key_font.setBold(True)
-        label_font = QFont(FONT_MONO, SIZE_TINY)
-        join_font = QFont(FONT_MONO, SIZE_TINY)
+        label_font = QFont(FONT_UI, SIZE_TINY)
+        join_font = QFont(FONT_UI, SIZE_TINY)
 
         row_height = self.height() // max(1, len(self.legend_rows))
 
