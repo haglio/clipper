@@ -36,9 +36,16 @@ def main() -> int:
     _set_windows_app_user_model_id()
     logger = _init_logger()
     try:
+        from PyQt6.QtGui import QIcon
         from PyQt6.QtWidgets import QApplication, QMessageBox
 
         _app = QApplication.instance() or QApplication(sys.argv)
+        # Set icon early so the launcher dialog inherits it.
+        from .window_icons import clipper_icon_path
+
+        _ico = clipper_icon_path()
+        if _ico.exists():
+            _app.setWindowIcon(QIcon(str(_ico)))
         state = launch_state()
 
         from .gui.app import ClipperApp
