@@ -99,7 +99,7 @@ class ClipperMainWindow(QMainWindow):
     def __init__(self, state: VideoState, parent=None):
         super().__init__(parent)
         self._state = state
-        self.setWindowTitle(f"Clipper \u2014 {state.session_name}")
+        self.setWindowTitle("Clipper")
         self.setMinimumSize(900, 600)
         self.resize(1520, 960)
 

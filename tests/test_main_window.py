@@ -70,7 +70,7 @@ class TestConstruction:
         assert window.legend is not None
 
     def test_window_title(self, window):
-        assert "test_session" in window.windowTitle().lower() or "clipper" in window.windowTitle().lower()
+        assert window.windowTitle() == "Clipper"
 
     def test_all_buttons_have_no_focus_policy(self, window):
         """Buttons must not steal focus — arrow/space/enter must reach keyPressEvent."""
