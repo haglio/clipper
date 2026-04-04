@@ -15,6 +15,7 @@ import pytest
 from clipper.export_steps import (
     _parse_ffmpeg_clock,
     _run_ffmpeg_with_progress,
+    export_full_audio_mp3,
     run_clip_postprocess,
     validate_video_file,
 )
@@ -203,6 +204,18 @@ class TestRunFfmpegWithProgress:
 
         assert proc not in job.procs
 
+    def test_nonzero_exit_includes_error_output(self):
+        proc = self._make_proc_mock(
+            ["Stream mapping:", "  No audio stream found", "out_time=00:00:00.000000"],
+            returncode=1,
+        )
+        with patch("subprocess.Popen", return_value=proc):
+            ok, err = _run_ffmpeg_with_progress(
+                ["ffmpeg", "-version"], 10.0, lambda p: None
+            )
+        assert ok is False
+        assert "No audio stream found" in err
+
     def test_progress_never_exceeds_1(self):
         # Simulate an out_time that exceeds total duration
         proc = self._make_proc_mock(["out_time=99:00:00.000000", "progress=end"])
@@ -236,3 +249,54 @@ class TestRunClipPostprocess:
         cmd = popen.call_args.args[0]
         assert "--loop-mode" in cmd
         assert "tip-base" in cmd
+
+
+class TestExportFullAudioMp3:
+    def test_skips_when_no_audio_stream(self, tmp_path: Path):
+        """Videos without audio should not fail the entire export."""
+        job = ExportJob()
+        state = _make_state()
+        out_path = tmp_path / "out.mp3"
+
+        # ffprobe reports no audio streams
+        probe_proc = MagicMock()
+        probe_proc.communicate.return_value = ("", "")
+        probe_proc.returncode = 0
+
+        with patch("clipper.export_steps.find_tool", return_value="ffprobe"), \
+             patch("subprocess.Popen", return_value=probe_proc):
+            ok, detail = export_full_audio_mp3(state, out_path, job)
+
+        assert ok is True
+        assert "no audio" in detail.lower()
+
+    def test_proceeds_when_audio_stream_exists(self, tmp_path: Path):
+        """Normal videos with audio should go through the ffmpeg path."""
+        job = ExportJob()
+        state = _make_state()
+        out_path = tmp_path / "out.mp3"
+
+        # ffprobe reports an audio stream
+        probe_proc = MagicMock()
+        probe_proc.communicate.return_value = ("audio\n", "")
+        probe_proc.returncode = 0
+
+        # ffmpeg succeeds and creates a file
+        ffmpeg_proc = MagicMock()
+        ffmpeg_proc.stdout = io.StringIO("progress=end\n")
+        ffmpeg_proc.wait.return_value = 0
+        ffmpeg_proc.poll.return_value = 0
+
+        def popen_side_effect(cmd, **kw):
+            if "ffprobe" in cmd[0]:
+                return probe_proc
+            return ffmpeg_proc
+
+        out_path.write_bytes(b"\xff" * 4096)  # pre-create so size check passes
+
+        with patch("clipper.export_steps.find_tool", side_effect=lambda n: n), \
+             patch("subprocess.Popen", side_effect=popen_side_effect):
+            ok, detail = export_full_audio_mp3(state, out_path, job)
+
+        assert ok is True
+        assert str(out_path) in detail

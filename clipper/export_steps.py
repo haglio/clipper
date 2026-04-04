@@ -41,11 +41,15 @@ def _run_ffmpeg_with_progress(
     except Exception as exc:
         return False, str(exc)
     progress = 0.0
+    error_lines: list[str] = []
     try:
         assert proc.stdout is not None
         for raw in proc.stdout:
             line = raw.strip()
-            if not line or "=" not in line:
+            if not line:
+                continue
+            if "=" not in line:
+                error_lines.append(line)
                 continue
             key, value = line.split("=", 1)
             partial = None
@@ -66,7 +70,9 @@ def _run_ffmpeg_with_progress(
         if proc.stdout is not None:
             proc.stdout.close()
     if rc != 0:
-        return False, f"ffmpeg exited with code {rc}"
+        detail = "\n".join(error_lines[-20:]).strip()
+        prefix = f"ffmpeg exited with code {rc}"
+        return False, f"{prefix}\n{detail}" if detail else prefix
     set_progress(1.0)
     return True, ""
 
@@ -162,10 +168,31 @@ def run_clip_postprocess(state: VideoState, raw_path: Path, out_path: Path, job:
 run_loop_fix = run_clip_postprocess
 
 
+def _has_audio_stream(video_path: str) -> bool:
+    ffprobe = find_tool("ffprobe")
+    if not ffprobe:
+        return True  # assume yes if ffprobe unavailable; let ffmpeg decide
+    try:
+        proc = subprocess.Popen(
+            [ffprobe, "-v", "quiet", "-select_streams", "a",
+             "-show_entries", "stream=codec_type", "-of", "csv=p=0", video_path],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            **subprocess_window_kwargs(),
+        )
+        stdout, _ = proc.communicate(timeout=10)
+        return bool(stdout.strip())
+    except Exception:
+        return True  # assume yes on probe failure; let ffmpeg decide
+
+
 def export_full_audio_mp3(state: VideoState, out_path: Path, job: ExportJob) -> tuple[bool, str]:
     ffmpeg = find_tool("ffmpeg")
     if not ffmpeg:
         return False, "ffmpeg not found on PATH"
+    if not _has_audio_stream(state.path):
+        job.audio_status = "skipped"
+        job.audio_progress = 1.0
+        return True, "No audio stream in source video"
     full_duration = max(1.0 / state.fps, state.total_frames / state.fps)
     cmd = [
         ffmpeg, "-y", "-hide_banner", "-loglevel", "error", "-progress", "pipe:1", "-nostats", "-stats_period", "0.1",
