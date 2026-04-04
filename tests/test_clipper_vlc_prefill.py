@@ -53,6 +53,33 @@ class TestDetectVlcSessionPrefill:
             note="Prefilled from VLC: beta clip.mp4. Timestamp defaulted to 00:00:00.000.",
         )
 
+    def test_http_resolves_filename_via_search_roots(self, tmp_path: Path):
+        root = tmp_path / "videos"
+        root.mkdir()
+        video = root / "clip.mp4"
+        video.write_bytes(b"")
+        status_xml = (
+            '<?xml version="1.0" encoding="utf-8" ?>'
+            "<root><time>3</time>"
+            "<information><category name=\"meta\">"
+            "<info name=\"filename\">clip.mp4</info>"
+            "</category></information></root>"
+        )
+        with (
+            patch("clipper.vlc_prefill._candidate_http_ports", return_value=[9999]),
+            patch("clipper.vlc_prefill._fetch_http_status") as mock_status,
+            patch("clipper.vlc_prefill_paths.search_roots", return_value=(root,)),
+            patch("clipper.vlc_prefill._fetch_playlist_xml") as mock_playlist,
+        ):
+            import xml.etree.ElementTree as ET
+            mock_status.return_value = ET.fromstring(status_xml)
+            from clipper.vlc_prefill import _detect_from_http
+            result = _detect_from_http()
+        assert result is not None
+        assert result.media_path == video
+        assert result.position_seconds == 3.0
+        mock_playlist.assert_not_called()
+
     def test_http_falls_back_to_playlist_when_status_gives_unresolvable_filename(self, tmp_path: Path):
         video = tmp_path / "clip.mp4"
         video.write_bytes(b"")
@@ -73,7 +100,7 @@ class TestDetectVlcSessionPrefill:
         with (
             patch("clipper.vlc_prefill._candidate_http_ports", return_value=[9999]),
             patch("clipper.vlc_prefill._fetch_http_status") as mock_status,
-            patch("clipper.vlc_prefill._search_roots", return_value=()),
+            patch("clipper.vlc_prefill_paths.search_roots", return_value=()),
             patch("clipper.vlc_prefill._fetch_playlist_xml") as mock_playlist,
         ):
             import xml.etree.ElementTree as ET
@@ -108,7 +135,7 @@ class TestResolveMediaPath:
         root.mkdir()
         video = root / "delta.mp4"
         video.write_bytes(b"")
-        with patch("clipper.vlc_prefill._search_roots", return_value=(root,)):
+        with patch("clipper.vlc_prefill_paths.search_roots", return_value=(root,)):
             result = _resolve_media_path("delta.mp4")
         assert result == video
 

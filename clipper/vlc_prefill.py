@@ -4,7 +4,6 @@ import base64
 import ctypes
 import os
 import urllib.error
-import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -15,14 +14,11 @@ from .config import load_config
 from .utils import format_seconds, sanitize_name
 from .vlc_prefill_paths import (
     _looks_like_vlc_title as _path_looks_like_vlc_title,
+    _resolve_media_path,
     _resolve_media_path_from_title as _path_resolve_media_path_from_title,
-    _search_roots as _path_search_roots,
-    _strip_vlc_title_suffix as _path_strip_vlc_title_suffix,
+    _strip_vlc_title_suffix,
     _timestamp_seconds_from_title as _path_timestamp_seconds_from_title,
 )
-
-_VIDEO_EXTENSIONS = (".mp4", ".mkv", ".mov", ".avi", ".webm", ".m4v")
-
 
 
 @dataclass(frozen=True)
@@ -206,51 +202,6 @@ def _timestamp_seconds_from_title(title: str) -> float | None:
 
 def _resolve_media_path_from_title(title: str) -> Path | None:
     return _path_resolve_media_path_from_title(title)
-
-
-def _resolve_media_path(raw: str | None) -> Path | None:
-    if not raw:
-        return None
-    candidate = raw.strip().strip('"')
-    if not candidate:
-        return None
-    parsed = urllib.parse.urlparse(candidate)
-    if parsed.scheme == "file":
-        candidate = urllib.request.url2pathname(parsed.path)
-    path = Path(candidate)
-    if path.is_file():
-        return path
-    filename = path.name or candidate
-    if not filename:
-        return None
-    return _search_roots_for_filename(filename)
-
-
-def _strip_vlc_title_suffix(title: str) -> str:
-    return _path_strip_vlc_title_suffix(title)
-
-
-@lru_cache(maxsize=1)
-def _search_roots() -> tuple[Path, ...]:
-    return _path_search_roots()
-
-
-def _search_roots_for_filename(filename: str) -> Path | None:
-    candidates = [filename]
-    stem = Path(filename).stem
-    suffix = Path(filename).suffix
-    if not suffix:
-        candidates.extend(f"{stem}{ext}" for ext in _VIDEO_EXTENSIONS)
-    for root in _search_roots():
-        for name in candidates:
-            direct = root / name
-            if direct.is_file():
-                return direct
-        for name in candidates:
-            match = next(root.rglob(name), None)
-            if match is not None and match.is_file():
-                return match
-    return None
 
 
 def _text_of(element: ET.Element | None) -> str | None:
