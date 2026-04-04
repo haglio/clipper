@@ -29,27 +29,61 @@ class ExportWorker(QThread):
             export_raw_clip,
             run_clip_postprocess,
         )
+        from clipper.paths import AUDIO_DIR, CLIPS_DIR, RAW_CLIPS_DIR
+        from clipper.state import ExportJob
+        from clipper.utils import sanitize_name
+
+        worker = self
+
+        class _SignalBridge(ExportJob):
+            """ExportJob subclass that forwards progress updates to Qt signals."""
+
+            def __init__(self) -> None:
+                object.__setattr__(self, "_w", worker)
+                super().__init__(active=True, stage="preparing export")
+
+            def __setattr__(self, name: str, value: object) -> None:
+                super().__setattr__(name, value)
+                try:
+                    w = object.__getattribute__(self, "_w")
+                except AttributeError:
+                    return
+                if name == "clip_progress":
+                    w.clip_progress.emit(value)
+                elif name == "fix_progress":
+                    w.fix_progress.emit(value)
+                elif name == "audio_progress":
+                    w.audio_progress.emit(value)
+                elif name == "stage":
+                    w.stage_changed.emit(str(value))
+
+        job = _SignalBridge()
+        self._state.export_job = job
+
+        session_base = sanitize_name(self._state.session_name)
+        raw_path = RAW_CLIPS_DIR / f"{session_base}.mp4"
+        clip_path = CLIPS_DIR / f"{session_base}.mp4"
+        audio_path = AUDIO_DIR / f"{session_base}.mp3"
 
         try:
-            self.stage_changed.emit("Exporting raw clip...")
-            raw_output = export_raw_clip(
-                self._state,
-                progress_cb=lambda p: self.clip_progress.emit(p),
-            )
+            ok, detail = export_raw_clip(self._state, raw_path, job)
+            if not ok:
+                self.export_finished.emit(False, detail)
+                return
 
-            self.stage_changed.emit("Normalizing clip...")
-            clip_output = run_clip_postprocess(
-                self._state,
-                raw_output,
-                progress_cb=lambda p: self.fix_progress.emit(p),
-            )
+            ok, detail = run_clip_postprocess(self._state, raw_path, clip_path, job)
+            if not ok:
+                self.export_finished.emit(False, detail)
+                return
 
-            self.stage_changed.emit("Extracting audio...")
-            audio_output = export_full_audio_mp3(
-                self._state,
-                progress_cb=lambda p: self.audio_progress.emit(p),
-            )
+            ok, detail = export_full_audio_mp3(self._state, audio_path, job)
+            if not ok:
+                self.export_finished.emit(False, detail)
+                return
 
-            self.export_finished.emit(True, f"Done: {clip_output}")
+            self.export_finished.emit(True, f"Done: {clip_path}")
         except Exception as exc:
             self.export_finished.emit(False, str(exc))
+        finally:
+            job.active = False
+            job.done = True
