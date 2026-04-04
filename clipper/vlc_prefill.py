@@ -66,6 +66,8 @@ def _detect_from_http() -> _VlcProbe | None:
             continue
         media_path = _media_path_from_http_payload(payload)
         if media_path is None:
+            media_path = _current_media_path_from_playlist(port)
+        if media_path is None:
             continue
         return _VlcProbe(media_path=media_path, position_seconds=_http_time_seconds(payload))
     return None
@@ -78,6 +80,35 @@ def _detect_from_windows() -> _VlcProbe | None:
             continue
         return _VlcProbe(media_path=media_path, position_seconds=_timestamp_seconds_from_title(title))
     return None
+
+
+def _current_media_path_from_playlist(port: int) -> Path | None:
+    data = _fetch_playlist_xml(port)
+    if data is None:
+        return None
+    try:
+        root = ET.fromstring(data)
+    except ET.ParseError:
+        return None
+    for leaf in root.iter("leaf"):
+        if leaf.get("current") == "current":
+            uri = leaf.get("uri")
+            if uri:
+                return _resolve_media_path(uri)
+    return None
+
+
+def _fetch_playlist_xml(port: int) -> bytes | None:
+    request = urllib.request.Request(f"http://127.0.0.1:{port}/requests/playlist.xml")
+    password = _vlc_http_password()
+    if password:
+        token = base64.b64encode(f":{password}".encode("utf-8")).decode("ascii")
+        request.add_header("Authorization", f"Basic {token}")
+    try:
+        with urllib.request.urlopen(request, timeout=0.5) as response:
+            return response.read()
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return None
 
 
 def _candidate_http_ports() -> list[int]:
