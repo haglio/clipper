@@ -22,6 +22,12 @@ Clipper is a standalone Pygame/OpenCV video clip editor, extracted from the fun_
 - **Answer questions before doing work.** When the user asks questions or raises concerns, respond to each one. Do not silently go off and do a batch of work instead of engaging with the conversation.
 - **Don't assume the next step.** Wait for the user to confirm direction before starting work, especially after a check-in or review.
 
+## Testing principles
+
+- **Test through realistic inputs, not mocked internals.** When a function integrates multiple subsystems (HTTP fetch → XML parse → path resolution → filesystem lookup), at least one test must feed realistic data through the actual function with only the network/OS boundary mocked. A test that mocks `_detect_from_http` to return a finished result does not test `_detect_from_http`.
+- **Test each resolution path independently.** If a function has a primary path and a fallback, write separate tests proving each path works — and that the fallback is only reached when the primary fails. Use `mock.assert_not_called()` to verify the fallback was not touched when the primary succeeds.
+- **Mock at the boundary, not in the middle.** Patch the I/O functions (`_fetch_http_status`, `_fetch_playlist_xml`) and the external-state functions (`search_roots`), not the intermediate logic that stitches them together. If you mock the intermediate logic, you're testing your mocks, not your code.
+
 ## Repo-specific gotchas
 
 - The test environment is the project `.venv`, not system Python or Conda.
