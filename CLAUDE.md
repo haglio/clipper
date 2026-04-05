@@ -13,7 +13,7 @@ Shared rules are in the global `~/.claude/CLAUDE.md`. This file contains only cl
 Clipper is a standalone Pygame/OpenCV video clip editor, extracted from the fun_time project. Key relationships:
 
 - **Config**: `clipper/config.py` reads `fun_time_config.json` from the sibling fun_time project for VLC prefill (HTTP ports, search roots). This is a read-only dependency; clipper never writes to fun_time's config.
-- **Output dirs**: Clips export to `C:/path/to/suite-root/videos/robot_hand/clips/`, audio to `C:/path/to/suite-root/videos/robot_hand/audio/`. These are shared with fun_time's Robot Hand listener.
+- **Output dirs**: Clips export to `C:/path/to/suite-root/videos/genau/clips/`, audio to `C:/path/to/suite-root/videos/genau/audio/`. These are shared with fun_time's Genau listener.
 - **Entry point**: `python -m clipper` -> `__main__.py` -> `app.py:main()` -> launcher dialog -> UI.
 - **Launcher chain**: `Clipper.lnk` -> `wscript.exe` -> `launch_clipper.vbs` -> `python -m clipper`.
 
