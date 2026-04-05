@@ -28,19 +28,19 @@ class TestConstruction:
         assert timer.interval_ms == 16
 
     def test_not_running_initially(self, timer):
-        assert not timer.is_running()
+        assert not timer._timer.isActive()
 
 
 class TestStartStop:
     def test_start(self, timer):
         timer.start()
-        assert timer.is_running()
+        assert timer._timer.isActive()
         timer.stop()
 
     def test_stop(self, timer):
         timer.start()
         timer.stop()
-        assert not timer.is_running()
+        assert not timer._timer.isActive()
 
 
 class TestSignal:

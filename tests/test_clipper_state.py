@@ -24,10 +24,8 @@ from clipper.loaded_bounds import (
 )
 from clipper.loop_suggestions import update_loop_suggestions
 from clipper.navigation import (
-    index_for_timeline_x,
     move_current_left,
     move_current_right,
-    timeline_x_for_index,
     toggle_wrap_mode,
 )
 from clipper.playback import (
@@ -714,40 +712,3 @@ class TestLoopSuggestions:
         assert s.suggested_in == 24
         assert turning.call_count == 2
         pair_score.assert_not_called()
-
-
-# ---------------------------------------------------------------------------
-# timeline_x_for_index / index_for_timeline_x
-# ---------------------------------------------------------------------------
-
-class TestTimelineXForIndex:
-    def test_start_maps_to_x1(self):
-        s = _make_state(loaded_start=0, loaded_end=99)
-        assert timeline_x_for_index(s, 100, 900, 0) == 100
-
-    def test_end_maps_to_x2(self):
-        s = _make_state(loaded_start=0, loaded_end=99)
-        assert timeline_x_for_index(s, 100, 900, 99) == 900
-
-    def test_midpoint(self):
-        s = _make_state(loaded_start=0, loaded_end=100)
-        x = timeline_x_for_index(s, 0, 200, 50)
-        assert x == pytest.approx(100, abs=2)
-
-
-class TestIndexForTimelineX:
-    def test_x1_gives_loaded_start(self):
-        s = _make_state(loaded_start=0, loaded_end=99)
-        assert index_for_timeline_x(s, 100, 900, 100) == 0
-
-    def test_x2_gives_loaded_end(self):
-        s = _make_state(loaded_start=0, loaded_end=99)
-        assert index_for_timeline_x(s, 100, 900, 900) == 99
-
-    def test_clamps_below_x1(self):
-        s = _make_state(loaded_start=0, loaded_end=99)
-        assert index_for_timeline_x(s, 100, 900, 0) == 0
-
-    def test_clamps_above_x2(self):
-        s = _make_state(loaded_start=0, loaded_end=99)
-        assert index_for_timeline_x(s, 100, 900, 9999) == 99

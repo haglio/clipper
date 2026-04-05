@@ -20,9 +20,6 @@ class VideoPane(QWidget):
             f"border: 1px solid {BORDER_SUBTLE.name()}; background: {BG_SECONDARY.name()};"
         )
 
-    def current_image(self) -> QImage | None:
-        return self._image
-
     def set_frame(self, image: QImage | None) -> None:
         self._image = image
         self.update()

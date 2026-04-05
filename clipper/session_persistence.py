@@ -37,7 +37,3 @@ def autosave_session(state) -> None:
             pass
     else:
         state.session_warning = f"Autosave failed: {detail}"
-
-
-def restore_original_session(state) -> None:
-    safe_atomic_write_json(Path(state.session_path), state.original_session_payload)

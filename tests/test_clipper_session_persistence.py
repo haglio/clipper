@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, patch
 from clipper.session_persistence import (
     autosave_session,
     current_payload,
-    restore_original_session,
 )
 
 
@@ -75,12 +74,3 @@ def test_autosave_session_records_failure_message():
 
     assert state.session_warning == "Autosave failed: disk full"
     assert state.last_saved_payload is None
-
-
-def test_restore_original_session_writes_original_payload():
-    state = _state()
-
-    with patch("clipper.session_persistence.safe_atomic_write_json") as write_json:
-        restore_original_session(state)
-
-    write_json.assert_called_once_with(Path("C:\\demo.json"), {"version": 1})

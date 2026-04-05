@@ -117,14 +117,14 @@ class TestBuildRegisteredSeam:
             frames.append(cv2.warpAffine(frame, M_t, (128, 128), borderMode=cv2.BORDER_REFLECT))
 
         diff_before = np.mean(np.abs(frames[-1].astype(float) - frames[0].astype(float)))
-        result, ok = build_registered_seam(frames, seam_frames=3, residual_blend_frames=2)
+        result, ok = build_registered_seam(frames, seam_frames=3)
         assert ok is True
         diff_after = np.mean(np.abs(result[-1].astype(float) - result[0].astype(float)))
         assert diff_after < diff_before
 
     def test_fallback_on_uniform_frames(self):
         frames = [np.full((64, 64, 3), 128, dtype=np.uint8) for _ in range(6)]
-        result, ok = build_registered_seam(frames, seam_frames=2, residual_blend_frames=1)
+        result, ok = build_registered_seam(frames, seam_frames=2)
         assert ok is False
         # Frames should be returned unchanged
         for orig, out in zip(frames, result):
@@ -132,7 +132,7 @@ class TestBuildRegisteredSeam:
 
     def test_too_few_frames(self):
         frame = _make_textured_frame(64, 64)
-        result, ok = build_registered_seam([frame], seam_frames=1, residual_blend_frames=1)
+        result, ok = build_registered_seam([frame], seam_frames=1)
         assert ok is False
 
 

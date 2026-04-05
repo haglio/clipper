@@ -40,15 +40,15 @@ class TestConstruction:
         assert pane.minimumHeight() >= 240
 
     def test_initial_frame_is_none(self, pane):
-        assert pane.current_image() is None
+        assert pane._image is None
 
 
 class TestSetFrame:
     def test_set_frame_stores_image(self, pane, sample_frame):
         qimg = bgr_to_qimage(sample_frame)
         pane.set_frame(qimg)
-        assert pane.current_image() is not None
-        assert pane.current_image().width() == 640
+        assert pane._image is not None
+        assert pane._image.width() == 640
 
     def test_set_frame_triggers_update(self, pane, sample_frame):
         qimg = bgr_to_qimage(sample_frame)
@@ -60,4 +60,4 @@ class TestSetFrame:
         qimg = bgr_to_qimage(sample_frame)
         pane.set_frame(qimg)
         pane.set_frame(None)
-        assert pane.current_image() is None
+        assert pane._image is None

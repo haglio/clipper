@@ -22,6 +22,3 @@ class PlaybackTimer(QObject):
 
     def stop(self) -> None:
         self._timer.stop()
-
-    def is_running(self) -> bool:
-        return self._timer.isActive()

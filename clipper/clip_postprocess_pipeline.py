@@ -49,7 +49,7 @@ def build_output_frames(
             max(1, normalized_n // 3),
         )
         work_frames, registered_ok = build_registered_seam(
-            work_frames, seam_region, min(3, bridge_frames)
+            work_frames, seam_region
         )
         if registered_ok:
             # RIFE seam convergence: gradually nudge frames near the seam

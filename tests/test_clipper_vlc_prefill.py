@@ -11,12 +11,12 @@ from clipper.vlc_prefill import (
     _VlcProbe,
     _current_media_path_from_playlist,
     _resolve_media_path,
-    _strip_vlc_title_suffix,
     _timestamp_seconds_from_title,
     _vlc_http_password,
     _vlc_http_password_from_config,
     detect_vlc_session_prefill,
 )
+from clipper.vlc_prefill_paths import _strip_vlc_title_suffix
 
 
 class TestDetectVlcSessionPrefill:

@@ -166,7 +166,7 @@ def estimate_alignment(frame_a: np.ndarray, frame_b: np.ndarray) -> tuple[np.nda
 
 
 def build_registered_seam(
-    frames: list[np.ndarray], seam_frames: int, residual_blend_frames: int
+    frames: list[np.ndarray], seam_frames: int
 ) -> tuple[list[np.ndarray], bool]:
     n = len(frames)
     if n < 2 or seam_frames < 1:

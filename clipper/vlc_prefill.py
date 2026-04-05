@@ -16,7 +16,6 @@ from .vlc_prefill_paths import (
     _looks_like_vlc_title as _path_looks_like_vlc_title,
     _resolve_media_path,
     _resolve_media_path_from_title as _path_resolve_media_path_from_title,
-    _strip_vlc_title_suffix,
     _timestamp_seconds_from_title as _path_timestamp_seconds_from_title,
 )
 

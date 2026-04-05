@@ -24,7 +24,7 @@ from shared_ui.colors import (
     TIMELINE_ACTIVE,
     TIMELINE_LOADED,
 )
-from shared_ui.fonts import FONT_UI, SIZE_BODY, SIZE_HEADING, SIZE_SMALL, make_font
+from shared_ui.fonts import FONT_UI, SIZE_HEADING, SIZE_SMALL, make_font
 
 from clipper.editing import (
     accept_suggested_in,

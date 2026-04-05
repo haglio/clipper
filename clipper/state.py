@@ -13,7 +13,6 @@ from .loop_modes import LOOP_MODE_BASE_TIP_BASE
 from .session_persistence import (
     autosave_session as persist_session_state,
     current_payload as build_current_payload,
-    restore_original_session as restore_original_session_payload,
 )
 
 
@@ -67,9 +66,6 @@ class VideoState:
     loop_paused: bool = False
     paused_loop_idx: int | None = None
     paused_loop_pos: int | None = None
-    exit_prompt_visible: bool = False
-    exit_prompt_focus: str = "save"
-    exit_prompt_action: str = ""
     initial_active_start: int | None = None
     initial_active_end: int | None = None
     suggested_in: int | None = None
@@ -108,7 +104,3 @@ class VideoState:
 
     def autosave_session(self) -> None:
         persist_session_state(self)
-
-
-def restore_original_session(state: VideoState) -> None:
-    restore_original_session_payload(state)
