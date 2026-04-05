@@ -1,13 +1,52 @@
-"""Shared pytest fixtures for Fun Time tests."""
+"""Shared pytest fixtures for clipper tests."""
 from __future__ import annotations
 
 import json
 import os
 import shutil
+import sys
 import uuid
 from pathlib import Path
 
 import pytest
+
+
+# ---------------------------------------------------------------------------
+# sys.path fix — must run before clipper is imported
+# ---------------------------------------------------------------------------
+# pytest inserts ancestor directories of the test root into sys.path.  When
+# the monorepo "projects" directory ends up there, Python resolves "clipper"
+# as the *project root* directory (a namespace package) instead of the real
+# clipper package installed via editable pip.  That causes clipper.state to
+# resolve to the runtime ``state/`` log directory rather than state.py,
+# breaking every import of VideoState / ExportJob.
+#
+# Fix: force-import clipper from the editable-install finder before pytest
+# collection triggers a namespace-package resolution.  Once the correct
+# module is in sys.modules the bad path can't win.
+import importlib as _importlib
+
+_spec = _importlib.util.find_spec("clipper")
+if _spec is None or _spec.origin is None:
+    # The editable finder lost the race.  Flush the stale entry and retry
+    # by looking up the installed package location directly.
+    sys.modules.pop("clipper", None)
+    _importlib.invalidate_caches()
+
+    # Import the editable-install's finder and ask it directly.
+    import __editable___clipper_0_1_0_finder as _finder  # type: ignore[import-untyped]
+    _pkg_path = _finder.MAPPING.get("clipper")
+    if _pkg_path:
+        _init = Path(_pkg_path) / "__init__.py"
+        if _init.is_file():
+            _new_spec = _importlib.util.spec_from_file_location(
+                "clipper", str(_init),
+                submodule_search_locations=[_pkg_path],
+            )
+            if _new_spec and _new_spec.loader:
+                _mod = _importlib.util.module_from_spec(_new_spec)
+                sys.modules["clipper"] = _mod
+                _new_spec.loader.exec_module(_mod)
 
 
 TMP_ROOT = Path(

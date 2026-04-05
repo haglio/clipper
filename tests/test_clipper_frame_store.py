@@ -12,7 +12,7 @@ from clipper.frame_store import (
     signature_for_index,
 )
 
-from tests.test_clipper_state import _make_state
+from test_clipper_state import _make_state
 
 
 def test_load_range_returns_empty_when_end_before_start():

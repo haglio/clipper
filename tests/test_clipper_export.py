@@ -20,7 +20,7 @@ from clipper.export_steps import (
     validate_video_file,
 )
 from clipper.state import ExportJob
-from tests.test_clipper_state import _make_state
+from test_clipper_state import _make_state
 
 
 # ---------------------------------------------------------------------------
