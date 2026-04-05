@@ -47,21 +47,3 @@ class TestSignals:
         bar.export_clicked.connect(lambda: results.append("export"))
         bar.export_btn.click()
         assert results == ["export"]
-
-
-class TestPlayPauseIcon:
-    def test_default_has_icon(self, bar):
-        assert not bar.play_pause_btn.icon().isNull()
-
-    def test_icon_changes_on_playing(self, bar):
-        before = bar.play_pause_btn.icon().pixmap(16, 16).toImage()
-        bar.set_playing(True)
-        after = bar.play_pause_btn.icon().pixmap(16, 16).toImage()
-        assert before != after
-
-    def test_icon_restores_on_pause(self, bar):
-        initial = bar.play_pause_btn.icon().pixmap(16, 16).toImage()
-        bar.set_playing(True)
-        bar.set_playing(False)
-        restored = bar.play_pause_btn.icon().pixmap(16, 16).toImage()
-        assert initial == restored

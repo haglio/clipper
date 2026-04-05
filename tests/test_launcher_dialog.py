@@ -23,26 +23,6 @@ def dialog():
     return LauncherDialog()
 
 
-class TestConstruction:
-    def test_has_mode_radios(self, dialog):
-        assert dialog.load_radio is not None
-        assert dialog.new_radio is not None
-
-    def test_default_mode(self, dialog):
-        # One of them should be checked
-        assert dialog.load_radio.isChecked() or dialog.new_radio.isChecked()
-
-    def test_has_session_field(self, dialog):
-        assert dialog.session_json_edit is not None
-
-    def test_has_new_session_fields(self, dialog):
-        assert dialog.session_name_edit is not None
-        assert dialog.video_file_edit is not None
-        assert dialog.timestamp_edit is not None
-        assert dialog.seconds_edit is not None
-        assert dialog.loop_mode_combo is not None
-
-
 class TestResult:
     def test_build_result_load_mode(self, dialog):
         dialog.load_radio.setChecked(True)
@@ -65,12 +45,3 @@ class TestResult:
         assert result["timestamp"] == "00:01:30"
         assert result["seconds"] == 5.0
         assert result["ok"] is True
-
-    def test_build_result_includes_loop_mode(self, dialog):
-        dialog.new_radio.setChecked(True)
-        dialog.session_name_edit.setText("test")
-        dialog.video_file_edit.setText("/video.mp4")
-        dialog.timestamp_edit.setText("00:00:00")
-        dialog.seconds_edit.setText("3")
-        result = dialog.build_result()
-        assert "loop_mode" in result

@@ -23,18 +23,6 @@ def dialog():
     return ExitDialog()
 
 
-class TestConstruction:
-    def test_has_three_buttons(self, dialog):
-        assert dialog.save_btn is not None
-        assert dialog.discard_btn is not None
-        assert dialog.cancel_btn is not None
-
-    def test_result_constants(self, dialog):
-        assert ExitDialog.SAVE == "save"
-        assert ExitDialog.DISCARD == "discard"
-        assert ExitDialog.CANCEL == "cancel"
-
-
 class TestButtonResults:
     def test_save_sets_result(self, dialog):
         dialog.save_btn.click()

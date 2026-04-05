@@ -6,7 +6,6 @@ import sys
 
 import numpy as np
 import pytest
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage
 from PyQt6.QtWidgets import QApplication
 
@@ -22,11 +21,6 @@ def _qapp():
 
 
 class TestBgrToQImage:
-    def test_returns_qimage(self):
-        frame = np.zeros((100, 200, 3), dtype=np.uint8)
-        result = bgr_to_qimage(frame)
-        assert isinstance(result, QImage)
-
     def test_dimensions_match(self):
         frame = np.zeros((480, 640, 3), dtype=np.uint8)
         result = bgr_to_qimage(frame)

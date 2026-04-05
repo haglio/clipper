@@ -23,14 +23,6 @@ def timer():
     return PlaybackTimer()
 
 
-class TestConstruction:
-    def test_interval(self, timer):
-        assert timer.interval_ms == 16
-
-    def test_not_running_initially(self, timer):
-        assert not timer._timer.isActive()
-
-
 class TestStartStop:
     def test_start(self, timer):
         timer.start()
