@@ -16,5 +16,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest", "vulture"]
 
+[tool.setuptools.packages.find]
+include = ["clipper*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
