@@ -52,6 +52,7 @@ _EXPORT_MUTATIONS: set[tuple[str, str]] = {
     ("clipper/export_steps.py", "clip_status"),
     ("clipper/export_steps.py", "raw_clip_output"),
     ("clipper/export_steps.py", "fix_status"),
+    ("clipper/gui/export_worker.py", "fix_status"),
     ("clipper/export_steps.py", "clip_output"),
     ("clipper/export_steps.py", "audio_status"),
     ("clipper/export_steps.py", "audio_output"),

@@ -67,15 +67,22 @@ class ExportWorker(QThread):
         audio_path = AUDIO_DIR / f"{session_base}.mp3"
 
         try:
-            ok, detail = export_raw_clip(self._state, raw_path, job)
+            if self._state.skip_postprocess:
+                ok, detail = export_raw_clip(self._state, clip_path, job)
+            else:
+                ok, detail = export_raw_clip(self._state, raw_path, job)
             if not ok:
                 self.export_finished.emit(False, detail)
                 return
 
-            ok, detail = run_clip_postprocess(self._state, raw_path, clip_path, job)
-            if not ok:
-                self.export_finished.emit(False, detail)
-                return
+            if self._state.skip_postprocess:
+                job.fix_progress = 1.0
+                job.fix_status = "skipped"
+            else:
+                ok, detail = run_clip_postprocess(self._state, raw_path, clip_path, job)
+                if not ok:
+                    self.export_finished.emit(False, detail)
+                    return
 
             ok, detail = export_full_audio_mp3(self._state, audio_path, job)
             if not ok:

@@ -140,6 +140,17 @@ class TestExportJob:
 # VideoState computed properties
 # ---------------------------------------------------------------------------
 
+class TestVideoStateDefaults:
+    def test_skip_postprocess_defaults_false(self):
+        s = _make_state()
+        assert s.skip_postprocess is False
+
+    def test_skip_postprocess_explicit_true(self):
+        s = _make_state()
+        s.skip_postprocess = True
+        assert s.skip_postprocess is True
+
+
 class TestVideoStateProperties:
     def test_active_count(self):
         s = _make_state(active_start=10, active_end=19)

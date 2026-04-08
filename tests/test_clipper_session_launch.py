@@ -6,7 +6,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from clipper.session_launch import build_state_from_launch_info, launch_state
+from clipper.app import main as app_main
+from clipper.session_launch import build_clip_whole_state, build_state_from_launch_info, launch_state
 
 
 def test_build_state_from_launch_info_loads_saved_session():
@@ -134,6 +135,51 @@ def test_build_state_passes_vr_true_to_create_session():
     )
 
 
+class TestBuildClipWholeState:
+    def test_active_range_covers_all_but_last_frame(self):
+        with patch("clipper.session_launch._ffprobe_video_metadata", return_value=(30.0, 300)), \
+             patch("clipper.session_launch.cv2") as mock_cv2:
+            mock_cap = MagicMock()
+            mock_cv2.VideoCapture.return_value = mock_cap
+            state = build_clip_whole_state("/video.mp4")
+
+        assert state.active_start == 0
+        assert state.active_end == 298  # total_frames - 2: drops last frame
+
+    def test_skip_postprocess_is_true(self):
+        with patch("clipper.session_launch._ffprobe_video_metadata", return_value=(30.0, 300)), \
+             patch("clipper.session_launch.cv2") as mock_cv2:
+            mock_cv2.VideoCapture.return_value = MagicMock()
+            state = build_clip_whole_state("/video.mp4")
+
+        assert state.skip_postprocess is True
+
+    def test_session_name_from_video_stem(self):
+        with patch("clipper.session_launch._ffprobe_video_metadata", return_value=(30.0, 300)), \
+             patch("clipper.session_launch.cv2") as mock_cv2:
+            mock_cv2.VideoCapture.return_value = MagicMock()
+            state = build_clip_whole_state("/path/to/my_loop.mp4")
+
+        assert state.session_name == "my_loop"
+
+    def test_no_frames_loaded(self):
+        with patch("clipper.session_launch._ffprobe_video_metadata", return_value=(30.0, 300)), \
+             patch("clipper.session_launch.cv2") as mock_cv2:
+            mock_cv2.VideoCapture.return_value = MagicMock()
+            state = build_clip_whole_state("/video.mp4")
+
+        assert state.frames == {}
+
+    def test_loaded_range_matches_active_range(self):
+        with patch("clipper.session_launch._ffprobe_video_metadata", return_value=(30.0, 300)), \
+             patch("clipper.session_launch.cv2") as mock_cv2:
+            mock_cv2.VideoCapture.return_value = MagicMock()
+            state = build_clip_whole_state("/video.mp4")
+
+        assert state.loaded_start == 0
+        assert state.loaded_end == 298
+
+
 def test_launch_state_raises_system_exit_when_launcher_is_cancelled():
     mock_dialog = MagicMock()
     mock_dialog.exec.return_value = 0  # QDialog.DialogCode.Rejected
@@ -146,6 +192,26 @@ def test_launch_state_raises_system_exit_when_launcher_is_cancelled():
             launch_state()
 
     assert excinfo.value.code == 0
+
+
+def test_launch_state_runs_clip_whole_and_returns_none():
+    mock_dialog = MagicMock()
+    mock_dialog.exec.return_value = 1  # Accepted
+    mock_dialog.build_result.return_value = {
+        "ok": True,
+        "mode": "clip_whole",
+        "video_file": "/path/to/loop.mp4",
+    }
+
+    with patch("clipper.session_launch.ensure_runtime_dirs"), \
+         patch("clipper.session_launch.LAST_SESSION_FILE", MagicMock(exists=MagicMock(return_value=False))), \
+         patch("clipper.session_launch.LauncherDialog", return_value=mock_dialog), \
+         patch("clipper.session_launch.detect_vlc_session_prefill", return_value=None), \
+         patch("clipper.session_launch._run_clip_whole_export") as mock_export:
+        result = launch_state()
+
+    mock_export.assert_called_once_with("/path/to/loop.mp4")
+    assert result is None
 
 
 def test_launch_state_builds_state_from_launcher_info():
@@ -164,3 +230,12 @@ def test_launch_state_builds_state_from_launcher_info():
     assert result is built_state
     ensure_dirs.assert_called_once_with()
     build_state.assert_called_once_with({"ok": True, "mode": "new"})
+
+
+def test_app_main_returns_zero_when_launch_state_returns_none():
+    with patch("clipper.app.launch_state", return_value=None), \
+         patch("clipper.app._set_windows_app_user_model_id"), \
+         patch("clipper.app._init_logger"):
+        result = app_main()
+
+    assert result == 0

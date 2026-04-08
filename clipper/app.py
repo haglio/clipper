@@ -47,6 +47,8 @@ def main() -> int:
         if _ico.exists():
             _app.setWindowIcon(QIcon(str(_ico)))
         state = launch_state()
+        if state is None:
+            return 0
 
         from .gui.app import ClipperApp
 

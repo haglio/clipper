@@ -178,3 +178,60 @@ class TestVrExportPath:
 
         clip_path = mock_post.call_args.args[2]
         assert clip_path.parent == VR_CLIPS_DIR
+
+
+class TestSkipPostprocess:
+    """When state.skip_postprocess is True, postprocess is skipped entirely."""
+
+    @patch("clipper.export_steps.export_full_audio_mp3")
+    @patch("clipper.export_steps.run_clip_postprocess")
+    @patch("clipper.export_steps.export_raw_clip")
+    def test_skips_postprocess_when_flag_set(
+        self, mock_raw, mock_post, mock_audio
+    ):
+        mock_raw.return_value = (True, "clip.mp4")
+        mock_audio.return_value = (True, "audio.mp3")
+
+        state = _make_state()
+        state.skip_postprocess = True
+        worker = ExportWorker(state)
+        worker.run()
+
+        mock_post.assert_not_called()
+
+    @patch("clipper.export_steps.export_full_audio_mp3")
+    @patch("clipper.export_steps.run_clip_postprocess")
+    @patch("clipper.export_steps.export_raw_clip")
+    def test_writes_directly_to_clips_dir(
+        self, mock_raw, mock_post, mock_audio
+    ):
+        """Raw clip output goes to CLIPS_DIR, not RAW_CLIPS_DIR."""
+        mock_raw.return_value = (True, "clip.mp4")
+        mock_audio.return_value = (True, "audio.mp3")
+
+        state = _make_state()
+        state.skip_postprocess = True
+        worker = ExportWorker(state)
+        worker.run()
+
+        raw_out_path = mock_raw.call_args[0][1]
+        from clipper.paths import CLIPS_DIR
+        assert raw_out_path.parent == CLIPS_DIR
+
+    @patch("clipper.export_steps.export_full_audio_mp3")
+    @patch("clipper.export_steps.run_clip_postprocess")
+    @patch("clipper.export_steps.export_raw_clip")
+    def test_fix_progress_set_to_done(
+        self, mock_raw, mock_post, mock_audio
+    ):
+        mock_raw.return_value = (True, "clip.mp4")
+        mock_audio.return_value = (True, "audio.mp3")
+
+        state = _make_state()
+        state.skip_postprocess = True
+        worker = ExportWorker(state)
+        fix_values = []
+        worker.fix_progress.connect(lambda v: fix_values.append(v))
+        worker.run()
+
+        assert 1.0 in fix_values

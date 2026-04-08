@@ -64,12 +64,17 @@ class LauncherDialog(QDialog):
         video_row.addWidget(self.video_browse_btn)
 
         # Buttons
+        self.clip_whole_btn = QPushButton("Clip whole vid...")
+        self.clip_whole_btn.clicked.connect(self._browse_clip_whole)
         self.open_btn = QPushButton("Open")
         self.cancel_btn = QPushButton("Cancel")
         self.open_btn.clicked.connect(self.accept)
         self.cancel_btn.clicked.connect(self.reject)
 
+        self._clip_whole_file: str = ""
+
         btn_row = QHBoxLayout()
+        btn_row.addWidget(self.clip_whole_btn)
         btn_row.addStretch()
         btn_row.addWidget(self.open_btn)
         btn_row.addWidget(self.cancel_btn)
@@ -93,6 +98,12 @@ class LauncherDialog(QDialog):
 
     def build_result(self) -> dict:
         """Build the result dict matching the legacy launcher_dialog() return shape."""
+        if self._clip_whole_file:
+            return {
+                "ok": True,
+                "mode": "clip_whole",
+                "video_file": self._clip_whole_file,
+            }
         if self.load_radio.isChecked():
             return {
                 "ok": True,
@@ -133,3 +144,14 @@ class LauncherDialog(QDialog):
         )
         if path:
             self.video_file_edit.setText(path)
+
+    def _browse_clip_whole(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Video to Clip Whole",
+            "",
+            "Video Files (*.mp4 *.mkv *.mov *.avi *.webm)",
+        )
+        if path:
+            self._clip_whole_file = path
+            self.accept()

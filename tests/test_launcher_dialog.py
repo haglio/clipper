@@ -23,6 +23,28 @@ def dialog():
     return LauncherDialog()
 
 
+class TestClipWholeButton:
+    def test_clip_whole_button_exists(self, dialog):
+        assert hasattr(dialog, "clip_whole_btn")
+        assert dialog.clip_whole_btn.text() == "Clip whole vid..."
+
+    def test_build_result_clip_whole_mode(self, dialog):
+        dialog._clip_whole_file = "/path/to/loop.mp4"
+        result = dialog.build_result()
+        assert result == {
+            "ok": True,
+            "mode": "clip_whole",
+            "video_file": "/path/to/loop.mp4",
+        }
+
+    def test_build_result_prefers_clip_whole_over_radio(self, dialog):
+        """When _clip_whole_file is set, mode is clip_whole regardless of radio."""
+        dialog.new_radio.setChecked(True)
+        dialog._clip_whole_file = "/path/to/loop.mp4"
+        result = dialog.build_result()
+        assert result["mode"] == "clip_whole"
+
+
 class TestResult:
     def test_build_result_load_mode(self, dialog):
         dialog.load_radio.setChecked(True)

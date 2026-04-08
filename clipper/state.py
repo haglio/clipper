@@ -56,6 +56,7 @@ class VideoState:
     original_session_payload: dict[str, Any]
     loop_mode: str = LOOP_MODE_BASE_TIP_BASE
     wrap_mode: str = "blue"
+    skip_postprocess: bool = False
     speed: float = 1.0
     vr: bool = False
     export_job: ExportJob | None = None
