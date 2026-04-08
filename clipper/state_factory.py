@@ -52,6 +52,7 @@ def make_video_state(
         current = start_idx
         wrap_mode = "blue"
         speed = 1.0
+        vr = False
         original_payload = {
             "version": 1,
             "session_name": session_name,
@@ -78,6 +79,7 @@ def make_video_state(
         loop_mode = _normalized_loop_mode(str(payload_override.get("loop_mode", LOOP_MODE_BASE_TIP_BASE)))
         wrap_mode = payload_override.get("wrap_mode", "blue")
         speed = _normalized_speed(float(payload_override.get("speed", 1.0)))
+        vr = bool(payload_override.get("vr", False))
         session_name = payload_override.get("session_name", session_name)
         video_path = payload_override["video_path"]
 
@@ -103,6 +105,7 @@ def make_video_state(
         loop_mode=loop_mode,
         wrap_mode=wrap_mode,
         speed=speed,
+        vr=vr,
         initial_active_start=active_start,
         initial_active_end=active_end,
         suggestion_anchor_in=active_start,

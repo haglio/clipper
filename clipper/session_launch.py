@@ -41,6 +41,7 @@ def build_state_from_launch_info(info: dict) -> VideoState:
         session_name=info["session_name"],
         seconds=info["seconds"],
         loop_mode=info.get("loop_mode", "base-tip-base"),
+        vr=info.get("vr", False),
     )
     state = _load_state_from_session_file(session_path)
     LAST_SESSION_FILE.write_text(state.session_path, encoding="utf-8")

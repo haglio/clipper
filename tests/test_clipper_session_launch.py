@@ -80,13 +80,58 @@ def test_build_state_from_launch_info_creates_new_session_via_create_session():
         )
 
     mock_create.assert_called_once_with(
-        "/video.mp4", 12.5, session_name="demo", seconds=5.0, loop_mode="tip-base",
+        "/video.mp4", 12.5, session_name="demo", seconds=5.0, loop_mode="tip-base", vr=False,
     )
     assert result is state
     assert state.session_path == str(session_path)
     assert state.original_session_payload == payload
     assert state.protect_existing_save_data is True
     last_session_file.write_text.assert_called_once()
+
+
+def test_build_state_passes_vr_true_to_create_session():
+    session_path = Path("C:\\sessions\\vr_demo.json")
+    payload = {
+        "video_path": "/vr_video.mp4",
+        "session_name": "vr_demo",
+        "loaded_start": 0,
+        "loaded_end": 149,
+        "active_start": 0,
+        "active_end": 149,
+        "current": 0,
+        "seconds_per_step": 1.0,
+        "fps": 30.0,
+        "total_frames": 900,
+        "vr": True,
+    }
+    state = SimpleNamespace(
+        session_path="",
+        original_session_payload={},
+        protect_existing_save_data=False,
+    )
+    last_session_file = MagicMock()
+
+    with patch("clipper.session_launch.parse_timestamp", return_value=0.0), \
+         patch("clipper.session_launch.create_session", return_value=session_path) as mock_create, \
+         patch("clipper.session_launch.read_json", return_value=payload), \
+         patch("clipper.session_launch.make_video_state", return_value=state), \
+         patch("clipper.session_launch.LAST_SESSION_FILE", last_session_file):
+        build_state_from_launch_info(
+            {
+                "mode": "new",
+                "video_file": "/vr_video.mp4",
+                "session_name": "vr_demo",
+                "timestamp": "00:00:00",
+                "seconds": 5.0,
+                "loop_mode": "base-tip-base",
+                "vr": True,
+            }
+        )
+
+    mock_create.assert_called_once_with(
+        "/vr_video.mp4", 0.0, session_name="vr_demo", seconds=5.0,
+        loop_mode="base-tip-base", vr=True,
+    )
 
 
 def test_launch_state_raises_system_exit_when_launcher_is_cancelled():

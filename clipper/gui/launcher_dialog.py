@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import PureWindowsPath
+
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
@@ -15,6 +18,8 @@ from PyQt6.QtWidgets import (
 )
 
 from clipper.loop_modes import LOOP_MODES
+
+VR_VIDEO_DIR = PureWindowsPath("C:/path/to/suite-root/videos/videos/VR")
 
 
 class LauncherDialog(QDialog):
@@ -50,6 +55,8 @@ class LauncherDialog(QDialog):
         self.loop_mode_combo = QComboBox()
         for mode in LOOP_MODES:
             self.loop_mode_combo.addItem(mode)
+        self.vr_checkbox = QCheckBox("VR")
+        self.video_file_edit.textChanged.connect(self._on_video_path_changed)
 
         video_row = QHBoxLayout()
         video_row.addWidget(QLabel("Video file:"))
@@ -81,6 +88,7 @@ class LauncherDialog(QDialog):
         layout.addWidget(self.seconds_edit)
         layout.addWidget(QLabel("Loop mode:"))
         layout.addWidget(self.loop_mode_combo)
+        layout.addWidget(self.vr_checkbox)
         layout.addLayout(btn_row)
 
     def build_result(self) -> dict:
@@ -99,6 +107,7 @@ class LauncherDialog(QDialog):
             "timestamp": self.timestamp_edit.text().strip(),
             "seconds": float(self.seconds_edit.text().strip() or "5"),
             "loop_mode": self.loop_mode_combo.currentText(),
+            "vr": self.vr_checkbox.isChecked(),
         }
 
     def _browse_session(self) -> None:
@@ -110,6 +119,10 @@ class LauncherDialog(QDialog):
         )
         if path:
             self.session_json_edit.setText(path)
+
+    def _on_video_path_changed(self) -> None:
+        path = PureWindowsPath(self.video_file_edit.text().strip())
+        self.vr_checkbox.setChecked(path.is_relative_to(VR_VIDEO_DIR))
 
     def _browse_video(self) -> None:
         path, _ = QFileDialog.getOpenFileName(

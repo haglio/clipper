@@ -57,6 +57,7 @@ class VideoState:
     loop_mode: str = LOOP_MODE_BASE_TIP_BASE
     wrap_mode: str = "blue"
     speed: float = 1.0
+    vr: bool = False
     export_job: ExportJob | None = None
     session_warning: str = ""
     dirty: bool = False

@@ -86,6 +86,16 @@ def test_build_session_payload_end_clamps_to_total_frames():
     assert payload["loaded_end"] == 49
 
 
+def test_build_session_payload_vr_defaults_false():
+    payload = build_session_payload("video.mp4", 0.0, 30.0, 900)
+    assert payload["vr"] is False
+
+
+def test_build_session_payload_vr_true():
+    payload = build_session_payload("video.mp4", 0.0, 30.0, 900, vr=True)
+    assert payload["vr"] is True
+
+
 # ---------------------------------------------------------------------------
 # create_session
 # ---------------------------------------------------------------------------

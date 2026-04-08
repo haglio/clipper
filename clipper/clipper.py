@@ -8,16 +8,17 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from clipper.app import main
-    from clipper.paths import AUDIO_DIR, CLIP_POSTPROCESS_SCRIPT, CLIPS_DIR, LAST_SESSION_FILE, LOOP_FIX_SCRIPT, MODULE_DIR, RAW_CLIPS_DIR, SESSIONS_DIR
+    from clipper.paths import AUDIO_DIR, CLIP_POSTPROCESS_SCRIPT, CLIPS_DIR, LAST_SESSION_FILE, LOOP_FIX_SCRIPT, MODULE_DIR, RAW_CLIPS_DIR, SESSIONS_DIR, VR_CLIPS_DIR
 else:
     from .app import main
-    from .paths import AUDIO_DIR, CLIP_POSTPROCESS_SCRIPT, CLIPS_DIR, LAST_SESSION_FILE, LOOP_FIX_SCRIPT, MODULE_DIR, RAW_CLIPS_DIR, SESSIONS_DIR
+    from .paths import AUDIO_DIR, CLIP_POSTPROCESS_SCRIPT, CLIPS_DIR, LAST_SESSION_FILE, LOOP_FIX_SCRIPT, MODULE_DIR, RAW_CLIPS_DIR, SESSIONS_DIR, VR_CLIPS_DIR
 
 
 __all__ = [
     "AUDIO_DIR",
     "CLIP_POSTPROCESS_SCRIPT",
     "CLIPS_DIR",
+    "VR_CLIPS_DIR",
     "LAST_SESSION_FILE",
     "LOOP_FIX_SCRIPT",
     "MODULE_DIR",

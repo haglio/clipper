@@ -22,6 +22,7 @@ def current_payload(state) -> dict:
         "loop_mode": state.loop_mode,
         "wrap_mode": state.wrap_mode,
         "speed": state.speed,
+        "vr": state.vr,
     }
 
 

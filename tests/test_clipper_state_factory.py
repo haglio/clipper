@@ -61,3 +61,41 @@ def test_make_video_state_raises_when_requested_interval_has_no_frames():
         with patch("clipper.state_factory.load_range", return_value={}):
             with pytest.raises(RuntimeError, match="No frames were extracted"):
                 make_video_state("/fake/video.mp4", "demo", 0.0, 1.0)
+
+
+def test_make_video_state_vr_defaults_false():
+    cap = _build_capture()
+    frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(30)}
+
+    with patch("clipper.state_factory.cv2.VideoCapture", return_value=cap):
+        with patch("clipper.state_factory.load_range", return_value=frames):
+            state = make_video_state("/fake/video.mp4", "demo", 0.0, 1.0)
+
+    assert state.vr is False
+
+
+def test_make_video_state_loads_vr_from_payload():
+    cap = _build_capture()
+    frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(10, 41)}
+    payload = {
+        "video_path": "/video.mp4",
+        "session_name": "demo",
+        "loaded_start": 10,
+        "loaded_end": 40,
+        "active_start": 12,
+        "active_end": 35,
+        "current": 18,
+        "seconds_per_step": 1.0,
+        "fps": 30.0,
+        "total_frames": 120,
+        "loop_mode": "base-tip-base",
+        "wrap_mode": "blue",
+        "speed": 1.0,
+        "vr": True,
+    }
+
+    with patch("clipper.state_factory.cv2.VideoCapture", return_value=cap):
+        with patch("clipper.state_factory.load_range", return_value=frames):
+            state = make_video_state("/fake/video.mp4", "demo", 0.0, 1.0, payload_override=payload)
+
+    assert state.vr is True

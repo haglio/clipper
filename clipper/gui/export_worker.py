@@ -29,7 +29,7 @@ class ExportWorker(QThread):
             export_raw_clip,
             run_clip_postprocess,
         )
-        from clipper.paths import AUDIO_DIR, CLIPS_DIR, RAW_CLIPS_DIR
+        from clipper.paths import AUDIO_DIR, CLIPS_DIR, RAW_CLIPS_DIR, VR_CLIPS_DIR
         from clipper.state import ExportJob
         from clipper.utils import sanitize_name
 
@@ -62,7 +62,8 @@ class ExportWorker(QThread):
 
         session_base = sanitize_name(self._state.session_name)
         raw_path = RAW_CLIPS_DIR / f"{session_base}.mp4"
-        clip_path = CLIPS_DIR / f"{session_base}.mp4"
+        clips_dir = VR_CLIPS_DIR if self._state.vr else CLIPS_DIR
+        clip_path = clips_dir / f"{session_base}.mp4"
         audio_path = AUDIO_DIR / f"{session_base}.mp3"
 
         try:

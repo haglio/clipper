@@ -10,8 +10,8 @@ from clipper.session_persistence import (
 )
 
 
-def _state():
-    return SimpleNamespace(
+def _state(**overrides):
+    defaults = dict(
         session_name="demo",
         path="/video.mp4",
         fps=30.0,
@@ -25,11 +25,14 @@ def _state():
         loop_mode="base-tip-base",
         wrap_mode="blue",
         speed=1.25,
+        vr=False,
         session_path="C:\\demo.json",
         session_warning="",
         last_saved_payload=None,
         original_session_payload={"version": 1},
     )
+    defaults.update(overrides)
+    return SimpleNamespace(**defaults)
 
 
 def test_current_payload_builds_expected_fields():
@@ -50,7 +53,13 @@ def test_current_payload_builds_expected_fields():
         "loop_mode": "base-tip-base",
         "wrap_mode": "blue",
         "speed": 1.25,
+        "vr": False,
     }
+
+
+def test_current_payload_includes_vr_true():
+    payload = current_payload(_state(vr=True))
+    assert payload["vr"] is True
 
 
 def test_autosave_session_updates_last_saved_payload_on_success():

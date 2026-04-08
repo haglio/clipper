@@ -77,6 +77,7 @@ def build_session_payload(
     session_name: str = "",
     seconds: float = DEFAULT_SECONDS,
     loop_mode: str = DEFAULT_LOOP_MODE,
+    vr: bool = False,
 ) -> dict:
     """Build the session payload dict without touching the filesystem."""
     if not session_name:
@@ -102,6 +103,7 @@ def build_session_payload(
         "loop_mode": loop_mode,
         "wrap_mode": "blue",
         "speed": 1.0,
+        "vr": vr,
     }
 
 
@@ -112,6 +114,7 @@ def create_session(
     session_name: str = "",
     seconds: float = DEFAULT_SECONDS,
     loop_mode: str = DEFAULT_LOOP_MODE,
+    vr: bool = False,
     sessions_dir: Path | None = None,
 ) -> Path:
     """Create a Clipper session JSON and return the file path.
@@ -142,6 +145,7 @@ def create_session(
         session_name=session_name,
         seconds=seconds,
         loop_mode=loop_mode,
+        vr=vr,
     )
 
     tmp = session_path.with_suffix(session_path.suffix + ".tmp")

@@ -142,3 +142,39 @@ class TestRunCallsExportSteps:
 
         assert state.export_job is not None
         assert isinstance(state.export_job, ExportJob)
+
+
+class TestVrExportPath:
+    @patch("clipper.export_steps.export_full_audio_mp3")
+    @patch("clipper.export_steps.run_clip_postprocess")
+    @patch("clipper.export_steps.export_raw_clip")
+    def test_non_vr_exports_to_clips_dir(self, mock_raw, mock_post, mock_audio):
+        from clipper.paths import CLIPS_DIR
+
+        mock_raw.return_value = (True, "raw.mp4")
+        mock_post.return_value = (True, "clip.mp4")
+        mock_audio.return_value = (True, "audio.mp3")
+
+        state = _make_state()
+        state.vr = False
+        ExportWorker(state).run()
+
+        clip_path = mock_post.call_args.args[2]
+        assert clip_path.parent == CLIPS_DIR
+
+    @patch("clipper.export_steps.export_full_audio_mp3")
+    @patch("clipper.export_steps.run_clip_postprocess")
+    @patch("clipper.export_steps.export_raw_clip")
+    def test_vr_exports_to_vr_clips_dir(self, mock_raw, mock_post, mock_audio):
+        from clipper.paths import VR_CLIPS_DIR
+
+        mock_raw.return_value = (True, "raw.mp4")
+        mock_post.return_value = (True, "clip.mp4")
+        mock_audio.return_value = (True, "audio.mp3")
+
+        state = _make_state()
+        state.vr = True
+        ExportWorker(state).run()
+
+        clip_path = mock_post.call_args.args[2]
+        assert clip_path.parent == VR_CLIPS_DIR

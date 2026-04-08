@@ -45,3 +45,31 @@ class TestResult:
         assert result["timestamp"] == "00:01:30"
         assert result["seconds"] == 5.0
         assert result["ok"] is True
+
+    def test_build_result_new_mode_vr_default_false(self, dialog):
+        dialog.new_radio.setChecked(True)
+        dialog.video_file_edit.setText("/path/to/video.mp4")
+        result = dialog.build_result()
+        assert result["vr"] is False
+
+    def test_build_result_new_mode_vr_checked(self, dialog):
+        dialog.new_radio.setChecked(True)
+        dialog.vr_checkbox.setChecked(True)
+        result = dialog.build_result()
+        assert result["vr"] is True
+
+
+class TestVrAutoDetect:
+    def test_vr_prechecked_for_vr_path(self):
+        dialog = LauncherDialog()
+        dialog.new_radio.setChecked(True)
+        dialog.video_file_edit.setText(r"C:\path\to\suite-root\videos\videos\VR\some_video.mp4")
+        dialog._on_video_path_changed()
+        assert dialog.vr_checkbox.isChecked() is True
+
+    def test_vr_not_prechecked_for_non_vr_path(self):
+        dialog = LauncherDialog()
+        dialog.new_radio.setChecked(True)
+        dialog.video_file_edit.setText(r"C:\path\to\suite-root\videos\videos\other\some_video.mp4")
+        dialog._on_video_path_changed()
+        assert dialog.vr_checkbox.isChecked() is False

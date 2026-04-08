@@ -9,6 +9,7 @@ from clipper.paths import (
     CLIPS_DIR,
     RAW_CLIPS_DIR,
     SESSIONS_DIR,
+    VR_CLIPS_DIR,
     ensure_runtime_dirs,
 )
 
@@ -36,6 +37,24 @@ class TestEnsureRuntimeDirs:
         assert clips.is_dir()
         assert raw.is_dir()
         assert audio.is_dir()
+
+    def test_creates_vr_clips_dir(self, tmp_path: Path):
+        sessions = tmp_path / "sessions"
+        clips = tmp_path / "clips"
+        vr_clips = tmp_path / "vr_clips"
+        raw = tmp_path / "raw_clips"
+        audio = tmp_path / "audio"
+
+        with (
+            patch("clipper.paths.SESSIONS_DIR", sessions),
+            patch("clipper.paths.RAW_CLIPS_DIR", raw),
+            patch("clipper.paths.CLIPS_DIR", clips),
+            patch("clipper.paths.VR_CLIPS_DIR", vr_clips),
+            patch("clipper.paths.AUDIO_DIR", audio),
+        ):
+            ensure_runtime_dirs()
+
+        assert vr_clips.is_dir()
 
     def test_idempotent(self, tmp_path: Path):
         sessions = tmp_path / "sessions"
