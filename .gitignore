@@ -6,6 +6,7 @@ state/
 __pycache__/
 **/__pycache__/
 *.py[cod]
+*.egg-info/
 .pytest_cache/
 .tmp-pytest-*/
 pytest-cache-files-*/

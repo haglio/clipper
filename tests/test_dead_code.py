@@ -25,12 +25,6 @@ _QT_OVERRIDES: set[tuple[str, str]] = {
     ("clipper/gui/video_pane.py", "paintEvent"),
 }
 
-# Win32 STARTUPINFO struct fields — written for the Windows API to read.
-_WIN32_FIELDS: set[tuple[str, str]] = {
-    ("clipper/runtime_support.py", "dwFlags"),
-    ("clipper/runtime_support.py", "wShowWindow"),
-}
-
 # Python runtime hooks.
 _PYTHON_HOOKS: set[tuple[str, str]] = {
     ("clipper/__init__.py", "__getattr__"),
@@ -77,7 +71,6 @@ _STATE_MUTATIONS: set[tuple[str, str]] = {
 
 WHITELIST: set[tuple[str, str]] = (
     _QT_OVERRIDES
-    | _WIN32_FIELDS
     | _PYTHON_HOOKS
     | _DATACLASS_FIELDS
     | _EXPORT_MUTATIONS

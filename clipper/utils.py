@@ -6,9 +6,6 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from .runtime_support import hidden_subprocess_kwargs
-
-
 def parse_timestamp(ts: str) -> float:
     parts = ts.strip().split(":")
     if len(parts) != 3:
@@ -36,10 +33,6 @@ def sanitize_name(name: str) -> str:
 
 def find_tool(name: str) -> str | None:
     return shutil.which(name)
-
-
-def subprocess_window_kwargs() -> dict[str, Any]:
-    return hidden_subprocess_kwargs()
 
 
 def safe_atomic_write_json(path: Path, payload: dict[str, Any]) -> tuple[bool, str]:

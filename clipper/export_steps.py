@@ -8,9 +8,11 @@ from collections.abc import Callable, Sequence
 
 import cv2
 
+from app_support.subprocess_utils import hidden_subprocess_kwargs
+
 from .paths import CLIP_POSTPROCESS_SCRIPT
 from .state import ExportJob, VideoState
-from .utils import find_tool, subprocess_window_kwargs
+from .utils import find_tool
 
 
 def _parse_ffmpeg_clock(s: str) -> float:
@@ -34,7 +36,7 @@ def _run_ffmpeg_with_progress(
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            **subprocess_window_kwargs(),
+            **hidden_subprocess_kwargs(),
         )
         if job is not None:
             job.procs.append(proc)
@@ -132,7 +134,7 @@ def run_clip_postprocess(state: VideoState, raw_path: Path, out_path: Path, job:
         return False, f"{CLIP_POSTPROCESS_SCRIPT.name} not found at {CLIP_POSTPROCESS_SCRIPT}"
     cmd = [sys.executable, str(CLIP_POSTPROCESS_SCRIPT), str(raw_path), "-o", str(out_path), "--loop-mode", state.loop_mode]
     try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, **subprocess_window_kwargs())
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, **hidden_subprocess_kwargs())
         job.procs.append(proc)
     except Exception as exc:
         return False, str(exc)
@@ -177,7 +179,7 @@ def _has_audio_stream(video_path: str) -> bool:
             [ffprobe, "-v", "quiet", "-select_streams", "a",
              "-show_entries", "stream=codec_type", "-of", "csv=p=0", video_path],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-            **subprocess_window_kwargs(),
+            **hidden_subprocess_kwargs(),
         )
         stdout, _ = proc.communicate(timeout=10)
         return bool(stdout.strip())

@@ -14,8 +14,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+from app_support.subprocess_utils import hidden_subprocess_kwargs
+
 from .paths import LAST_SESSION_FILE, SESSIONS_DIR
-from .runtime_support import hidden_subprocess_kwargs
 from .utils import sanitize_name
 
 logger = logging.getLogger(__name__)

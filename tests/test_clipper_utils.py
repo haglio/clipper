@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import json
-import os
-import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -14,7 +12,6 @@ from clipper.utils import (
     parse_timestamp,
     safe_atomic_write_json,
     sanitize_name,
-    subprocess_window_kwargs,
 )
 
 
@@ -125,32 +122,6 @@ class TestSanitizeName:
         # After stripping, an empty result is acceptable (no crash)
         result = sanitize_name("   ")
         assert isinstance(result, str)
-
-
-# ---------------------------------------------------------------------------
-# subprocess_window_kwargs
-# ---------------------------------------------------------------------------
-
-class TestSubprocessWindowKwargs:
-    def test_returns_dict(self):
-        result = subprocess_window_kwargs()
-        assert isinstance(result, dict)
-
-    def test_empty_on_non_windows(self):
-        with patch.object(sys, "platform", "linux"):
-            # os.name patch needed too
-            with patch("os.name", "posix"):
-                result = subprocess_window_kwargs()
-                # On non-NT the function checks os.name
-        # We can verify that on the actual platform the call doesn't raise
-        subprocess_window_kwargs()
-
-    def test_windows_keys_present_on_nt(self):
-        if os.name != "nt":
-            pytest.skip("Windows-only test")
-        result = subprocess_window_kwargs()
-        assert "creationflags" in result
-        assert "startupinfo" in result
 
 
 # ---------------------------------------------------------------------------

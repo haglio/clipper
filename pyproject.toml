@@ -6,6 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "clipper"
 version = "0.1.0"
 requires-python = ">=3.10"
+# app_support is NOT listed here: it is installed editable from ../app_support
+# (see its README) and is not published, so pip would go looking for it on PyPI.
 dependencies = [
     "numpy",
     "opencv-python",

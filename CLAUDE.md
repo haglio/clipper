@@ -16,6 +16,7 @@ Clipper is a standalone Pygame/OpenCV video clip editor, extracted from the fun_
 - **Output dirs**: Clips export to `C:/path/to/suite-root/videos/genau/clips/`, audio to `C:/path/to/suite-root/videos/genau/audio/`. These are shared with fun_time's Genau listener.
 - **Entry point**: `python -m clipper` -> `__main__.py` -> `app.py:main()` -> launcher dialog -> UI.
 - **Launcher chain**: `Clipper.lnk` -> `wscript.exe` -> `launch_clipper.vbs` -> `python -m clipper`.
+- **Shared scaffolding**: logging setup, exception hooks and `hidden_subprocess_kwargs` come from the sibling `../app_support`, which every app in this family installs editable — fix those there, not here. Install it with `--config-settings editable_mode=compat`; its README says why, and its `tests/test_install.py` goes red without it.
 
 ## Communication rules
 
