@@ -17,9 +17,11 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from clipper.content import load_content
 from clipper.loop_modes import LOOP_MODES
 
-VR_VIDEO_DIR = PureWindowsPath("C:/path/to/suite-root/videos/videos/VR")
+# The library root is private; it comes from the content overlay.
+VR_VIDEO_DIR = PureWindowsPath(load_content()["suite_root"]) / "videos" / "videos" / "VR"
 
 
 class LauncherDialog(QDialog):

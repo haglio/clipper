@@ -13,3 +13,8 @@ pytest-cache-files-*/
 
 # Claude Code local config
 .claude/
+
+# Private overlays — real values live here and never get published; each has
+# a committed *.example.* template documenting its shape.
+/content.local.json
+/sanitize/blocklist.local.txt

@@ -7,7 +7,7 @@ import sys
 import pytest
 from PyQt6.QtWidgets import QApplication
 
-from clipper.gui.launcher_dialog import LauncherDialog
+from clipper.gui.launcher_dialog import VR_VIDEO_DIR, LauncherDialog
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -85,13 +85,13 @@ class TestVrAutoDetect:
     def test_vr_prechecked_for_vr_path(self):
         dialog = LauncherDialog()
         dialog.new_radio.setChecked(True)
-        dialog.video_file_edit.setText(r"C:\path\to\suite-root\videos\videos\VR\some_video.mp4")
+        dialog.video_file_edit.setText(str(VR_VIDEO_DIR / "some_video.mp4"))
         dialog._on_video_path_changed()
         assert dialog.vr_checkbox.isChecked() is True
 
     def test_vr_not_prechecked_for_non_vr_path(self):
         dialog = LauncherDialog()
         dialog.new_radio.setChecked(True)
-        dialog.video_file_edit.setText(r"C:\path\to\suite-root\videos\videos\other\some_video.mp4")
+        dialog.video_file_edit.setText(str(VR_VIDEO_DIR.parent / "other" / "some_video.mp4"))
         dialog._on_video_path_changed()
         assert dialog.vr_checkbox.isChecked() is False

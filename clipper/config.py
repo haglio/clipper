@@ -6,8 +6,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from clipper.content import load_content
+
+_CONTENT = load_content()
+
 PROJECT_DIR = Path(__file__).resolve().parent.parent
-_FUN_TIME_DIR = Path("C:/path/to/suite-root/projects/fun_time")
+# Sibling checkout, outside this repo; its location is private.
+_FUN_TIME_DIR = Path(_CONTENT["suite_root"]) / "projects" / "fun_time"
 DEFAULT_CONFIG_PATH = _FUN_TIME_DIR / "fun_time_config.json"
 
 
@@ -299,9 +304,9 @@ def _load_random_favs_browser_config(browser_raw: dict[str, Any] | None) -> Rand
     browser_values = browser_raw or {}
     return RandomFavsBrowserConfig(
         enabled=bool(browser_values.get("enabled", False)),
-        shortcut_path=_resolve_path(_FUN_TIME_DIR, str(browser_values.get("shortcut_path", "Blair Chrome.lnk"))),
+        shortcut_path=_resolve_path(_FUN_TIME_DIR, str(browser_values.get("shortcut_path", _CONTENT["chrome_shortcut"]))),
         user_data_dir=_resolve_path(_FUN_TIME_DIR, str(browser_values.get("user_data_dir", default_user_data_dir))),
-        profile_name=str(browser_values.get("profile_name", "Blair")),
+        profile_name=str(browser_values.get("profile_name", _CONTENT["chrome_profile"])),
         bookmarks_folder_name=str(browser_values.get("bookmarks_folder_name", "Fun Time Favs")),
         open_count=int(browser_values.get("open_count", 10)),
     )
