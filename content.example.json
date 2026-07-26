@@ -1,5 +1,5 @@
 {
-  "_comment": "Placeholder content overlay. The real values live in content.local.json (git-ignored). suite_root is the folder holding both the media library and the sibling app checkouts; chrome_shortcut and chrome_profile name the browser profile the favourites open in.",
+  "_comment": "Placeholder content overlay. The real values live in content.local.json (git-ignored). suite_root is the folder holding the media library; chrome_shortcut and chrome_profile name the browser profile the favorites open in. project_roots is optional: the folders holding the sibling app checkouts, searched in order, for when they do not live under suite_root/projects; omit it and that is exactly where they are looked for.",
   "suite_root": "C:/path/to/suite-root",
   "chrome_shortcut": "Chrome.lnk",
   "chrome_profile": "Default"

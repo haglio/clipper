@@ -11,8 +11,48 @@ from clipper.content import load_content
 _CONTENT = load_content()
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+
+
+def project_roots(content: dict[str, Any] | None = None) -> tuple[Path, ...]:
+    """The folders that hold the suite's sibling app checkouts, in search order.
+
+    ``suite_root`` used to answer this as well as naming where the media library
+    is, and for a long time both were true of one folder. They came apart when
+    the checkouts were moved out of the file-synced tree the library stays in,
+    so the checkouts get their own key and ``suite_root`` keeps the library.
+
+    A *list*, because the move runs one repo at a time: with a single path there
+    is a window where a sibling that has not moved yet is unreachable. An
+    overlay that says nothing still means ``suite_root/projects``, exactly as
+    before.
+    """
+    content = _CONTENT if content is None else content
+    roots = content.get("project_roots")
+    if not roots:
+        return (Path(content["suite_root"]) / "projects",)
+    return tuple(Path(root) for root in roots)
+
+
+PROJECT_ROOTS = project_roots()
+
+
+def project_dir(name: str, roots: tuple[Path, ...] | None = None) -> Path:
+    """The sibling checkout *name*, from the first root that actually holds it.
+
+    Falls back to a path under the first root when no root does, so a sibling
+    that isn't installed surfaces as the caller's own missing-file error rather
+    than as an import-time crash here.
+    """
+    roots = PROJECT_ROOTS if roots is None else roots
+    for root in roots:
+        candidate = root / name
+        if candidate.is_dir():
+            return candidate
+    return roots[0] / name
+
+
 # Sibling checkout, outside this repo; its location is private.
-_FUN_TIME_DIR = Path(_CONTENT["suite_root"]) / "projects" / "fun_time"
+_FUN_TIME_DIR = project_dir("fun_time")
 DEFAULT_CONFIG_PATH = _FUN_TIME_DIR / "fun_time_config.json"
 
 
