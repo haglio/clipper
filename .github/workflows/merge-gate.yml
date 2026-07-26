@@ -9,15 +9,10 @@ name: merge gate (full suite)
 # Windows-only subprocess behaviour (STARTUPINFO / SW_HIDE via app_support), and
 # its Qt widget tests need a headless platform, so QT_QPA_PLATFORM=offscreen.
 #
-# Sibling packages are not on PyPI and are handled per their layout:
-#   - app_support ships a real package dir, so it builds a wheel cleanly from its
-#     public repo -- pip install it.
-#   - shared_ui is a flat-layout package (its modules live at the repo ROOT, so a
-#     wheel build finds nothing and installs empty). It is consumed the way it is
-#     locally: check the repo out and put its PARENT dir on PYTHONPATH, so
-#     `import shared_ui` resolves to the checkout.
-# The editable install of clipper MUST use compat mode or the "clipper" repo dir
-# shadows the package as a namespace on sys.path (see tests/conftest.py).
+# app_support and shared_ui are sibling packages, not published on PyPI, so they
+# install from their public GitHub repos. The editable install of clipper MUST
+# use compat mode or the "clipper" repo dir shadows the package as a namespace on
+# sys.path (see tests/conftest.py).
 #
 # shell: bash gives every run step `set -eo pipefail`; the default Windows shell
 # (pwsh) only checks the last line's exit code, so a failed sibling/pip install
@@ -41,11 +36,6 @@ jobs:
       QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v4
-      - name: Check out shared_ui (flat-layout sibling, imported off PYTHONPATH)
-        uses: actions/checkout@v4
-        with:
-          repository: haglio/shared_ui
-          path: _sibling/shared_ui
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -53,10 +43,10 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          pip install "app_support @ git+https://github.com/haglio/app_support.git"
+          pip install \
+            "app_support @ git+https://github.com/haglio/app_support.git" \
+            "shared_ui @ git+https://github.com/haglio/shared_ui.git"
           pip install -e ".[dev]" --config-settings editable_mode=compat
       - name: Run the suite
         shell: bash
-        env:
-          PYTHONPATH: ${{ github.workspace }}/_sibling
         run: python -m pytest -q
