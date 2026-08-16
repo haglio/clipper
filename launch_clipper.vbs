@@ -20,6 +20,18 @@ End Sub
 
 Function FindPythonCommand()
   Dim venvPython, candidates, i
+
+' The copy a previous run left named for this app, ahead of the plain venv
+' interpreter.  Windows identifies a process by the file it was started from, so
+' a bare interpreter arrives as one more anonymous "Python" among every other
+' Python app on the machine; app_support.process_identity makes a copy that says
+' Clipper instead, and each run makes it for the run after.
+  namedPython = projectRoot & "\.venv\Scripts\Clipper-Clipper.exe"
+  If fso.FileExists(namedPython) Then
+    FindPythonCommand = Quote(namedPython)
+    Exit Function
+  End If
+
   venvPython = projectRoot & "\.venv\Scripts\python.exe"
   If fso.FileExists(venvPython) Then
     FindPythonCommand = Quote(venvPython)
