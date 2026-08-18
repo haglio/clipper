@@ -7,7 +7,12 @@ from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 import qtawesome as qta
 
-_ICON_COLOR = "#ddd"
+from shared_ui.colors import TEXT_PRIMARY
+
+# The chrome's own text color, so a glyph on a button matches the label beside
+# it. It was its own near-white before, which is the sort of stray that leaves
+# one app looking a shade off from the rest of the family.
+_ICON_COLOR = TEXT_PRIMARY.name()
 _ICON_SIZE = QSize(14, 14)
 
 
