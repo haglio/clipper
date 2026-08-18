@@ -6,7 +6,7 @@ import os
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QPoint, Qt
-from PyQt6.QtGui import QColor, QKeyEvent, QPainter, QPen
+from PyQt6.QtGui import QKeyEvent, QPainter, QPen
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -18,7 +18,12 @@ from PyQt6.QtWidgets import (
 
 from shared_ui.colors import (
     RED,
+    BG_BUTTON,
+    BG_KEYCAP,
     BG_PRIMARY,
+    BG_TERTIARY,
+    BORDER_DEFAULT,
+    BORDER_SUBTLE,
     TEXT_PRIMARY,
     TEXT_SECONDARY,
     TIMELINE_ACTIVE,
@@ -57,13 +62,13 @@ _BTN_STYLE = f"""
         font-family: "{FONT_UI}";
         font-size: {SIZE_SMALL}pt;
         color: {TEXT_PRIMARY.name()};
-        background: #585858;
-        border: 1px solid #777;
+        background: {BG_BUTTON.name()};
+        border: 1px solid {BORDER_SUBTLE.name()};
         padding: 3px 8px;
         min-height: 22px;
     }}
-    QPushButton:hover {{ background: #686868; }}
-    QPushButton:pressed {{ background: #404040; }}
+    QPushButton:hover {{ background: {BG_KEYCAP.name()}; }}
+    QPushButton:pressed {{ background: {BG_TERTIARY.name()}; }}
 """
 
 
@@ -84,7 +89,7 @@ class _WrapRow(QWidget):
         if self._x2 <= self._x1:
             return
         p = QPainter(self)
-        pen = QPen(QColor(200, 200, 200), 1)
+        pen = QPen(BORDER_DEFAULT, 1)
         p.setPen(pen)
         y = self.height() // 2
         p.drawLine(self._x1, y, self._x2, y)
@@ -364,7 +369,7 @@ class ClipperMainWindow(QMainWindow):
         wy = (self._wrap_row.height() - tc.wrap_btn.height()) // 2
         tc.wrap_btn.move(wrap_center - tc.wrap_btn.width() // 2, wy)
         tc.wrap_btn.setStyleSheet(
-            f"background: {wrap_color.name()}; border: 1px solid #777;"
+            f"background: {wrap_color.name()}; border: 1px solid {BORDER_SUBTLE.name()};"
         )
         tc.wrap_btn.show()
 
