@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 from shared_ui.colors import (
     RED,
     BG_BUTTON,
+    BG_BUTTON_ACTIVE,
     BG_KEYCAP,
     BG_PRIMARY,
     BG_TERTIARY,
@@ -69,6 +70,10 @@ _BTN_STYLE = f"""
     }}
     QPushButton:hover {{ background: {BG_KEYCAP.name()}; }}
     QPushButton:pressed {{ background: {BG_TERTIARY.name()}; }}
+    /* One rule across the family: a control that is ON sits on a lighter ground
+       than one at rest, so a toggled button reads the same whichever app it is
+       in. */
+    QPushButton:checked {{ background: {BG_BUTTON_ACTIVE.name()}; }}
 """
 
 

@@ -73,3 +73,14 @@ def test_the_chrome_reads_the_family_palette():
     ]
     assert "main_window.py" in importers
     assert "button_bar.py" in importers
+
+
+def test_a_control_that_is_on_sits_on_a_lighter_ground():
+    """One rule across the family, so a toggled button reads the same whichever
+    app it is in.  Origenerator had it and this did not."""
+    from clipper.gui.main_window import _BTN_STYLE
+    from shared_ui.colors import BG_BUTTON, BG_BUTTON_ACTIVE
+
+    assert BG_BUTTON_ACTIVE.name() in _BTN_STYLE
+    assert ":checked" in _BTN_STYLE
+    assert BG_BUTTON.name() in _BTN_STYLE   # and a resting one still sits darker
