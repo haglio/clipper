@@ -7,12 +7,15 @@ from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 from shared_ui.colors import TEXT_PRIMARY
 from shared_ui.icons import glyph_icon
+from shared_ui.spacing import BUTTON_ICON
 
 # The chrome's own text color, so a glyph on a button matches the label beside
 # it. It was its own near-white before, which is the sort of stray that leaves
 # one app looking a shade off from the rest of the family.
 _ICON_COLOR = TEXT_PRIMARY
-_ICON_SIZE = QSize(14, 14)
+# The family's icon size, so a mark on a button here is the size a mark on a
+# button anywhere else is.
+_ICON_SIZE = QSize(BUTTON_ICON, BUTTON_ICON)
 
 
 class ButtonBar(QWidget):
