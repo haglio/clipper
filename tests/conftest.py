@@ -107,18 +107,29 @@ def _cleanup_tmp_root():
 
 
 @pytest.fixture(autouse=True, scope="session")
-def _preserve_last_session():
-    """Save and restore .last_session.txt so tests don't clobber the user's state."""
-    from clipper.paths import LAST_SESSION_FILE
+def _the_last_session_pointer_is_never_the_real_one():
+    """Point every module that binds LAST_SESSION_FILE at a scratch file.
 
-    had_file = LAST_SESSION_FILE.exists()
-    original = LAST_SESSION_FILE.read_text(encoding="utf-8") if had_file else None
-    yield
-    if original is not None:
-        LAST_SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
-        LAST_SESSION_FILE.write_text(original, encoding="utf-8")
-    elif LAST_SESSION_FILE.exists():
-        LAST_SESSION_FILE.unlink()
+    Five tests reached the user's own `.last_session.txt` by omission: they call
+    `create_session` with a `sessions_dir`, and nothing patches the pointer it
+    *also* writes. This used to be met by saving the file before the run and
+    writing it back afterwards -- which never happened when a run was
+    interrupted, timed out or killed, routine on a machine where several agents
+    run suites at once, and which raced itself when two ran in the same
+    checkout. Redirecting the name instead means a test cannot reach the real
+    file by forgetting; the tests that assert on the pointer patch their own.
+    """
+    import importlib
+
+    scratch = TMP_ROOT / ".last_session.txt"
+    TMP_ROOT.mkdir(parents=True, exist_ok=True)
+    with pytest.MonkeyPatch.context() as patcher:
+        for name in ("clipper.paths", "clipper.create_session",
+                     "clipper.session_launch", "clipper.session_persistence"):
+            patcher.setattr(importlib.import_module(name),
+                            "LAST_SESSION_FILE", scratch)
+        yield
+    scratch.unlink(missing_ok=True)
 
 
 def _write_config(tmp_path: Path, overrides: dict | None = None) -> Path:
