@@ -10,6 +10,33 @@ from pathlib import Path
 
 import pytest
 
+# Render Qt offscreen for the whole suite. Agents run these tests on every commit
+# on the machine clipper is used from; without this, every test that builds a
+# widget throws a real window onto that screen for a few milliseconds, so a run
+# flashes a burst of them. Must be set before the QApplication below exists, so
+# it goes here rather than in a fixture; the merge gate sets it too, which does
+# nothing for a run started by hand. setdefault lets a developer override it to
+# watch something on a real display.
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PyQt6.QtWidgets import QApplication  # noqa: E402  -- after the platform is set
+
+
+@pytest.fixture(scope="session", autouse=True)
+def qapp():
+    """The one QApplication the Qt tests build their widgets under.
+
+    Twelve test modules used to carry a byte-identical copy of this, beside a
+    `tests/conftest_qt.py` that looked like the shared version and was never
+    loaded -- pytest only auto-loads files named `conftest.py`, and nothing
+    imported it. So the shared one was dead and the change it exists to make
+    possible had to be made twelve times.
+    """
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(sys.argv)
+    return app
+
 
 # ---------------------------------------------------------------------------
 # sys.path fix — must run before clipper is imported

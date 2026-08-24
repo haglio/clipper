@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from unittest.mock import patch
 
 import numpy as np
@@ -12,14 +11,6 @@ from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.frame_converter import bgr_to_qimage
 from clipper.gui.video_pane import VideoPane
-
-
-@pytest.fixture(scope="module", autouse=True)
-def _qapp():
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(sys.argv)
-    return app
 
 
 @pytest.fixture()

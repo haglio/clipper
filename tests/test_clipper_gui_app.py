@@ -2,21 +2,12 @@
 
 from __future__ import annotations
 
-import sys
 from unittest.mock import MagicMock
 
 import pytest
 from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.app import ClipperApp
-
-
-@pytest.fixture(scope="module", autouse=True)
-def _qapp():
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(sys.argv)
-    return app
 
 
 @pytest.fixture()
