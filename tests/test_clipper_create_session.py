@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import importlib
 import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -19,19 +20,33 @@ from clipper.create_session import (
 # import isolation — create_session must not pull in cv2
 # ---------------------------------------------------------------------------
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
 def test_create_session_importable_without_cv2():
-    """create_session must not transitively import cv2 (or numpy)."""
-    sentinel = "cv2"
-    real_cv2 = sys.modules.get(sentinel)
-    sys.modules[sentinel] = None  # type: ignore[assignment]  # block cv2
-    try:
-        mod = importlib.import_module("clipper.create_session")
-        importlib.reload(mod)
-    finally:
-        if real_cv2 is not None:
-            sys.modules[sentinel] = real_cv2
-        else:
-            sys.modules.pop(sentinel, None)
+    """create_session must not transitively import cv2 (or numpy).
+
+    In a fresh interpreter, the way `test_launch_smoke.py` runs its import
+    checks. This used to block cv2 by writing None into this process's
+    `sys.modules` and reloading the module in place -- and it never undid the
+    reload, so every module that had already done
+    `from clipper.create_session import create_session` went on holding the
+    pre-reload function while the module's own globals were the post-reload
+    ones, and a patch applied to one was invisible to the other. Nothing depends
+    on that today, which is why it never bit; it was a latent order dependence
+    sitting in a session-wide namespace. It also had no assertion, so a reload
+    that produced a broken module passed just the same.
+    """
+    probe = (
+        "import sys; sys.modules['cv2'] = None; sys.modules['numpy'] = None; "
+        "import clipper.create_session"
+    )
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+
+    result = subprocess.run([sys.executable, "-c", probe], cwd=REPO_ROOT,
+                            env=env, capture_output=True, text=True)
+
+    assert result.returncode == 0, result.stderr
 
 
 # ---------------------------------------------------------------------------
