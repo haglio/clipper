@@ -2,23 +2,13 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.export_worker import ExportWorker
 from clipper.state import ExportJob, VideoState
-
-
-@pytest.fixture(scope="module", autouse=True)
-def _qapp():
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(sys.argv)
-    return app
 
 
 def _make_state() -> VideoState:

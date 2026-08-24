@@ -2,22 +2,12 @@
 
 from __future__ import annotations
 
-import sys
 
 import numpy as np
-import pytest
 from PyQt6.QtGui import QImage
 from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.frame_converter import bgr_to_qimage, scale_to_fit
-
-
-@pytest.fixture(scope="module", autouse=True)
-def _qapp():
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(sys.argv)
-    return app
 
 
 class TestBgrToQImage:

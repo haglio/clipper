@@ -2,20 +2,11 @@
 
 from __future__ import annotations
 
-import sys
 
 import pytest
 from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.launcher_dialog import VR_VIDEO_DIR, LauncherDialog
-
-
-@pytest.fixture(scope="module", autouse=True)
-def _qapp():
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(sys.argv)
-    return app
 
 
 @pytest.fixture()
