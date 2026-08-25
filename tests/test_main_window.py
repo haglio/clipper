@@ -10,6 +10,7 @@ from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.main_window import ClipperMainWindow
+from clipper.state import ExportJob
 
 
 @pytest.fixture()
@@ -154,40 +155,163 @@ class TestExportWiring:
         mock_worker.start.assert_called_once()
 
 
+# The state every dispatch case starts from: room on both sides of the loaded
+# range to contract into, and room outside it to extend into.
+_DISPATCH_STATE = {
+    "total_frames": 100, "loaded_start": 10, "loaded_end": 60,
+    "active_start": 20, "active_end": 40, "current": 30, "base_step": 5,
+}
+
+
+def _press(window, key, text=""):
+    window.keyPressEvent(
+        QKeyEvent(QKeyEvent.Type.KeyPress, key, Qt.KeyboardModifier.NoModifier, text)
+    )
+
+
+def _no_prep(state):
+    pass
+
+
+def _with_suggestions(state):
+    state.suggested_in = 25
+    state.suggested_out = 35
+
+
+def _with_an_export_running(state):
+    state.export_job = ExportJob()
+
+
+# (label, Qt key, event text, prepare, what to read afterwards, what it must be)
+# -- every branch of keyPressEvent, read off a real VideoState.  Six of these
+# used to be `patch(...); assert_called_once_with(state)`, which pins the
+# import name rather than the edit: swapping the handlers behind s/d and w/l,
+# and flipping the sign of both change_speed steps, shipped green.
+def _dispatched_tokens() -> set[str]:
+    """Every literal ``keyPressEvent`` branches on, read off its syntax tree."""
+    import ast
+    import inspect
+    import textwrap
+
+    from clipper.gui import main_window
+
+    tree = ast.parse(
+        textwrap.dedent(inspect.getsource(main_window.ClipperMainWindow.keyPressEvent))
+    )
+    tokens: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Compare):
+            continue
+        for operand in node.comparators:
+            for leaf in ast.walk(operand):
+                if isinstance(leaf, ast.Constant) and isinstance(leaf.value, str):
+                    tokens.add(leaf.value)
+                elif isinstance(leaf, ast.Attribute) and leaf.attr.startswith("Key_"):
+                    tokens.add(leaf.attr)
+    return tokens
+
+
+_KEY_BINDINGS = [
+    ("left", Qt.Key.Key_Left, "", _no_prep, lambda s: s.current, 29),
+    ("right", Qt.Key.Key_Right, "", _no_prep, lambda s: s.current, 31),
+    ("space", Qt.Key.Key_Space, "", _no_prep, lambda s: s.loop_paused, True),
+    ("a extends left", Qt.Key.Key_A, "a", _no_prep, lambda s: s.loaded_start, 5),
+    ("s contracts left", Qt.Key.Key_S, "s", _no_prep, lambda s: s.loaded_start, 15),
+    ("d contracts right", Qt.Key.Key_D, "d", _no_prep, lambda s: s.loaded_end, 55),
+    ("f extends right", Qt.Key.Key_F, "f", _no_prep, lambda s: s.loaded_end, 65),
+    ("i marks in", Qt.Key.Key_I, "i", _no_prep, lambda s: s.active_start, 30),
+    ("[ marks in", Qt.Key.Key_BracketLeft, "[", _no_prep, lambda s: s.active_start, 30),
+    ("o marks out", Qt.Key.Key_O, "o", _no_prep, lambda s: s.active_end, 30),
+    ("] marks out", Qt.Key.Key_BracketRight, "]", _no_prep, lambda s: s.active_end, 30),
+    ("9 accepts the suggested in", Qt.Key.Key_9, "9", _with_suggestions, lambda s: s.active_start, 25),
+    ("( accepts the suggested in", Qt.Key.Key_ParenLeft, "(", _with_suggestions, lambda s: s.active_start, 25),
+    ("0 accepts the suggested out", Qt.Key.Key_0, "0", _with_suggestions, lambda s: s.active_end, 35),
+    (") accepts the suggested out", Qt.Key.Key_ParenRight, ")", _with_suggestions, lambda s: s.active_end, 35),
+    (", shifts left", Qt.Key.Key_Comma, ",", _no_prep, lambda s: (s.active_start, s.active_end), (0, 20)),
+    ("< shifts left", Qt.Key.Key_Less, "<", _no_prep, lambda s: (s.active_start, s.active_end), (0, 20)),
+    (". shifts right", Qt.Key.Key_Period, ".", _no_prep, lambda s: (s.active_start, s.active_end), (40, 60)),
+    ("> shifts right", Qt.Key.Key_Greater, ">", _no_prep, lambda s: (s.active_start, s.active_end), (40, 60)),
+    ("w toggles the wrap range", Qt.Key.Key_W, "w", _no_prep, lambda s: s.wrap_mode, "yellow"),
+    ("l cycles the loop mode", Qt.Key.Key_L, "l", _no_prep, lambda s: s.loop_mode, "tip-base-tip"),
+    ("- slows down", Qt.Key.Key_Minus, "-", _no_prep, lambda s: s.speed, 0.75),
+    ("_ slows down", Qt.Key.Key_Underscore, "_", _no_prep, lambda s: s.speed, 0.75),
+    ("+ speeds up", Qt.Key.Key_Plus, "+", _no_prep, lambda s: s.speed, 1.25),
+    ("= speeds up", Qt.Key.Key_Equal, "=", _no_prep, lambda s: s.speed, 1.25),
+    ("escape dismisses the export", Qt.Key.Key_Escape, "", _with_an_export_running,
+     lambda s: s.export_job.dismissed, True),
+]
+
+
 class TestKeyDispatch:
-    def _press(self, window, key, text=""):
-        event = QKeyEvent(QKeyEvent.Type.KeyPress, key, Qt.KeyboardModifier.NoModifier, text)
-        window.keyPressEvent(event)
+    """Every keyboard binding, against a real VideoState."""
 
-    def test_left_arrow_calls_move_left(self, window, mock_state):
-        with patch("clipper.gui.main_window.move_current_left") as mock:
-            self._press(window, Qt.Key.Key_Left)
-            mock.assert_called_once_with(mock_state)
+    @pytest.mark.parametrize(
+        "key, text, prepare, observe, expected",
+        [pytest.param(k, t, p, o, e, id=label) for label, k, t, p, o, e in _KEY_BINDINGS],
+    )
+    def test_a_key_makes_its_edit(self, make_state, key, text, prepare, observe, expected):
+        state = make_state(**_DISPATCH_STATE)
+        prepare(state)
+        window = ClipperMainWindow(state)
 
-    def test_right_arrow_calls_move_right(self, window, mock_state):
-        with patch("clipper.gui.main_window.move_current_right") as mock:
-            self._press(window, Qt.Key.Key_Right)
-            mock.assert_called_once_with(mock_state)
+        _press(window, key, text)
 
-    def test_space_toggles_playback(self, window, mock_state):
-        with patch("clipper.gui.main_window.toggle_loop_pause") as mock:
-            self._press(window, Qt.Key.Key_Space)
-            mock.assert_called_once_with(mock_state)
+        assert observe(state) == expected
 
-    def test_a_extends_left(self, window, mock_state):
-        with patch("clipper.gui.main_window.extend_left") as mock:
-            self._press(window, Qt.Key.Key_A, "a")
-            mock.assert_called_once_with(mock_state)
+    def test_every_binding_the_window_dispatches_has_a_row(self):
+        """A binding added to keyPressEvent without a case here fails this.
 
-    def test_i_marks_in(self, window, mock_state):
-        with patch("clipper.gui.main_window.set_mark_in") as mock:
-            self._press(window, Qt.Key.Key_I, "i")
-            mock.assert_called_once_with(mock_state)
+        Fourteen of the twenty went unpinned for exactly as long as nothing
+        counted them.
+        """
+        covered = {"Key_Return", "Key_Enter", "q"}  # the three cases below
+        covered |= {text or key.name for _, key, text, *_ in _KEY_BINDINGS}
 
-    def test_enter_triggers_export(self, window, mock_state):
-        with patch.object(window, "_on_export") as mock:
-            self._press(window, Qt.Key.Key_Return)
-            mock.assert_called_once()
+        assert _dispatched_tokens() == covered
+
+    def test_an_unbound_key_changes_nothing(self, make_state):
+        state = make_state(**_DISPATCH_STATE)
+        window = ClipperMainWindow(state)
+        before = (state.current, state.active_start, state.active_end,
+                  state.loaded_start, state.loaded_end, state.wrap_mode,
+                  state.loop_mode, state.speed, state.dirty)
+
+        _press(window, Qt.Key.Key_Z, "z")
+
+        assert (state.current, state.active_start, state.active_end,
+                state.loaded_start, state.loaded_end, state.wrap_mode,
+                state.loop_mode, state.speed, state.dirty) == before
+
+    @pytest.mark.parametrize("key", [Qt.Key.Key_Return, Qt.Key.Key_Enter])
+    def test_enter_starts_an_export(self, make_state, key):
+        state = make_state(**_DISPATCH_STATE)
+        window = ClipperMainWindow(state)
+
+        with patch("clipper.gui.main_window.ExportWorker") as worker_cls, \
+             patch("clipper.gui.main_window.ExportDialog") as dialog_cls:
+            _press(window, key)
+
+        dialog_cls.return_value.show.assert_called_once()
+        worker_cls.return_value.start.assert_called_once()
+
+    def test_escape_leaves_an_already_dismissed_export_alone(self, make_state):
+        state = make_state(**_DISPATCH_STATE)
+        state.export_job = ExportJob(dismissed=True, stage="fixing")
+        window = ClipperMainWindow(state)
+
+        _press(window, Qt.Key.Key_Escape)
+
+        assert state.export_job.stage == "fixing"
+
+    def test_q_closes_the_window(self, make_state):
+        state = make_state(**_DISPATCH_STATE)
+        window = ClipperMainWindow(state)
+        window.show()
+        assert window.isVisible()
+
+        _press(window, Qt.Key.Key_Q, "q")
+
+        assert not window.isVisible()
 
 
 @pytest.fixture()
