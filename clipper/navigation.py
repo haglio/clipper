@@ -20,7 +20,7 @@ def move_current_left(state: VideoState) -> None:
         state.current = high
     else:
         state.current -= 1
-    state.render_rev += 1
+    state.mark_dirty()
 
 
 def move_current_right(state: VideoState) -> None:
@@ -30,4 +30,4 @@ def move_current_right(state: VideoState) -> None:
         state.current = low
     else:
         state.current += 1
-    state.render_rev += 1
+    state.mark_dirty()

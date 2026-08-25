@@ -431,6 +431,12 @@ def _no_prep(state: VideoState) -> None:
     pass
 
 
+def _speed(delta: float):
+    def act(state: VideoState) -> None:
+        change_speed(state, delta)
+    return act
+
+
 def _shift(direction: int):
     def act(state: VideoState) -> None:
         shift_active_range(state, direction)
@@ -451,6 +457,9 @@ _EDITS_THAT_CHANGE_THE_CLIP = [
     ("contract_right", {"loaded_end": 99, "active_end": 70, "base_step": 5}, _no_prep, contract_right),
     ("extend_left", {"loaded_start": 20, "loaded_end": 60, "base_step": 5}, _no_prep, extend_left),
     ("extend_right", {"total_frames": 100, "loaded_end": 60, "base_step": 5}, _no_prep, extend_right),
+    ("change_speed", {"speed": 1.0}, _no_prep, _speed(0.25)),
+    ("move_current_left", {"loaded_start": 0, "loaded_end": 99, "current": 20}, _no_prep, move_current_left),
+    ("move_current_right", {"loaded_start": 0, "loaded_end": 99, "current": 20}, _no_prep, move_current_right),
 ]
 
 # The same operations asked to do something they refuse: nothing changes, so
@@ -463,6 +472,7 @@ _EDITS_THAT_REFUSE = [
     ("shift_active_range out of bounds", {"active_start": 2, "active_end": 12, "current": 5}, _no_prep, _shift(-1)),
     ("contract_left with no room", {"loaded_start": 0, "active_start": 3, "base_step": 5}, _no_prep, contract_left),
     ("contract_right with no room", {"loaded_end": 99, "active_end": 97, "base_step": 5}, _no_prep, contract_right),
+    ("change_speed already at the floor", {"speed": 0.25}, _no_prep, _speed(-0.25)),
 ]
 
 

@@ -64,7 +64,7 @@ def change_speed(state: VideoState, delta: float) -> None:
     if not state.loop_paused:
         state.paused_loop_idx = None
         state.paused_loop_pos = None
-    state.render_rev += 1
+    state.mark_dirty()
 
 
 def toggle_loop_pause(state: VideoState) -> None:
