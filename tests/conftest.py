@@ -198,6 +198,27 @@ class _FakeAutosave:
 
 
 @pytest.fixture()
+def ticked_within():
+    """Whether a Qt signal fires inside a budget; returns as soon as it does."""
+    def wait(signal, budget_ms: int) -> bool:
+        from PyQt6.QtCore import QEventLoop, QTimer
+
+        seen = []
+        loop = QEventLoop()
+
+        def on_fire(*_args):
+            seen.append(1)
+            loop.quit()
+
+        signal.connect(on_fire)
+        QTimer.singleShot(budget_ms, loop.quit)
+        loop.exec()
+        signal.disconnect(on_fire)
+        return bool(seen)
+    return wait
+
+
+@pytest.fixture()
 def rendered():
     """Paint a widget into an image, so a test can read the pixels it drew.
 
