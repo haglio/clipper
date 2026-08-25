@@ -43,13 +43,6 @@ def safe_atomic_write_json(path: Path, payload: dict[str, Any]) -> tuple[bool, s
             f.write("\n")
         os.replace(tmp, path)
         return True, ""
-    except PermissionError as exc:
-        try:
-            if tmp.exists():
-                tmp.unlink()
-        except Exception:
-            pass
-        return False, str(exc)
     except Exception as exc:
         try:
             if tmp.exists():

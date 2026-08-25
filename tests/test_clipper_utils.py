@@ -118,10 +118,8 @@ class TestSanitizeName:
         result = sanitize_name("filename.")
         assert not result.endswith(".")
 
-    def test_empty_string_allowed(self):
-        # After stripping, an empty result is acceptable (no crash)
-        result = sanitize_name("   ")
-        assert isinstance(result, str)
+    def test_a_name_of_only_spaces_becomes_the_empty_string(self):
+        assert sanitize_name("   ") == ""
 
 
 # ---------------------------------------------------------------------------
@@ -167,10 +165,38 @@ class TestSafeAtomicWriteJson:
         assert ok is False
         assert "denied" in err
 
-    def test_creates_nested_directories(self, tmp_path: Path):
+    def test_refuses_a_path_whose_parent_does_not_exist(self, tmp_path: Path):
+        """It does not mkdir -- that is the caller's job -- but it must say so.
+
+        The autosave warning the user sees is built from nothing but this
+        return value, so a failure reported as a success is a session that
+        silently stops being written.
+        """
         target = tmp_path / "nested" / "dir" / "out.json"
-        # safe_atomic_write_json doesn't mkdir — it's caller's job,
-        # so this should fail gracefully, not raise
+
         ok, err = safe_atomic_write_json(target, {"x": 1})
-        # Either it succeeded (dirs were auto-created) or returned False
-        assert isinstance(ok, bool)
+
+        assert ok is False
+        assert str(target) in err
+        assert not target.exists()
+
+    def test_reports_a_failed_rename_and_leaves_no_half_written_file(self, tmp_path: Path):
+        target = tmp_path / "out.json"
+
+        with patch("clipper.utils.os.replace", side_effect=OSError("disk full")):
+            ok, err = safe_atomic_write_json(target, {"x": 1})
+
+        assert ok is False
+        assert "disk full" in err
+        assert not target.exists()
+        assert not target.with_suffix(".json.tmp").exists()
+
+    def test_a_tmp_file_it_cannot_clean_up_does_not_mask_the_failure(self, tmp_path: Path):
+        target = tmp_path / "out.json"
+
+        with patch("clipper.utils.os.replace", side_effect=OSError("disk full")), \
+             patch("pathlib.Path.unlink", side_effect=OSError("still locked")):
+            ok, err = safe_atomic_write_json(target, {"x": 1})
+
+        assert ok is False
+        assert "disk full" in err

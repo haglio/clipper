@@ -83,3 +83,31 @@ def test_autosave_session_records_failure_message():
 
     assert state.session_warning == "Autosave failed: disk full"
     assert state.last_saved_payload is None
+
+
+def test_a_failed_write_keeps_the_last_payload_that_did_reach_disk():
+    """The warning is the only signal the user gets; the good payload stands.
+
+    Driven through the real safe_atomic_write_json with nothing but the
+    filesystem in the way -- the session path names a directory that is not
+    there, which is the shape a moved or unmounted sessions folder takes.
+    """
+    good = {"version": 1, "session_name": "demo"}
+    state = _state(session_path="/no/such/directory/demo.json", last_saved_payload=good)
+
+    autosave_session(state)
+
+    assert state.last_saved_payload == good
+    assert state.session_warning.startswith("Autosave failed: ")
+    assert "demo.json" in state.session_warning
+
+
+def test_a_write_that_succeeds_clears_an_earlier_warning(tmp_path: Path):
+    state = _state(session_path=str(tmp_path / "demo.json"),
+                   session_warning="Autosave failed: disk full")
+
+    autosave_session(state)
+
+    assert state.session_warning == ""
+    assert state.last_saved_payload == current_payload(state)
+    assert (tmp_path / "demo.json").exists()
