@@ -216,25 +216,19 @@ class TestVlcHttpPassword:
 
 
 class TestTheLocalClipFolderSearchRootsLooksIn:
-    """HELD, not fixed: the local root can never exist.
+    """Re-clipping a clip clipper exported should resolve without the library.
 
-    `search_roots` starts its list with `MODULE_DIR / "raw_clips"` -- and
-    `MODULE_DIR` is the *package* directory, so that resolves to
-    `clipper/clipper/raw_clips`, while the folder clipper writes raw clips into
-    is `raw_clips` at the checkout root. The root is therefore skipped on every
-    lookup, and re-clipping a clip clipper itself exported never resolves
-    locally. Backlog bug 13 (`all/design/003` + `all/dead/009`), awaiting
-    sign-off; pinned here so the fix is a visible change rather than a silent
-    one, and so the note in the changelog has something holding it down.
+    `search_roots` used to prepend `MODULE_DIR / "raw_clips"` -- and MODULE_DIR
+    is the *package* directory, so that was `clipper/clipper/raw_clips`, a folder
+    nothing creates, while raw clips are written to `raw_clips` at the checkout
+    root. The root was skipped on every lookup. Backlog bug 13
+    (`all/design/003` + `all/dead/009`), fixed on the owner's approval.
     """
 
-    def test_the_root_it_prepends_is_under_the_package(self, tmp_path: Path, monkeypatch):
-        package = tmp_path / "clipper"
-        (package / "raw_clips").mkdir(parents=True)
-        checkout_raw_clips = tmp_path / "raw_clips"
-        checkout_raw_clips.mkdir()
-
-        monkeypatch.setattr(vlc_prefill_paths, "MODULE_DIR", package)
+    def test_the_root_it_prepends_is_where_raw_clips_are_written(self, tmp_path: Path, monkeypatch):
+        raw_clips = tmp_path / "raw_clips"
+        raw_clips.mkdir()
+        monkeypatch.setattr(vlc_prefill_paths, "RAW_CLIPS_DIR", raw_clips)
         monkeypatch.setattr(
             vlc_prefill_paths, "load_config",
             lambda: (_ for _ in ()).throw(FileNotFoundError("no config here")),
@@ -245,11 +239,26 @@ class TestTheLocalClipFolderSearchRootsLooksIn:
         finally:
             vlc_prefill_paths.search_roots.cache_clear()
 
-        assert roots == ((package / "raw_clips").resolve(),)
-        assert checkout_raw_clips.resolve() not in roots
+        assert roots == (raw_clips.resolve(),)
 
-    def test_in_a_real_checkout_that_folder_is_not_the_one_clips_are_written_to(self):
-        from clipper.paths import MODULE_DIR, RAW_CLIPS_DIR
+    def test_a_clip_in_that_folder_resolves_by_name(self, tmp_path: Path, monkeypatch):
+        raw_clips = tmp_path / "raw_clips"
+        raw_clips.mkdir()
+        exported = raw_clips / "seaside walk.mp4"
+        exported.write_bytes(b"")
+        monkeypatch.setattr(vlc_prefill_paths, "RAW_CLIPS_DIR", raw_clips)
+        monkeypatch.setattr(
+            vlc_prefill_paths, "load_config",
+            lambda: (_ for _ in ()).throw(FileNotFoundError("no config here")),
+        )
+        vlc_prefill_paths.search_roots.cache_clear()
+        try:
+            assert vlc_prefill_paths.resolve_media_path("seaside walk.mp4") == exported
+        finally:
+            vlc_prefill_paths.search_roots.cache_clear()
 
-        assert MODULE_DIR / "raw_clips" != RAW_CLIPS_DIR
-        assert not (MODULE_DIR / "raw_clips").exists()
+    def test_the_folder_it_looks_in_sits_at_the_checkout_root(self):
+        from clipper.paths import MODULE_DIR, PROJECT_DIR
+
+        assert vlc_prefill_paths.RAW_CLIPS_DIR == PROJECT_DIR / "raw_clips"
+        assert vlc_prefill_paths.RAW_CLIPS_DIR != MODULE_DIR / "raw_clips"

@@ -8,7 +8,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from .config import load_config
-from .paths import MODULE_DIR
+from .paths import RAW_CLIPS_DIR
 
 _VLC_TITLE_SUFFIXES = (
     " - VLC media player",
@@ -70,7 +70,7 @@ def resolve_media_path(raw: str | None) -> Path | None:
 
 @lru_cache(maxsize=1)
 def search_roots() -> tuple[Path, ...]:
-    roots: list[Path] = [MODULE_DIR / "raw_clips"]
+    roots: list[Path] = [RAW_CLIPS_DIR]
     try:
         config = load_config()
     except Exception:
