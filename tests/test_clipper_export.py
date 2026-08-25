@@ -2,12 +2,8 @@
 from __future__ import annotations
 
 import io
-import subprocess
-import sys
-import threading
-import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 import numpy as np
 
 import pytest
@@ -156,7 +152,7 @@ class TestRunFfmpegWithProgress:
                 ["ffmpeg", "-version"], 10.0, progress_values.append
             )
 
-        assert ok is True
+        assert (ok, err) == (True, "")
         assert progress_values[-1] == pytest.approx(1.0)
 
     def test_nonzero_exit_returns_false(self):

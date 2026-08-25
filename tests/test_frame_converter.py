@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import numpy as np
 from PyQt6.QtGui import QImage
-from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.frame_converter import bgr_to_qimage, scale_to_fit
 
