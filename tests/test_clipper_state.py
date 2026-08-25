@@ -54,35 +54,24 @@ def _pattern_frame(seed: int) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 class TestExportJob:
-    def test_default_not_active(self):
-        j = ExportJob()
-        assert j.active is False
+    def test_a_fresh_job_has_not_started(self):
+        """Seven one-line tests for seven fields; the whole default instead."""
+        job = ExportJob()
 
-    def test_default_not_done(self):
-        j = ExportJob()
-        assert j.done is False
+        assert (job.active, job.done, job.failed, job.dismissed) == (False,) * 4
+        assert job.stage == ""
+        assert (job.clip_progress, job.fix_progress, job.audio_progress) == (0.0, 0.0, 0.0)
+        assert (job.clip_status, job.fix_status, job.audio_status) == ("waiting",) * 3
+        assert job.error_message == ""
+        assert (job.raw_clip_output, job.clip_output, job.audio_output) == ("", "", "")
+        assert job.worker is None
 
-    def test_default_not_failed(self):
-        j = ExportJob()
-        assert j.failed is False
+    def test_each_job_gets_its_own_process_list(self):
+        first, second = ExportJob(), ExportJob()
 
-    def test_default_not_dismissed(self):
-        j = ExportJob()
-        assert j.dismissed is False
+        first.procs.append("a process")
 
-    def test_default_stage_empty(self):
-        j = ExportJob()
-        assert j.stage == ""
-
-    def test_default_progress_zero(self):
-        j = ExportJob()
-        assert j.clip_progress == 0.0
-        assert j.fix_progress == 0.0
-        assert j.audio_progress == 0.0
-
-    def test_procs_list_is_fresh(self):
-        j1, j2 = ExportJob(), ExportJob()
-        assert j1.procs is not j2.procs
+        assert second.procs == []
 
 
 # ---------------------------------------------------------------------------

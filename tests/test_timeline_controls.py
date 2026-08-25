@@ -14,66 +14,50 @@ def ctl():
     return TimelineControls()
 
 
+# Every button on the row and the signal it must emit. Ten copies of the same
+# three lines before; a button added without a row here is a button whose wiring
+# nothing checks.
+_BUTTONS = [
+    ("extend_left", "extend_left_btn", "extend_left_clicked"),
+    ("contract_left", "contract_left_btn", "contract_left_clicked"),
+    ("extend_right", "extend_right_btn", "extend_right_clicked"),
+    ("contract_right", "contract_right_btn", "contract_right_clicked"),
+    ("shift_left", "shift_left_btn", "shift_left_clicked"),
+    ("shift_right", "shift_right_btn", "shift_right_clicked"),
+    ("mark_in", "mark_in_btn", "mark_in_clicked"),
+    ("mark_out", "mark_out_btn", "mark_out_clicked"),
+    ("wrap", "wrap_btn", "wrap_clicked"),
+    ("loop_mode", "loop_mode_btn", "loop_mode_clicked"),
+]
+
+
 class TestSignals:
-    def test_extend_left(self, ctl):
-        results = []
-        ctl.extend_left_clicked.connect(lambda: results.append(1))
-        ctl.extend_left_btn.click()
-        assert results == [1]
+    @pytest.mark.parametrize(
+        "button, signal",
+        [pytest.param(b, sig, id=label) for label, b, sig in _BUTTONS],
+    )
+    def test_clicking_a_button_emits_its_signal(self, ctl, button, signal):
+        fired = []
+        getattr(ctl, signal).connect(lambda: fired.append(1))
 
-    def test_contract_left(self, ctl):
-        results = []
-        ctl.contract_left_clicked.connect(lambda: results.append(1))
-        ctl.contract_left_btn.click()
-        assert results == [1]
+        getattr(ctl, button).click()
 
-    def test_extend_right(self, ctl):
-        results = []
-        ctl.extend_right_clicked.connect(lambda: results.append(1))
-        ctl.extend_right_btn.click()
-        assert results == [1]
+        assert fired == [1]
 
-    def test_contract_right(self, ctl):
-        results = []
-        ctl.contract_right_clicked.connect(lambda: results.append(1))
-        ctl.contract_right_btn.click()
-        assert results == [1]
+    @pytest.mark.parametrize(
+        "button, signal",
+        [pytest.param(b, sig, id=label) for label, b, sig in _BUTTONS],
+    )
+    def test_no_other_button_emits_it(self, ctl, button, signal):
+        """A signal wired to two buttons would pass the test above twice over."""
+        fired = []
+        getattr(ctl, signal).connect(lambda: fired.append(1))
 
-    def test_shift_left(self, ctl):
-        results = []
-        ctl.shift_left_clicked.connect(lambda: results.append(1))
-        ctl.shift_left_btn.click()
-        assert results == [1]
+        for _label, other, _sig in _BUTTONS:
+            if other != button:
+                getattr(ctl, other).click()
 
-    def test_shift_right(self, ctl):
-        results = []
-        ctl.shift_right_clicked.connect(lambda: results.append(1))
-        ctl.shift_right_btn.click()
-        assert results == [1]
-
-    def test_mark_in(self, ctl):
-        results = []
-        ctl.mark_in_clicked.connect(lambda: results.append(1))
-        ctl.mark_in_btn.click()
-        assert results == [1]
-
-    def test_mark_out(self, ctl):
-        results = []
-        ctl.mark_out_clicked.connect(lambda: results.append(1))
-        ctl.mark_out_btn.click()
-        assert results == [1]
-
-    def test_wrap_toggle(self, ctl):
-        results = []
-        ctl.wrap_clicked.connect(lambda: results.append(1))
-        ctl.wrap_btn.click()
-        assert results == [1]
-
-    def test_loop_mode(self, ctl):
-        results = []
-        ctl.loop_mode_clicked.connect(lambda: results.append(1))
-        ctl.loop_mode_btn.click()
-        assert results == [1]
+        assert fired == []
 
 
 class TestLoopModeLabel:

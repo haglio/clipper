@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 
 from clipper.utils import (
+    FORBIDDEN_NAME_CHARS,
     format_seconds,
     parse_timestamp,
     safe_atomic_write_json,
@@ -19,36 +20,31 @@ from clipper.utils import (
 # parse_timestamp
 # ---------------------------------------------------------------------------
 
+# A clock string and the seconds it means. `parse_timestamp` reads what a user
+# types; `_parse_ffmpeg_clock` reads what ffmpeg prints. Same shape, two
+# parsers, so the cases live together and each runs against both.
+_CLOCKS = [
+    ("00:00:00", 0.0),
+    ("00:00:30", 30.0),
+    ("00:01:30", 90.0),
+    ("01:00:00", 3600.0),
+    ("00:00:01.500", 1.5),
+    ("01:02:03.250", 3723.25),
+]
+
+
 class TestParseTimestamp:
-    def test_whole_seconds(self):
-        assert parse_timestamp("00:00:30") == pytest.approx(30.0)
+    @pytest.mark.parametrize("clock, seconds", _CLOCKS)
+    def test_it_reads_a_clock_as_seconds(self, clock, seconds):
+        assert parse_timestamp(clock) == pytest.approx(seconds)
 
-    def test_minutes_and_seconds(self):
-        assert parse_timestamp("00:01:30") == pytest.approx(90.0)
-
-    def test_hours_minutes_seconds(self):
-        assert parse_timestamp("01:00:00") == pytest.approx(3600.0)
-
-    def test_fractional_seconds(self):
-        assert parse_timestamp("00:00:01.500") == pytest.approx(1.5)
-
-    def test_combined(self):
-        # 1h 2m 3.25s = 3600 + 120 + 3.25 = 3723.25
-        assert parse_timestamp("01:02:03.250") == pytest.approx(3723.25)
-
-    def test_strips_whitespace(self):
+    def test_it_ignores_the_whitespace_around_what_was_typed(self):
         assert parse_timestamp("  00:00:05  ") == pytest.approx(5.0)
 
-    def test_zero(self):
-        assert parse_timestamp("00:00:00") == pytest.approx(0.0)
-
-    def test_raises_on_too_few_parts(self):
+    @pytest.mark.parametrize("typed", ["00:30", "00:00:00:00"])
+    def test_anything_that_is_not_hours_minutes_seconds_is_refused(self, typed):
         with pytest.raises(ValueError, match="Timestamp must be"):
-            parse_timestamp("00:30")
-
-    def test_raises_on_too_many_parts(self):
-        with pytest.raises(ValueError, match="Timestamp must be"):
-            parse_timestamp("00:00:00:00")
+            parse_timestamp(typed)
 
 
 # ---------------------------------------------------------------------------
@@ -91,28 +87,14 @@ class TestSanitizeName:
     def test_strips_leading_trailing_spaces(self):
         assert sanitize_name("  hello  ") == "hello"
 
-    def test_replaces_angle_brackets(self):
-        assert "<" not in sanitize_name("a<b>c")
-        assert ">" not in sanitize_name("a<b>c")
+    @pytest.mark.parametrize("forbidden", list(FORBIDDEN_NAME_CHARS))
+    def test_every_character_a_filename_cannot_hold_becomes_an_underscore(self, forbidden):
+        """Walks the module's own list, so adding a character adds a case."""
+        assert sanitize_name(f"take{forbidden}one") == "take_one"
 
-    def test_replaces_colon(self):
-        assert ":" not in sanitize_name("time:00")
-
-    def test_replaces_slash_and_backslash(self):
-        assert "/" not in sanitize_name("dir/file")
-        assert "\\" not in sanitize_name("dir\\file")
-
-    def test_replaces_pipe(self):
-        assert "|" not in sanitize_name("a|b")
-
-    def test_replaces_question_mark(self):
-        assert "?" not in sanitize_name("what?")
-
-    def test_replaces_asterisk(self):
-        assert "*" not in sanitize_name("star*")
-
-    def test_replaces_double_quote(self):
-        assert '"' not in sanitize_name('"quoted"')
+    def test_the_list_is_the_nine_windows_refuses(self):
+        """One literal, so removing a character from the list is red too."""
+        assert sanitize_name('a<b>c:d"e/f\\g|h?i*j') == "a_b_c_d_e_f_g_h_i_j"
 
     def test_strips_trailing_dots(self):
         result = sanitize_name("filename.")
