@@ -222,16 +222,35 @@ def test_create_session_ffprobe_failure(tmp_path):
 # CLI
 # ---------------------------------------------------------------------------
 
-def test_cli_success(tmp_path):
+def test_cli_success(tmp_path, capsys):
+    """The CLI is what fun_time invokes; its two outputs are the file and the
+    path it prints, and it also moves the pointer the launcher opens next."""
+    last_session = tmp_path / ".last_session.txt"
+
     with _mock_ffprobe(), \
-         patch("clipper.create_session.SESSIONS_DIR", tmp_path):
+         patch("clipper.create_session.SESSIONS_DIR", tmp_path), \
+         patch("clipper.create_session.LAST_SESSION_FILE", last_session):
         code = main(["--video", r"C:\videos\CliTest.mp4", "--time", "5.0", "--seconds", "3.0"])
 
     assert code == 0
-    assert (tmp_path / "CliTest.json").exists()
+    session = tmp_path / "CliTest.json"
+    assert session.exists()
+    assert capsys.readouterr().out.strip() == str(session)
+    assert last_session.read_text(encoding="utf-8") == str(session)
 
 
-def test_cli_failure():
+def test_cli_writes_the_window_it_was_asked_for(tmp_path):
+    """A forward-slash path, so this one case reads the same on both platforms."""
+    with _mock_ffprobe(), \
+         patch("clipper.create_session.SESSIONS_DIR", tmp_path):
+        main(["--video", "/library/seaside walk.mp4", "--time", "5.0", "--seconds", "3.0"])
+
+    payload = json.loads((tmp_path / "seaside walk.json").read_text(encoding="utf-8"))
+    assert payload["active_start"] == 150  # 5s at 30fps
+    assert payload["active_end"] == 239  # plus three seconds, inclusive
+
+
+def test_cli_failure(capsys):
     with patch(
         "clipper.create_session._ffprobe_video_metadata",
         side_effect=RuntimeError("no video"),
@@ -239,3 +258,4 @@ def test_cli_failure():
         code = main(["--video", "bad.mp4", "--time", "0"])
 
     assert code == 1
+    assert "no video" in capsys.readouterr().err
