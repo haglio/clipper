@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.playback_timer import PlaybackTimer
 
@@ -35,6 +36,7 @@ class TestTicking:
         assert ticked_within(timer.tick, 2000) is True
 
         timer.stop()
+        QApplication.processEvents()  # drain a tick already on its way
 
         assert ticked_within(timer.tick, 100) is False
 

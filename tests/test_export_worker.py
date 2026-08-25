@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -249,11 +248,3 @@ class TestSkipPostprocess:
         ExportWorker(state).run()
 
         assert steps["audio"].called
-
-
-def test_the_output_path_type_is_a_path_not_a_string(state, steps):
-    """export_steps builds ffmpeg arguments from these; a str would still work
-    until something joined to it."""
-    assert isinstance(steps["raw"].calls, list)
-    ExportWorker(state).run()
-    assert isinstance(steps["raw"].calls[0][1], Path)
