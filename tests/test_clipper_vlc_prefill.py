@@ -16,6 +16,7 @@ from clipper.vlc_prefill import (
     _vlc_http_password_from_config,
     detect_vlc_session_prefill,
 )
+from clipper import vlc_prefill_paths
 from clipper.vlc_prefill_paths import _strip_vlc_title_suffix
 
 
@@ -212,3 +213,43 @@ class TestVlcHttpPassword:
 
         with patch.dict("os.environ", {"APPDATA": str(appdata)}, clear=False):
             assert _vlc_http_password_from_config() == "from-config"
+
+
+class TestTheLocalClipFolderSearchRootsLooksIn:
+    """HELD, not fixed: the local root can never exist.
+
+    `search_roots` starts its list with `MODULE_DIR / "raw_clips"` -- and
+    `MODULE_DIR` is the *package* directory, so that resolves to
+    `clipper/clipper/raw_clips`, while the folder clipper writes raw clips into
+    is `raw_clips` at the checkout root. The root is therefore skipped on every
+    lookup, and re-clipping a clip clipper itself exported never resolves
+    locally. Backlog bug 13 (`all/design/003` + `all/dead/009`), awaiting
+    sign-off; pinned here so the fix is a visible change rather than a silent
+    one, and so the note in the changelog has something holding it down.
+    """
+
+    def test_the_root_it_prepends_is_under_the_package(self, tmp_path: Path, monkeypatch):
+        package = tmp_path / "clipper"
+        (package / "raw_clips").mkdir(parents=True)
+        checkout_raw_clips = tmp_path / "raw_clips"
+        checkout_raw_clips.mkdir()
+
+        monkeypatch.setattr(vlc_prefill_paths, "MODULE_DIR", package)
+        monkeypatch.setattr(
+            vlc_prefill_paths, "load_config",
+            lambda: (_ for _ in ()).throw(FileNotFoundError("no config here")),
+        )
+        vlc_prefill_paths.search_roots.cache_clear()
+        try:
+            roots = vlc_prefill_paths.search_roots()
+        finally:
+            vlc_prefill_paths.search_roots.cache_clear()
+
+        assert roots == ((package / "raw_clips").resolve(),)
+        assert checkout_raw_clips.resolve() not in roots
+
+    def test_in_a_real_checkout_that_folder_is_not_the_one_clips_are_written_to(self):
+        from clipper.paths import MODULE_DIR, RAW_CLIPS_DIR
+
+        assert MODULE_DIR / "raw_clips" != RAW_CLIPS_DIR
+        assert not (MODULE_DIR / "raw_clips").exists()
