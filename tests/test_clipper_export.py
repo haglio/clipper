@@ -20,7 +20,6 @@ from clipper.export_steps import (
     validate_video_file,
 )
 from clipper.state import ExportJob
-from test_clipper_state import _make_state
 
 
 # ---------------------------------------------------------------------------
@@ -228,9 +227,9 @@ class TestRunFfmpegWithProgress:
 
 
 class TestRunClipPostprocess:
-    def test_passes_loop_mode_to_script(self, tmp_path: Path):
+    def test_passes_loop_mode_to_script(self, tmp_path: Path, make_state):
         job = ExportJob()
-        state = _make_state(loop_mode="tip-base")
+        state = make_state(loop_mode="tip-base")
         raw_path = tmp_path / "raw.mp4"
         out_path = tmp_path / "out.mp4"
 
@@ -252,10 +251,10 @@ class TestRunClipPostprocess:
 
 
 class TestExportFullAudioMp3:
-    def test_skips_when_no_audio_stream(self, tmp_path: Path):
+    def test_skips_when_no_audio_stream(self, tmp_path: Path, make_state):
         """Videos without audio should not fail the entire export."""
         job = ExportJob()
-        state = _make_state()
+        state = make_state()
         out_path = tmp_path / "out.mp3"
 
         # ffprobe reports no audio streams
@@ -270,10 +269,10 @@ class TestExportFullAudioMp3:
         assert ok is True
         assert "no audio" in detail.lower()
 
-    def test_proceeds_when_audio_stream_exists(self, tmp_path: Path):
+    def test_proceeds_when_audio_stream_exists(self, tmp_path: Path, make_state):
         """Normal videos with audio should go through the ffmpeg path."""
         job = ExportJob()
-        state = _make_state()
+        state = make_state()
         out_path = tmp_path / "out.mp3"
 
         # ffprobe reports an audio stream

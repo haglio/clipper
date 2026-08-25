@@ -12,8 +12,6 @@ from clipper.frame_store import (
     signature_for_index,
 )
 
-from test_clipper_state import _make_state
-
 
 def test_load_range_returns_empty_when_end_before_start():
     cap = MagicMock()
@@ -25,8 +23,8 @@ def test_load_range_returns_empty_when_end_before_start():
     cap.read.assert_not_called()
 
 
-def test_ensure_loaded_expands_missing_edges_and_bumps_render_rev():
-    state = _make_state(loaded_start=10, loaded_end=20)
+def test_ensure_loaded_expands_missing_edges_and_bumps_render_rev(make_state):
+    state = make_state(loaded_start=10, loaded_end=20)
     left_frames = {i: np.full((2, 2, 3), i, dtype=np.uint8) for i in range(5, 10)}
     right_frames = {i: np.full((2, 2, 3), i, dtype=np.uint8) for i in range(21, 26)}
 
@@ -42,8 +40,8 @@ def test_ensure_loaded_expands_missing_edges_and_bumps_render_rev():
     load.assert_any_call(state.cap, 21, 25)
 
 
-def test_ensure_loaded_is_noop_when_requested_range_is_already_loaded():
-    state = _make_state(loaded_start=10, loaded_end=20)
+def test_ensure_loaded_is_noop_when_requested_range_is_already_loaded(make_state):
+    state = make_state(loaded_start=10, loaded_end=20)
 
     with patch("clipper.frame_store.load_range") as load:
         ensure_loaded(state, 12, 18)
@@ -54,8 +52,8 @@ def test_ensure_loaded_is_noop_when_requested_range_is_already_loaded():
     load.assert_not_called()
 
 
-def test_safe_frame_loads_missing_index_on_demand():
-    state = _make_state(loaded_start=10, loaded_end=20)
+def test_safe_frame_loads_missing_index_on_demand(make_state):
+    state = make_state(loaded_start=10, loaded_end=20)
     missing_frame = np.ones((2, 2, 3), dtype=np.uint8)
     state.frames.pop(25, None)
 
@@ -71,8 +69,8 @@ def test_safe_frame_loads_missing_index_on_demand():
     ensure.assert_called_once_with(state, 25, 25)
 
 
-def test_safe_frame_raises_when_on_demand_load_still_fails():
-    state = _make_state()
+def test_safe_frame_raises_when_on_demand_load_still_fails(make_state):
+    state = make_state()
     state.frames.pop(35, None)
 
     with patch("clipper.frame_store.ensure_loaded"):
@@ -80,8 +78,8 @@ def test_safe_frame_raises_when_on_demand_load_still_fails():
             safe_frame(state, 35)
 
 
-def test_signature_for_index_caches_processed_signature():
-    state = _make_state()
+def test_signature_for_index_caches_processed_signature(make_state):
+    state = make_state()
     cached_signature = np.ones((3, 3), dtype=np.float32)
 
     with patch("clipper.frame_store.preprocess_frame_signature", return_value=cached_signature) as preprocess:

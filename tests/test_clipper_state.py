@@ -1,7 +1,6 @@
 """Tests for clipper.state (pure logic, no real video files)."""
 from __future__ import annotations
 
-import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -44,71 +43,6 @@ from clipper.state import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-class _FakeAutosave:
-    """Stands in for the session write ``mark_dirty`` triggers.
-
-    Counting the calls is what ``patch.object(s, "mark_dirty")`` used to be
-    reached for, minus the part that hid the flag itself.
-    """
-
-    def __init__(self) -> None:
-        self.calls = 0
-
-    def __call__(self, state: VideoState) -> None:
-        self.calls += 1
-
-
-def _make_state(
-    *,
-    total_frames: int = 100,
-    loaded_start: int = 0,
-    loaded_end: int | None = None,
-    active_start: int = 10,
-    active_end: int | None = None,
-    current: int = 20,
-    base_step: int = 5,
-    fps: float = 30.0,
-    speed: float = 1.0,
-    wrap_mode: str = "blue",
-    loop_mode: str = "base-tip-base",
-    session_name: str = "test_session",
-    initial_active_start: int | None = None,
-    initial_active_end: int | None = None,
-) -> VideoState:
-    if loaded_end is None:
-        loaded_end = total_frames - 1
-    if active_end is None:
-        active_end = total_frames - 10
-
-    # Populate frames for the loaded range
-    frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(loaded_start, loaded_end + 1)}
-
-    cap = MagicMock()
-    return VideoState(
-        cap=cap,
-        path="/fake/video.mp4",
-        fps=fps,
-        total_frames=total_frames,
-        loaded_start=loaded_start,
-        loaded_end=loaded_end,
-        active_start=active_start,
-        active_end=active_end,
-        current=current,
-        base_step=base_step,
-        frames=frames,
-        loop_anchor=time.monotonic(),
-        session_name=session_name,
-        session_path="/fake/sessions/test_session.json",
-        original_session_payload={},
-        loop_mode=loop_mode,
-        speed=speed,
-        wrap_mode=wrap_mode,
-        initial_active_start=active_start if initial_active_start is None else initial_active_start,
-        initial_active_end=active_end if initial_active_end is None else initial_active_end,
-        persist_session=_FakeAutosave(),
-    )
-
 
 def _pattern_frame(seed: int) -> np.ndarray:
     rng = np.random.default_rng(seed)
@@ -156,39 +90,39 @@ class TestExportJob:
 # ---------------------------------------------------------------------------
 
 class TestVideoStateDefaults:
-    def test_skip_postprocess_defaults_false(self):
-        s = _make_state()
+    def test_skip_postprocess_defaults_false(self, make_state):
+        s = make_state()
         assert s.skip_postprocess is False
 
-    def test_skip_postprocess_explicit_true(self):
-        s = _make_state()
+    def test_skip_postprocess_explicit_true(self, make_state):
+        s = make_state()
         s.skip_postprocess = True
         assert s.skip_postprocess is True
 
 
 class TestVideoStateProperties:
-    def test_active_count(self):
-        s = _make_state(active_start=10, active_end=19)
+    def test_active_count(self, make_state):
+        s = make_state(active_start=10, active_end=19)
         assert s.active_count == 10
 
-    def test_loaded_count(self):
-        s = _make_state(loaded_start=0, loaded_end=49)
+    def test_loaded_count(self, make_state):
+        s = make_state(loaded_start=0, loaded_end=49)
         assert s.loaded_count == 50
 
-    def test_active_count_single_frame(self):
-        s = _make_state(active_start=5, active_end=5)
+    def test_active_count_single_frame(self, make_state):
+        s = make_state(active_start=5, active_end=5)
         assert s.active_count == 1
 
-    def test_should_prompt_on_exit_only_for_existing_saved_data(self):
-        s = _make_state()
+    def test_should_prompt_on_exit_only_for_existing_saved_data(self, make_state):
+        s = make_state()
         s.dirty = True
         assert s.should_prompt_on_exit is False
 
         s.protect_existing_save_data = True
         assert s.should_prompt_on_exit is True
 
-    def test_should_not_prompt_when_clean_even_for_loaded_sessions(self):
-        s = _make_state()
+    def test_should_not_prompt_when_clean_even_for_loaded_sessions(self, make_state):
+        s = make_state()
         s.protect_existing_save_data = True
         s.dirty = False
         assert s.should_prompt_on_exit is False
@@ -199,18 +133,18 @@ class TestVideoStateProperties:
 # ---------------------------------------------------------------------------
 
 class TestClampCurrent:
-    def test_clamped_up_to_loaded_start_in_blue_mode(self):
-        s = _make_state(loaded_start=10, current=5, wrap_mode="blue")
+    def test_clamped_up_to_loaded_start_in_blue_mode(self, make_state):
+        s = make_state(loaded_start=10, current=5, wrap_mode="blue")
         s.clamp_current()
         assert s.current == s.loaded_start
 
-    def test_clamped_down_to_loaded_end_in_blue_mode(self):
-        s = _make_state(loaded_end=50, current=99, wrap_mode="blue")
+    def test_clamped_down_to_loaded_end_in_blue_mode(self, make_state):
+        s = make_state(loaded_end=50, current=99, wrap_mode="blue")
         s.clamp_current()
         assert s.current == s.loaded_end
 
-    def test_within_range_unchanged(self):
-        s = _make_state(loaded_start=0, loaded_end=99, current=50, wrap_mode="blue")
+    def test_within_range_unchanged(self, make_state):
+        s = make_state(loaded_start=0, loaded_end=99, current=50, wrap_mode="blue")
         s.clamp_current()
         assert s.current == 50
 
@@ -220,77 +154,77 @@ class TestClampCurrent:
 # ---------------------------------------------------------------------------
 
 class TestCurrentPayload:
-    def test_has_required_keys(self):
-        s = _make_state()
+    def test_has_required_keys(self, make_state):
+        s = make_state()
         payload = s.current_payload()
         for key in ("version", "session_name", "video_path", "fps", "total_frames",
                     "loaded_start", "loaded_end", "active_start", "active_end",
                     "current", "seconds_per_step", "loop_mode", "wrap_mode", "speed"):
             assert key in payload, f"Missing key: {key}"
 
-    def test_version_is_1(self):
-        s = _make_state()
+    def test_version_is_1(self, make_state):
+        s = make_state()
         assert s.current_payload()["version"] == 1
 
-    def test_session_name_correct(self):
-        s = _make_state(session_name="my_clip")
+    def test_session_name_correct(self, make_state):
+        s = make_state(session_name="my_clip")
         assert s.current_payload()["session_name"] == "my_clip"
 
-    def test_seconds_per_step(self):
-        s = _make_state(base_step=30, fps=30.0)
+    def test_seconds_per_step(self, make_state):
+        s = make_state(base_step=30, fps=30.0)
         assert s.current_payload()["seconds_per_step"] == pytest.approx(1.0)
 
-    def test_wrap_mode_preserved(self):
-        s = _make_state(wrap_mode="red")
+    def test_wrap_mode_preserved(self, make_state):
+        s = make_state(wrap_mode="red")
         assert s.current_payload()["wrap_mode"] == "red"
 
-    def test_loop_mode_preserved(self):
-        s = _make_state(loop_mode="tip-base")
+    def test_loop_mode_preserved(self, make_state):
+        s = make_state(loop_mode="tip-base")
         assert s.current_payload()["loop_mode"] == "tip-base"
 
 
 class TestCycleLoopMode:
-    def test_cycles_to_next_mode(self):
-        s = _make_state(loop_mode="base-tip-base")
+    def test_cycles_to_next_mode(self, make_state):
+        s = make_state(loop_mode="base-tip-base")
         cycle_loop_mode(s)
         assert s.loop_mode == "tip-base-tip"
 
 
 class TestToggleWrapMode:
-    def test_switching_to_yellow_clamps_current_into_active_range(self):
-        s = _make_state(wrap_mode="blue", active_start=10, active_end=20, current=25)
+    def test_switching_to_yellow_clamps_current_into_active_range(self, make_state):
+        s = make_state(wrap_mode="blue", active_start=10, active_end=20, current=25)
         toggle_wrap_mode(s)
         assert s.wrap_mode == "yellow"
         assert s.current == 20
 
-    def test_switching_back_to_blue_preserves_current(self):
-        s = _make_state(wrap_mode="yellow", active_start=10, active_end=20, current=15)
+    def test_switching_back_to_blue_preserves_current(self, make_state):
+        s = make_state(wrap_mode="yellow", active_start=10, active_end=20, current=15)
         toggle_wrap_mode(s)
         assert s.wrap_mode == "blue"
         assert s.current == 15
 
 
 class TestMoveCurrent:
-    def test_move_left_wraps_within_loaded_range_in_blue_mode(self):
-        s = _make_state(loaded_start=10, loaded_end=20, current=10, wrap_mode="blue")
+    def test_move_left_wraps_within_loaded_range_in_blue_mode(self, make_state):
+        s = make_state(loaded_start=10, loaded_end=20, current=10, wrap_mode="blue")
         move_current_left(s)
         assert s.current == 20
         assert s.render_rev == 1
 
-    def test_move_left_wraps_within_active_range_in_yellow_mode(self):
-        s = _make_state(loaded_start=0, loaded_end=30, active_start=10, active_end=20, current=10, wrap_mode="yellow")
+    def test_move_left_wraps_within_active_range_in_yellow_mode(self, make_state):
+        s = make_state(loaded_start=0, loaded_end=30, active_start=10, active_end=20, current=10, wrap_mode="yellow")
         move_current_left(s)
         assert s.current == 20
         assert s.render_rev == 1
 
-    def test_move_right_wraps_within_loaded_range_in_blue_mode(self):
-        s = _make_state(loaded_start=10, loaded_end=20, current=20, wrap_mode="blue")
+    def test_move_right_wraps_within_loaded_range_in_blue_mode(self, make_state):
+        s = make_state(loaded_start=10, loaded_end=20, current=20, wrap_mode="blue")
         move_current_right(s)
         assert s.current == 10
         assert s.render_rev == 1
 
-    def test_move_right_wraps_within_active_range_in_yellow_mode(self):
-        s = _make_state(loaded_start=0, loaded_end=30, active_start=10, active_end=20, current=20, wrap_mode="yellow")
+    def test_move_right_wraps_within_active_range_in_yellow_mode(self, make_state):
+        s = make_state(loaded_start=0, loaded_end=30, active_start=10, active_end=20, current=20, wrap_mode="yellow")
         move_current_right(s)
         assert s.current == 10
         assert s.render_rev == 1
@@ -311,8 +245,8 @@ class TestMakeVideoState:
 
 
 class TestLoopPause:
-    def test_current_loop_frame_stays_fixed_while_paused(self):
-        s = _make_state(active_start=10, active_end=19, fps=10.0, speed=1.0)
+    def test_current_loop_frame_stays_fixed_while_paused(self, make_state):
+        s = make_state(active_start=10, active_end=19, fps=10.0, speed=1.0)
         s.loop_anchor = 100.0
         with patch("clipper.playback.time.monotonic", side_effect=[100.45, 100.8]):
             toggle_loop_pause(s)
@@ -322,8 +256,8 @@ class TestLoopPause:
         assert first == 14
         assert second == 14
 
-    def test_toggle_pause_resume_keeps_same_frame_continuity(self):
-        s = _make_state(active_start=10, active_end=19, fps=10.0, speed=1.0)
+    def test_toggle_pause_resume_keeps_same_frame_continuity(self, make_state):
+        s = make_state(active_start=10, active_end=19, fps=10.0, speed=1.0)
         s.loop_anchor = 100.0
         with patch("clipper.playback.time.monotonic", side_effect=[100.45, 100.45, 100.65]):
             toggle_loop_pause(s)
@@ -334,28 +268,28 @@ class TestLoopPause:
 
 
 class TestLoopPreviewIndices:
-    def test_base_tip_preview_mirrors_back(self):
-        s = _make_state(active_start=10, active_end=12, loop_mode="base-tip")
+    def test_base_tip_preview_mirrors_back(self, make_state):
+        s = make_state(active_start=10, active_end=12, loop_mode="base-tip")
         assert loop_preview_indices(s) == [10, 11, 12, 11, 10]
 
-    def test_tip_base_preview_prepends_reversed_half(self):
-        s = _make_state(active_start=10, active_end=12, loop_mode="tip-base")
+    def test_tip_base_preview_prepends_reversed_half(self, make_state):
+        s = make_state(active_start=10, active_end=12, loop_mode="tip-base")
         assert loop_preview_indices(s) == [12, 11, 10, 11, 12]
 
-    def test_tip_base_tip_preview_rotates_halfway(self):
-        s = _make_state(active_start=10, active_end=15, loop_mode="tip-base-tip")
+    def test_tip_base_tip_preview_rotates_halfway(self, make_state):
+        s = make_state(active_start=10, active_end=15, loop_mode="tip-base-tip")
         assert loop_preview_indices(s) == [13, 14, 15, 10, 11, 12]
 
 
 class TestChangeSpeed:
-    def test_speed_does_not_drop_below_quarter_x(self):
-        s = _make_state(speed=0.25)
+    def test_speed_does_not_drop_below_quarter_x(self, make_state):
+        s = make_state(speed=0.25)
         with patch("clipper.playback.time.monotonic", return_value=100.0):
             change_speed(s, -0.25)
         assert s.speed == pytest.approx(0.25)
 
-    def test_change_speed_while_paused_keeps_paused_state(self):
-        s = _make_state(active_start=10, active_end=19, fps=10.0, speed=1.0)
+    def test_change_speed_while_paused_keeps_paused_state(self, make_state):
+        s = make_state(active_start=10, active_end=19, fps=10.0, speed=1.0)
         s.loop_paused = True
         s.paused_loop_idx = 14
         with patch("clipper.playback.time.monotonic", return_value=100.0):
@@ -370,16 +304,16 @@ class TestChangeSpeed:
 # ---------------------------------------------------------------------------
 
 class TestContractLeft:
-    def test_shrinks_loaded_start_by_base_step(self):
-        s = _make_state(loaded_start=0, active_start=20, base_step=5)
+    def test_shrinks_loaded_start_by_base_step(self, make_state):
+        s = make_state(loaded_start=0, active_start=20, base_step=5)
         # Need enough gap between loaded_start and active_start
         s.loaded_start = 10
         s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(10, 100)}
         contract_left(s)
         assert s.loaded_start == 15
 
-    def test_prunes_frames_and_signatures_before_new_loaded_start(self):
-        s = _make_state(loaded_start=10, active_start=20, base_step=5)
+    def test_prunes_frames_and_signatures_before_new_loaded_start(self, make_state):
+        s = make_state(loaded_start=10, active_start=20, base_step=5)
         s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(10, 31)}
         s.frame_signatures = {i: np.zeros((2, 2), dtype=np.float32) for i in range(10, 31)}
 
@@ -389,15 +323,15 @@ class TestContractLeft:
         assert all(idx >= 15 for idx in s.frames)
         assert all(idx >= 15 for idx in s.frame_signatures)
 
-    def test_does_nothing_when_gap_too_small(self):
-        s = _make_state(loaded_start=0, active_start=3, base_step=5)
+    def test_does_nothing_when_gap_too_small(self, make_state):
+        s = make_state(loaded_start=0, active_start=3, base_step=5)
         s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(0, 100)}
         original = s.loaded_start
         contract_left(s)
         assert s.loaded_start == original
 
-    def test_current_clamped_upward(self):
-        s = _make_state(loaded_start=0, active_start=20, base_step=5, current=3)
+    def test_current_clamped_upward(self, make_state):
+        s = make_state(loaded_start=0, active_start=20, base_step=5, current=3)
         s.loaded_start = 0
         s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(0, 100)}
         # Make gap > base_step
@@ -407,13 +341,13 @@ class TestContractLeft:
 
 
 class TestContractRight:
-    def test_shrinks_loaded_end(self):
-        s = _make_state(loaded_end=99, active_end=70, base_step=5)
+    def test_shrinks_loaded_end(self, make_state):
+        s = make_state(loaded_end=99, active_end=70, base_step=5)
         contract_right(s)
         assert s.loaded_end == 94
 
-    def test_prunes_frames_and_signatures_after_new_loaded_end(self):
-        s = _make_state(loaded_start=0, loaded_end=30, active_end=20, base_step=5)
+    def test_prunes_frames_and_signatures_after_new_loaded_end(self, make_state):
+        s = make_state(loaded_start=0, loaded_end=30, active_end=20, base_step=5)
         s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(0, 31)}
         s.frame_signatures = {i: np.zeros((2, 2), dtype=np.float32) for i in range(0, 31)}
 
@@ -423,8 +357,8 @@ class TestContractRight:
         assert all(idx <= 25 for idx in s.frames)
         assert all(idx <= 25 for idx in s.frame_signatures)
 
-    def test_does_nothing_when_gap_too_small(self):
-        s = _make_state(loaded_end=99, active_end=97, base_step=5)
+    def test_does_nothing_when_gap_too_small(self, make_state):
+        s = make_state(loaded_end=99, active_end=97, base_step=5)
         original = s.loaded_end
         contract_right(s)
         assert s.loaded_end == original
@@ -496,8 +430,8 @@ class TestEditingMarksTheSessionDirty:
         "kwargs, prepare, act",
         [pytest.param(k, p, a, id=label) for label, k, p, a in _EDITS_THAT_CHANGE_THE_CLIP],
     )
-    def test_an_edit_marks_the_session_dirty_and_saves_it(self, kwargs, prepare, act):
-        s = _make_state(**kwargs)
+    def test_an_edit_marks_the_session_dirty_and_saves_it(self, kwargs, prepare, act, make_state):
+        s = make_state(**kwargs)
         prepare(s)
         before = s.render_rev
         act(s)
@@ -509,8 +443,8 @@ class TestEditingMarksTheSessionDirty:
         "kwargs, prepare, act",
         [pytest.param(k, p, a, id=label) for label, k, p, a in _EDITS_THAT_REFUSE],
     )
-    def test_a_refused_edit_leaves_the_session_clean(self, kwargs, prepare, act):
-        s = _make_state(**kwargs)
+    def test_a_refused_edit_leaves_the_session_clean(self, kwargs, prepare, act, make_state):
+        s = make_state(**kwargs)
         prepare(s)
         act(s)
         assert s.dirty is False
@@ -518,13 +452,13 @@ class TestEditingMarksTheSessionDirty:
 
 
 class TestSetMarkIn:
-    def test_advances_active_start_to_current(self):
-        s = _make_state(active_start=5, active_end=50, current=20)
+    def test_advances_active_start_to_current(self, make_state):
+        s = make_state(active_start=5, active_end=50, current=20)
         set_mark_in(s)
         assert s.active_start == 20
 
-    def test_does_not_advance_past_active_end(self):
-        s = _make_state(active_start=5, active_end=50, current=55)
+    def test_does_not_advance_past_active_end(self, make_state):
+        s = make_state(active_start=5, active_end=50, current=55)
         original = s.active_start
         set_mark_in(s)
         # current > active_end, condition `current < active_end` is false → no change
@@ -532,21 +466,21 @@ class TestSetMarkIn:
 
 
 class TestSetMarkOut:
-    def test_retreats_active_end_to_current(self):
-        s = _make_state(active_start=5, active_end=50, current=30)
+    def test_retreats_active_end_to_current(self, make_state):
+        s = make_state(active_start=5, active_end=50, current=30)
         set_mark_out(s)
         assert s.active_end == 30
 
-    def test_does_not_retreat_before_active_start(self):
-        s = _make_state(active_start=20, active_end=50, current=10)
+    def test_does_not_retreat_before_active_start(self, make_state):
+        s = make_state(active_start=20, active_end=50, current=10)
         original = s.active_end
         set_mark_out(s)
         assert s.active_end == original
 
 
 class TestAcceptSuggestedMarks:
-    def test_accept_suggested_in_updates_active_start(self):
-        s = _make_state(active_start=10, active_end=30)
+    def test_accept_suggested_in_updates_active_start(self, make_state):
+        s = make_state(active_start=10, active_end=30)
         s.suggested_in = 12
         s.loop_anchor = 0.0
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
@@ -556,8 +490,8 @@ class TestAcceptSuggestedMarks:
         assert s.loop_anchor > 0.0
         refresh_suggestions.assert_called_once_with(s)
 
-    def test_accept_suggested_out_updates_active_end(self):
-        s = _make_state(active_start=10, active_end=30)
+    def test_accept_suggested_out_updates_active_end(self, make_state):
+        s = make_state(active_start=10, active_end=30)
         s.suggested_out = 28
         s.loop_anchor = 0.0
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
@@ -567,8 +501,8 @@ class TestAcceptSuggestedMarks:
         assert s.loop_anchor > 0.0
         refresh_suggestions.assert_called_once_with(s)
 
-    def test_accept_suggested_in_ignores_invalid_candidate(self):
-        s = _make_state(active_start=10, active_end=30)
+    def test_accept_suggested_in_ignores_invalid_candidate(self, make_state):
+        s = make_state(active_start=10, active_end=30)
         s.suggested_in = 30
         s.loop_anchor = 0.0
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
@@ -577,8 +511,8 @@ class TestAcceptSuggestedMarks:
         assert s.loop_anchor == 0.0
         refresh_suggestions.assert_not_called()
 
-    def test_accept_suggested_out_ignores_invalid_candidate(self):
-        s = _make_state(active_start=10, active_end=30)
+    def test_accept_suggested_out_ignores_invalid_candidate(self, make_state):
+        s = make_state(active_start=10, active_end=30)
         s.suggested_out = 10
         s.loop_anchor = 0.0
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
@@ -589,22 +523,22 @@ class TestAcceptSuggestedMarks:
 
 
 class TestShiftActiveRange:
-    def test_shift_right_reuses_old_out_as_new_in(self):
-        s = _make_state(active_start=10, active_end=20, current=14)
+    def test_shift_right_reuses_old_out_as_new_in(self, make_state):
+        s = make_state(active_start=10, active_end=20, current=14)
         shift_active_range(s, 1)
         assert s.active_start == 20
         assert s.active_end == 30
         assert s.current == 24
 
-    def test_shift_left_reuses_old_in_as_new_out(self):
-        s = _make_state(active_start=20, active_end=30, current=26)
+    def test_shift_left_reuses_old_in_as_new_out(self, make_state):
+        s = make_state(active_start=20, active_end=30, current=26)
         shift_active_range(s, -1)
         assert s.active_start == 10
         assert s.active_end == 20
         assert s.current == 16
 
-    def test_shift_right_expands_loaded_bounds_when_needed(self):
-        s = _make_state(loaded_start=0, loaded_end=24, active_start=10, active_end=20, current=12, total_frames=40)
+    def test_shift_right_expands_loaded_bounds_when_needed(self, make_state):
+        s = make_state(loaded_start=0, loaded_end=24, active_start=10, active_end=20, current=12, total_frames=40)
 
         def fake_ensure_loaded(state: VideoState, want_start: int, want_end: int) -> None:
             state.loaded_start = min(state.loaded_start, want_start)
@@ -617,8 +551,8 @@ class TestShiftActiveRange:
         assert s.active_start == 20
         assert s.active_end == 30
 
-    def test_shift_left_expands_loaded_bounds_when_needed(self):
-        s = _make_state(loaded_start=12, loaded_end=40, active_start=20, active_end=30, current=25, total_frames=60)
+    def test_shift_left_expands_loaded_bounds_when_needed(self, make_state):
+        s = make_state(loaded_start=12, loaded_end=40, active_start=20, active_end=30, current=25, total_frames=60)
 
         def fake_ensure_loaded(state: VideoState, want_start: int, want_end: int) -> None:
             state.loaded_start = min(state.loaded_start, want_start)
@@ -631,30 +565,30 @@ class TestShiftActiveRange:
         assert s.active_start == 10
         assert s.active_end == 20
 
-    def test_shift_right_preserves_existing_loaded_end_when_buffer_already_exists(self):
-        s = _make_state(loaded_start=0, loaded_end=40, active_start=10, active_end=20, current=14, base_step=5)
+    def test_shift_right_preserves_existing_loaded_end_when_buffer_already_exists(self, make_state):
+        s = make_state(loaded_start=0, loaded_end=40, active_start=10, active_end=20, current=14, base_step=5)
         with patch("clipper.editing.update_loop_suggestions"):
             shift_active_range(s, 1)
         assert s.loaded_end == 40
         assert s.active_end == 30
 
-    def test_shift_left_preserves_existing_loaded_start_when_buffer_already_exists(self):
-        s = _make_state(loaded_start=0, loaded_end=40, active_start=20, active_end=30, current=24, base_step=5)
+    def test_shift_left_preserves_existing_loaded_start_when_buffer_already_exists(self, make_state):
+        s = make_state(loaded_start=0, loaded_end=40, active_start=20, active_end=30, current=24, base_step=5)
         with patch("clipper.editing.update_loop_suggestions"):
             shift_active_range(s, -1)
         assert s.loaded_start == 0
         assert s.active_start == 10
 
-    def test_shift_pulls_the_cursor_back_inside_the_loaded_range(self):
+    def test_shift_pulls_the_cursor_back_inside_the_loaded_range(self, make_state):
         """The cursor moves with the range and can overshoot what is loaded."""
-        s = _make_state(total_frames=41, loaded_start=0, loaded_end=40,
+        s = make_state(total_frames=41, loaded_start=0, loaded_end=40,
                         active_start=0, active_end=20, current=39)
         shift_active_range(s, 1)
         assert (s.active_start, s.active_end) == (20, 40)
         assert s.current == 40
 
-    def test_shift_does_nothing_if_it_would_leave_video_bounds(self):
-        s = _make_state(active_start=2, active_end=12, current=5)
+    def test_shift_does_nothing_if_it_would_leave_video_bounds(self, make_state):
+        s = make_state(active_start=2, active_end=12, current=5)
         original = (s.active_start, s.active_end, s.current)
         s.loop_anchor = 0.0
         shift_active_range(s, -1)
@@ -663,14 +597,14 @@ class TestShiftActiveRange:
 
 
 class TestLoopSuggestions:
-    def test_no_suggestions_for_untouched_initial_selection(self):
-        s = _make_state(active_start=10, active_end=40, initial_active_start=10, initial_active_end=40)
+    def test_no_suggestions_for_untouched_initial_selection(self, make_state):
+        s = make_state(active_start=10, active_end=40, initial_active_start=10, initial_active_end=40)
         update_loop_suggestions(s)
         assert s.suggested_in is None
         assert s.suggested_out is None
 
-    def test_marked_in_suggests_neighbor_before_matching_return_frame(self):
-        s = _make_state(
+    def test_marked_in_suggests_neighbor_before_matching_return_frame(self, make_state):
+        s = make_state(
             total_frames=80,
             loaded_start=0,
             loaded_end=79,
@@ -691,8 +625,8 @@ class TestLoopSuggestions:
         assert s.suggested_in is None
         assert s.suggested_out == 49
 
-    def test_when_both_marks_are_set_pair_can_nudge_to_better_neighboring_loop(self):
-        s = _make_state(
+    def test_when_both_marks_are_set_pair_can_nudge_to_better_neighboring_loop(self, make_state):
+        s = make_state(
             total_frames=80,
             loaded_start=0,
             loaded_end=79,
@@ -714,8 +648,8 @@ class TestLoopSuggestions:
         assert s.suggested_in == 11
         assert s.suggested_out == 21
 
-    def test_refinement_stays_anchored_after_accepting_suggested_out(self):
-        s = _make_state(
+    def test_refinement_stays_anchored_after_accepting_suggested_out(self, make_state):
+        s = make_state(
             total_frames=80,
             loaded_start=0,
             loaded_end=79,
@@ -748,8 +682,8 @@ class TestLoopSuggestions:
 
         assert (s.suggested_in, s.suggested_out) == first_pair
 
-    def test_base_tip_mode_uses_turning_point_for_suggested_out(self):
-        s = _make_state(
+    def test_base_tip_mode_uses_turning_point_for_suggested_out(self, make_state):
+        s = make_state(
             total_frames=80,
             loaded_start=0,
             loaded_end=79,
@@ -766,8 +700,8 @@ class TestLoopSuggestions:
         turning.assert_called_once()
         duplicate.assert_not_called()
 
-    def test_tip_base_mode_uses_turning_point_for_suggested_in(self):
-        s = _make_state(
+    def test_tip_base_mode_uses_turning_point_for_suggested_in(self, make_state):
+        s = make_state(
             total_frames=80,
             loaded_start=0,
             loaded_end=79,
@@ -784,8 +718,8 @@ class TestLoopSuggestions:
         turning.assert_called_once()
         pair_score.assert_not_called()
 
-    def test_half_loop_modes_skip_pair_refinement_when_both_marks_changed(self):
-        s = _make_state(
+    def test_half_loop_modes_skip_pair_refinement_when_both_marks_changed(self, make_state):
+        s = make_state(
             total_frames=80,
             loaded_start=0,
             loaded_end=79,

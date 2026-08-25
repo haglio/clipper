@@ -6,9 +6,11 @@ import os
 import random
 import shutil
 import sys
+import time
 import uuid
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 # Render Qt offscreen for the whole suite. Agents run these tests on every commit
@@ -154,6 +156,129 @@ def _the_last_session_pointer_is_never_the_real_one():
                             "LAST_SESSION_FILE", scratch)
         yield
     scratch.unlink(missing_ok=True)
+
+
+class _FakeCapture:
+    """The slice of cv2.VideoCapture that frame_store.load_range actually uses.
+
+    A MagicMock cannot stand in for it: `ok, frame = cap.read()` unpacks, so a
+    test that lets a real ensure_loaded run needs a capture that answers.
+    """
+
+    def __init__(self, total_frames: int):
+        self._total = total_frames
+        self._pos = 0
+
+    def set(self, prop, value) -> bool:
+        self._pos = int(value)
+        return True
+
+    def read(self):
+        if self._pos >= self._total:
+            return False, None
+        self._pos += 1
+        return True, np.zeros((2, 2, 3), dtype=np.uint8)
+
+    def release(self) -> None:
+        pass
+
+
+class _FakeAutosave:
+    """Stands in for the session write ``VideoState.mark_dirty`` triggers.
+
+    Counting the calls is what ``patch.object(s, "mark_dirty")`` used to be
+    reached for, minus the part that hid the dirty flag itself.
+    """
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def __call__(self, state) -> None:
+        self.calls += 1
+
+
+@pytest.fixture()
+def frames_of():
+    """One 1x1 BGR frame per value -- the shape the loop transforms read in."""
+    def factory(values: list[int]) -> list[np.ndarray]:
+        return [np.full((1, 1, 3), value, dtype=np.uint8) for value in values]
+    return factory
+
+
+@pytest.fixture()
+def values_of():
+    """The inverse of ``frames_of``: read each frame back as its one value."""
+    def factory(frames: list[np.ndarray]) -> list[int]:
+        return [int(frame[0, 0, 0]) for frame in frames]
+    return factory
+
+
+@pytest.fixture()
+def make_state():
+    """Factory for a VideoState the tests can edit without a disk or a codec.
+
+    Two modules held their own version of this and two more imported one of
+    them across module boundaries -- which worked only because tests/ has no
+    __init__.py and pytest prepends the directory to sys.path, so renaming
+    test_clipper_state.py broke two unrelated files.
+    """
+    from clipper.state import VideoState
+
+    def factory(
+        *,
+        total_frames: int = 100,
+        loaded_start: int = 0,
+        loaded_end: int | None = None,
+        active_start: int = 10,
+        active_end: int | None = None,
+        current: int = 20,
+        base_step: int = 5,
+        fps: float = 30.0,
+        speed: float = 1.0,
+        wrap_mode: str = "blue",
+        loop_mode: str = "base-tip-base",
+        session_name: str = "test_session",
+        path: str = "/fake/video.mp4",
+        session_path: str = "/fake/sessions/test_session.json",
+        initial_active_start: int | None = None,
+        initial_active_end: int | None = None,
+    ) -> VideoState:
+        if loaded_end is None:
+            loaded_end = total_frames - 1
+        if active_end is None:
+            active_end = total_frames - 10
+        return VideoState(
+            cap=_FakeCapture(total_frames),
+            path=path,
+            fps=fps,
+            total_frames=total_frames,
+            loaded_start=loaded_start,
+            loaded_end=loaded_end,
+            active_start=active_start,
+            active_end=active_end,
+            current=current,
+            base_step=base_step,
+            frames={
+                i: np.zeros((2, 2, 3), dtype=np.uint8)
+                for i in range(loaded_start, loaded_end + 1)
+            },
+            loop_anchor=time.monotonic(),
+            session_name=session_name,
+            session_path=session_path,
+            original_session_payload={},
+            loop_mode=loop_mode,
+            speed=speed,
+            wrap_mode=wrap_mode,
+            initial_active_start=(
+                active_start if initial_active_start is None else initial_active_start
+            ),
+            initial_active_end=(
+                active_end if initial_active_end is None else initial_active_end
+            ),
+            persist_session=_FakeAutosave(),
+        )
+
+    return factory
 
 
 def _write_config(tmp_path: Path, overrides: dict | None = None) -> Path:
