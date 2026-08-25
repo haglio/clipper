@@ -26,31 +26,27 @@ from clipper.state import ExportJob
 # _parse_ffmpeg_clock
 # ---------------------------------------------------------------------------
 
+# What ffmpeg prints on its progress line, and the seconds it means. The eight
+# one-line methods this replaces differed only in these two values.
+_FFMPEG_CLOCKS = [
+    ("00:00:00.000000", 0.0),
+    ("00:00:30.000000", 30.0),
+    ("00:01:00.000000", 60.0),
+    ("01:00:00.000000", 3600.0),
+    ("01:02:03.500000", 3723.5),
+    ("00:00:30", 30.0),
+]
+
+
 class TestParseFfmpegClock:
-    def test_zero(self):
-        assert _parse_ffmpeg_clock("00:00:00.000000") == pytest.approx(0.0)
+    @pytest.mark.parametrize("printed, seconds", _FFMPEG_CLOCKS)
+    def test_it_reads_the_clock_ffmpeg_prints(self, printed, seconds):
+        assert _parse_ffmpeg_clock(printed) == pytest.approx(seconds)
 
-    def test_seconds(self):
-        assert _parse_ffmpeg_clock("00:00:30.000000") == pytest.approx(30.0)
-
-    def test_minutes(self):
-        assert _parse_ffmpeg_clock("00:01:00.000000") == pytest.approx(60.0)
-
-    def test_hours(self):
-        assert _parse_ffmpeg_clock("01:00:00.000000") == pytest.approx(3600.0)
-
-    def test_combined(self):
-        # 1h 2m 3.5s
-        assert _parse_ffmpeg_clock("01:02:03.500000") == pytest.approx(3723.5)
-
-    def test_invalid_returns_zero(self):
-        assert _parse_ffmpeg_clock("N/A") == 0.0
-
-    def test_empty_returns_zero(self):
-        assert _parse_ffmpeg_clock("") == 0.0
-
-    def test_garbage_returns_zero(self):
-        assert _parse_ffmpeg_clock("not:a:number") == 0.0
+    @pytest.mark.parametrize("printed", ["N/A", "", "not:a:number", "00:00"])
+    def test_anything_it_cannot_read_counts_as_no_progress(self, printed):
+        """A progress line it cannot parse must not move the bar backwards."""
+        assert _parse_ffmpeg_clock(printed) == 0.0
 
 
 # ---------------------------------------------------------------------------

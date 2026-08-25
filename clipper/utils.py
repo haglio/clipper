@@ -24,9 +24,14 @@ def format_seconds(seconds: float) -> str:
     return f"{hours:02d}:{minutes:02d}:{remaining:06.3f}"
 
 
+# The characters Windows will not take in a filename. Named rather than inline
+# so a test can walk the list instead of carrying its own copy of it.
+FORBIDDEN_NAME_CHARS = '<>:"/\\|?*'
+
+
 def sanitize_name(name: str) -> str:
     name = name.strip()
-    for ch in '<>:"/\\|?*':
+    for ch in FORBIDDEN_NAME_CHARS:
         name = name.replace(ch, "_")
     return name.strip().rstrip(".")
 
