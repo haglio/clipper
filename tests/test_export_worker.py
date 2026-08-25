@@ -5,249 +5,255 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-from PyQt6.QtWidgets import QApplication
+import pytest
 
 from clipper.gui.export_worker import ExportWorker
+from clipper.paths import AUDIO_DIR, CLIPS_DIR, RAW_CLIPS_DIR, VR_CLIPS_DIR
 from clipper.state import ExportJob
 
 
-class TestConstruction:
-    def test_has_signals(self):
-        worker = ExportWorker.__dict__
-        # Verify signals are defined on the class
-        assert "stage_changed" in worker
-        assert "clip_progress" in worker
-        assert "fix_progress" in worker
-        assert "audio_progress" in worker
-        assert "export_finished" in worker
+@pytest.fixture()
+def state(make_state):
+    return make_state(
+        path="C:/fake/video.mp4", session_path="C:/fake/session.json",
+        total_frames=300, loaded_end=299, active_start=10, active_end=50,
+        current=10, base_step=1,
+    )
+
+
+class _Step:
+    """A stand-in for an export step: records its call, drives the job it is
+    handed the way the real step does, and answers with whatever it is told to.
+    """
+
+    def __init__(self, *, stage: str, progress_field: str, ok: bool = True, detail: str = ""):
+        self.stage = stage
+        self.progress_field = progress_field
+        self.ok = ok
+        self.detail = detail
+        self.calls: list[tuple] = []
+
+    def __call__(self, *args):
+        self.calls.append(args)
+        job = args[-1]
+        job.stage = self.stage
+        setattr(job, self.progress_field, 1.0)
+        return self.ok, self.detail
+
+    @property
+    def called(self) -> bool:
+        return bool(self.calls)
+
+
+@pytest.fixture()
+def steps():
+    """The three export steps, stubbed at the module they are imported from."""
+    stubs = {
+        "raw": _Step(stage="clipping", progress_field="clip_progress", detail="raw.mp4"),
+        "post": _Step(stage="fixing the loop", progress_field="fix_progress", detail="clip.mp4"),
+        "audio": _Step(stage="pulling audio", progress_field="audio_progress", detail="audio.mp3"),
+    }
+    with patch("clipper.export_steps.export_raw_clip", stubs["raw"]), \
+         patch("clipper.export_steps.run_clip_postprocess", stubs["post"]), \
+         patch("clipper.export_steps.export_full_audio_mp3", stubs["audio"]):
+        yield stubs
+
+
+def _recorded(worker: ExportWorker) -> dict[str, list]:
+    """Connect every signal the worker declares and collect what arrives."""
+    seen: dict[str, list] = {}
+    for name in ("stage_changed", "clip_progress", "fix_progress",
+                 "audio_progress", "export_finished"):
+        seen[name] = []
+        getattr(worker, name).connect(
+            lambda *args, _name=name: seen[_name].append(args if len(args) > 1 else args[0])
+        )
+    return seen
+
+
+class TestSignals:
+    """Every signal is connected and emitted during a run.
+
+    The old test asserted the five names were keys of `ExportWorker.__dict__`,
+    which a declaration satisfies and a run that never emits also satisfies.
+    """
+
+    def test_a_run_emits_every_signal_the_worker_declares(self, state, steps):
+        worker = ExportWorker(state)
+        seen = _recorded(worker)
+
+        worker.run()
+
+        # The job resets each field as it is built, so every progress signal
+        # starts at 0.0 and the run drives it to 1.0.
+        assert seen["stage_changed"] == [
+            "preparing export", "clipping", "fixing the loop", "pulling audio",
+        ]
+        assert seen["clip_progress"] == [0.0, 1.0]
+        assert seen["fix_progress"] == [0.0, 1.0]
+        assert seen["audio_progress"] == [0.0, 1.0]
+        assert len(seen["export_finished"]) == 1
 
 
 class TestRunCallsExportSteps:
-    """ExportWorker.run() must call export_steps functions with correct signatures."""
+    def test_the_raw_clip_step_gets_the_state_an_output_path_and_the_job(self, state, steps):
+        ExportWorker(state).run()
 
-    @patch("clipper.export_steps.export_full_audio_mp3")
-    @patch("clipper.export_steps.run_clip_postprocess")
-    @patch("clipper.export_steps.export_raw_clip")
-    def test_calls_export_raw_clip_with_path_and_job(
-        self, mock_raw, mock_post, mock_audio
-    , make_state):
-        mock_raw.return_value = (True, "C:/fake/raw.mp4")
-        mock_post.return_value = (True, "C:/fake/clip.mp4")
-        mock_audio.return_value = (True, "C:/fake/audio.mp3")
+        clip_state, out_path, job = steps["raw"].calls[0]
+        assert clip_state is state
+        assert out_path.parent == RAW_CLIPS_DIR
+        assert isinstance(job, ExportJob)
 
-        state = make_state(
-            path="C:/fake/video.mp4", session_path="C:/fake/session.json",
-            total_frames=300, loaded_end=299, active_start=10, active_end=50,
-            current=10, base_step=1,
-        )
-        worker = ExportWorker(state)
-        worker.run()
+    def test_the_post_process_step_gets_the_raw_input_and_the_clip_output(self, state, steps):
+        ExportWorker(state).run()
 
-        args, kwargs = mock_raw.call_args
-        assert args[0] is state
-        assert isinstance(args[1], Path), "second arg must be an output Path"
-        assert isinstance(args[2], ExportJob), "third arg must be an ExportJob"
+        post_state, raw_in, clip_out, job = steps["post"].calls[0]
+        assert post_state is state
+        assert raw_in == steps["raw"].calls[0][1]
+        assert clip_out.parent == CLIPS_DIR
+        assert isinstance(job, ExportJob)
 
-    @patch("clipper.export_steps.export_full_audio_mp3")
-    @patch("clipper.export_steps.run_clip_postprocess")
-    @patch("clipper.export_steps.export_raw_clip")
-    def test_calls_run_clip_postprocess_with_paths_and_job(
-        self, mock_raw, mock_post, mock_audio
-    , make_state):
-        mock_raw.return_value = (True, "C:/fake/raw.mp4")
-        mock_post.return_value = (True, "C:/fake/clip.mp4")
-        mock_audio.return_value = (True, "C:/fake/audio.mp3")
+    def test_the_audio_step_writes_beside_the_clip(self, state, steps):
+        ExportWorker(state).run()
 
-        state = make_state(
-            path="C:/fake/video.mp4", session_path="C:/fake/session.json",
-            total_frames=300, loaded_end=299, active_start=10, active_end=50,
-            current=10, base_step=1,
-        )
-        worker = ExportWorker(state)
-        worker.run()
+        _audio_state, audio_out, _job = steps["audio"].calls[0]
+        assert audio_out.parent == AUDIO_DIR
+        assert audio_out.suffix == ".mp3"
 
-        args, kwargs = mock_post.call_args
-        assert args[0] is state
-        assert isinstance(args[1], Path), "second arg must be raw input Path"
-        assert isinstance(args[2], Path), "third arg must be clip output Path"
-        assert isinstance(args[3], ExportJob), "fourth arg must be an ExportJob"
+    def test_all_three_outputs_take_the_session_name(self, state, steps):
+        state.session_name = "second pass"
 
-    @patch("clipper.export_steps.export_full_audio_mp3")
-    @patch("clipper.export_steps.run_clip_postprocess")
-    @patch("clipper.export_steps.export_raw_clip")
-    def test_emits_failure_on_raw_clip_error(
-        self, mock_raw, mock_post, mock_audio
-    , make_state):
-        mock_raw.return_value = (False, "ffmpeg not found on PATH")
+        ExportWorker(state).run()
 
-        state = make_state(
-            path="C:/fake/video.mp4", session_path="C:/fake/session.json",
-            total_frames=300, loaded_end=299, active_start=10, active_end=50,
-            current=10, base_step=1,
-        )
-        worker = ExportWorker(state)
-        results = []
-        worker.export_finished.connect(lambda ok, msg: results.append((ok, msg)))
-        worker.run()
+        assert steps["raw"].calls[0][1].stem == "second pass"
+        assert steps["post"].calls[0][2].stem == "second pass"
+        assert steps["audio"].calls[0][1].stem == "second pass"
 
-        assert results == [(False, "ffmpeg not found on PATH")]
-        mock_post.assert_not_called()
-        mock_audio.assert_not_called()
+    def test_a_session_name_that_cannot_be_a_filename_is_sanitized(self, state, steps):
+        state.session_name = "take 1: second pass"
 
-    @patch("clipper.export_steps.export_full_audio_mp3")
-    @patch("clipper.export_steps.run_clip_postprocess")
-    @patch("clipper.export_steps.export_raw_clip")
-    def test_emits_success_on_full_pipeline(
-        self, mock_raw, mock_post, mock_audio
-    , make_state):
-        mock_raw.return_value = (True, "raw.mp4")
-        mock_post.return_value = (True, "clip.mp4")
-        mock_audio.return_value = (True, "audio.mp3")
+        ExportWorker(state).run()
 
-        state = make_state(
-            path="C:/fake/video.mp4", session_path="C:/fake/session.json",
-            total_frames=300, loaded_end=299, active_start=10, active_end=50,
-            current=10, base_step=1,
-        )
-        worker = ExportWorker(state)
-        results = []
-        worker.export_finished.connect(lambda ok, msg: results.append((ok, msg)))
-        worker.run()
+        assert steps["raw"].calls[0][1].stem == "take 1_ second pass"
 
-        assert len(results) == 1
-        assert results[0][0] is True
-
-    @patch("clipper.export_steps.export_full_audio_mp3")
-    @patch("clipper.export_steps.run_clip_postprocess")
-    @patch("clipper.export_steps.export_raw_clip")
-    def test_sets_export_job_on_state(
-        self, mock_raw, mock_post, mock_audio
-    , make_state):
-        mock_raw.return_value = (True, "raw.mp4")
-        mock_post.return_value = (True, "clip.mp4")
-        mock_audio.return_value = (True, "audio.mp3")
-
-        state = make_state(
-            path="C:/fake/video.mp4", session_path="C:/fake/session.json",
-            total_frames=300, loaded_end=299, active_start=10, active_end=50,
-            current=10, base_step=1,
-        )
+    def test_the_run_hands_the_state_its_export_job(self, state, steps):
         assert state.export_job is None
+
+        ExportWorker(state).run()
+
+        assert isinstance(state.export_job, ExportJob)
+        assert state.export_job.active is False
+        assert state.export_job.done is True
+
+
+class TestFailures:
+    def test_a_failed_clip_stops_the_run_and_reports_why(self, state, steps):
+        steps["raw"].ok = False
+        steps["raw"].detail = "ffmpeg not found on PATH"
         worker = ExportWorker(state)
+        seen = _recorded(worker)
+
         worker.run()
 
-        assert state.export_job is not None
-        assert isinstance(state.export_job, ExportJob)
+        assert seen["export_finished"] == [(False, "ffmpeg not found on PATH")]
+        assert not steps["post"].called
+        assert not steps["audio"].called
+
+    def test_a_failed_post_process_stops_before_the_audio(self, state, steps):
+        steps["post"].ok = False
+        steps["post"].detail = "the bridge is too long"
+        worker = ExportWorker(state)
+        seen = _recorded(worker)
+
+        worker.run()
+
+        assert seen["export_finished"] == [(False, "the bridge is too long")]
+        assert not steps["audio"].called
+
+    def test_a_failed_audio_pull_is_reported(self, state, steps):
+        steps["audio"].ok = False
+        steps["audio"].detail = "no audio stream"
+        worker = ExportWorker(state)
+        seen = _recorded(worker)
+
+        worker.run()
+
+        assert seen["export_finished"] == [(False, "no audio stream")]
+
+    def test_a_step_that_raises_is_reported_rather_than_lost(self, state, steps):
+        def explode(*args):
+            raise RuntimeError("the disk went away")
+
+        worker = ExportWorker(state)
+        seen = _recorded(worker)
+        with patch("clipper.export_steps.export_raw_clip", explode):
+            worker.run()
+
+        assert seen["export_finished"] == [(False, "the disk went away")]
+        assert state.export_job.done is True
+
+    def test_a_finished_run_names_the_clip_it_wrote(self, state, steps):
+        worker = ExportWorker(state)
+        seen = _recorded(worker)
+
+        worker.run()
+
+        ok, message = seen["export_finished"][0]
+        assert ok is True
+        assert str(CLIPS_DIR) in message
 
 
 class TestVrExportPath:
-    @patch("clipper.export_steps.export_full_audio_mp3")
-    @patch("clipper.export_steps.run_clip_postprocess")
-    @patch("clipper.export_steps.export_raw_clip")
-    def test_non_vr_exports_to_clips_dir(self, mock_raw, mock_post, mock_audio, make_state):
-        from clipper.paths import CLIPS_DIR
-
-        mock_raw.return_value = (True, "raw.mp4")
-        mock_post.return_value = (True, "clip.mp4")
-        mock_audio.return_value = (True, "audio.mp3")
-
-        state = make_state(
-            path="C:/fake/video.mp4", session_path="C:/fake/session.json",
-            total_frames=300, loaded_end=299, active_start=10, active_end=50,
-            current=10, base_step=1,
-        )
+    def test_a_non_vr_clip_lands_in_the_clips_folder(self, state, steps):
         state.vr = False
+
         ExportWorker(state).run()
 
-        clip_path = mock_post.call_args.args[2]
-        assert clip_path.parent == CLIPS_DIR
+        assert steps["post"].calls[0][2].parent == CLIPS_DIR
 
-    @patch("clipper.export_steps.export_full_audio_mp3")
-    @patch("clipper.export_steps.run_clip_postprocess")
-    @patch("clipper.export_steps.export_raw_clip")
-    def test_vr_exports_to_vr_clips_dir(self, mock_raw, mock_post, mock_audio, make_state):
-        from clipper.paths import VR_CLIPS_DIR
-
-        mock_raw.return_value = (True, "raw.mp4")
-        mock_post.return_value = (True, "clip.mp4")
-        mock_audio.return_value = (True, "audio.mp3")
-
-        state = make_state(
-            path="C:/fake/video.mp4", session_path="C:/fake/session.json",
-            total_frames=300, loaded_end=299, active_start=10, active_end=50,
-            current=10, base_step=1,
-        )
+    def test_a_vr_clip_lands_in_the_vr_clips_folder(self, state, steps):
         state.vr = True
+
         ExportWorker(state).run()
 
-        clip_path = mock_post.call_args.args[2]
-        assert clip_path.parent == VR_CLIPS_DIR
+        assert steps["post"].calls[0][2].parent == VR_CLIPS_DIR
 
 
 class TestSkipPostprocess:
-    """When state.skip_postprocess is True, postprocess is skipped entirely."""
+    """A whole-video export is already a loop; it does not want the seam pass."""
 
-    @patch("clipper.export_steps.export_full_audio_mp3")
-    @patch("clipper.export_steps.run_clip_postprocess")
-    @patch("clipper.export_steps.export_raw_clip")
-    def test_skips_postprocess_when_flag_set(
-        self, mock_raw, mock_post, mock_audio
-    , make_state):
-        mock_raw.return_value = (True, "clip.mp4")
-        mock_audio.return_value = (True, "audio.mp3")
-
-        state = make_state(
-            path="C:/fake/video.mp4", session_path="C:/fake/session.json",
-            total_frames=300, loaded_end=299, active_start=10, active_end=50,
-            current=10, base_step=1,
-        )
+    @pytest.fixture(autouse=True)
+    def _skipping(self, state):
         state.skip_postprocess = True
+
+    def test_the_post_process_step_never_runs(self, state, steps):
+        ExportWorker(state).run()
+
+        assert not steps["post"].called
+
+    def test_the_clip_is_written_straight_into_the_clips_folder(self, state, steps):
+        ExportWorker(state).run()
+
+        assert steps["raw"].calls[0][1].parent == CLIPS_DIR
+
+    def test_the_skipped_stage_still_reports_itself_finished(self, state, steps):
         worker = ExportWorker(state)
+        seen = _recorded(worker)
+
         worker.run()
 
-        mock_post.assert_not_called()
+        assert seen["fix_progress"] == [0.0, 1.0]
+        assert state.export_job.fix_status == "skipped"
 
-    @patch("clipper.export_steps.export_full_audio_mp3")
-    @patch("clipper.export_steps.run_clip_postprocess")
-    @patch("clipper.export_steps.export_raw_clip")
-    def test_writes_directly_to_clips_dir(
-        self, mock_raw, mock_post, mock_audio
-    , make_state):
-        """Raw clip output goes to CLIPS_DIR, not RAW_CLIPS_DIR."""
-        mock_raw.return_value = (True, "clip.mp4")
-        mock_audio.return_value = (True, "audio.mp3")
+    def test_the_audio_is_still_pulled(self, state, steps):
+        ExportWorker(state).run()
 
-        state = make_state(
-            path="C:/fake/video.mp4", session_path="C:/fake/session.json",
-            total_frames=300, loaded_end=299, active_start=10, active_end=50,
-            current=10, base_step=1,
-        )
-        state.skip_postprocess = True
-        worker = ExportWorker(state)
-        worker.run()
+        assert steps["audio"].called
 
-        raw_out_path = mock_raw.call_args[0][1]
-        from clipper.paths import CLIPS_DIR
-        assert raw_out_path.parent == CLIPS_DIR
 
-    @patch("clipper.export_steps.export_full_audio_mp3")
-    @patch("clipper.export_steps.run_clip_postprocess")
-    @patch("clipper.export_steps.export_raw_clip")
-    def test_fix_progress_set_to_done(
-        self, mock_raw, mock_post, mock_audio
-    , make_state):
-        mock_raw.return_value = (True, "clip.mp4")
-        mock_audio.return_value = (True, "audio.mp3")
-
-        state = make_state(
-            path="C:/fake/video.mp4", session_path="C:/fake/session.json",
-            total_frames=300, loaded_end=299, active_start=10, active_end=50,
-            current=10, base_step=1,
-        )
-        state.skip_postprocess = True
-        worker = ExportWorker(state)
-        fix_values = []
-        worker.fix_progress.connect(lambda v: fix_values.append(v))
-        worker.run()
-
-        assert 1.0 in fix_values
+def test_the_output_path_type_is_a_path_not_a_string(state, steps):
+    """export_steps builds ffmpeg arguments from these; a str would still work
+    until something joined to it."""
+    assert isinstance(steps["raw"].calls, list)
+    ExportWorker(state).run()
+    assert isinstance(steps["raw"].calls[0][1], Path)

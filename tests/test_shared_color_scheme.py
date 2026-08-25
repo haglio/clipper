@@ -14,6 +14,10 @@ import ast
 import re
 from pathlib import Path
 
+from PyQt6.QtGui import QColor
+
+from clipper.gui.main_window import ClipperMainWindow
+
 _GUI = Path(__file__).resolve().parent.parent / "clipper" / "gui"
 
 # "#abc" and "#aabbcc" -- how a color reaches a Qt stylesheet when it did not
@@ -75,12 +79,35 @@ def test_the_chrome_reads_the_family_palette():
     assert "button_bar.py" in importers
 
 
-def test_a_control_that_is_on_sits_on_a_lighter_ground():
-    """One rule across the family, so a toggled button reads the same whichever
-    app it is in.  Origenerator had it and this did not."""
-    from clipper.gui.main_window import _BTN_STYLE
-    from shared_ui.colors import BG_BUTTON, BG_BUTTON_ACTIVE
+_PUSHBUTTON_RULE = re.compile(
+    r"QPushButton(?P<state>:\w+)?\s*\{(?P<body>[^}]*)\}"
+)
+_BACKGROUND = re.compile(r"background(?:-color)?\s*:\s*(#[0-9a-fA-F]{3,6})")
 
-    assert BG_BUTTON_ACTIVE.name() in _BTN_STYLE
-    assert ":checked" in _BTN_STYLE
-    assert BG_BUTTON.name() in _BTN_STYLE   # and a resting one still sits darker
+
+def _button_backgrounds(sheet: str) -> dict[str, QColor]:
+    """The background each QPushButton state gets, out of an applied sheet."""
+    found = {}
+    for rule in _PUSHBUTTON_RULE.finditer(sheet):
+        colour = _BACKGROUND.search(rule.group("body"))
+        if colour:
+            found[rule.group("state") or ""] = QColor(colour.group(1))
+    return found
+
+
+def test_a_control_that_is_on_sits_on_a_lighter_ground(make_state):
+    """One rule across the family, so a toggled button reads the same whichever
+    app it is in.  Origenerator had it and this did not.
+
+    Read off the sheet the window installs, not off the private constant it is
+    built from -- so a sheet that is written and never applied fails here.  It
+    is compared rather than name-matched, so it survives a palette change and
+    still fails an inversion.
+    """
+    window = ClipperMainWindow(make_state())
+
+    backgrounds = _button_backgrounds(window.centralWidget().styleSheet())
+
+    assert ":checked" in backgrounds, "no rule paints a button that is switched on"
+    assert "" in backgrounds, "no rule paints a button at rest"
+    assert backgrounds[":checked"].lightness() > backgrounds[""].lightness()

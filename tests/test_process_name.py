@@ -16,16 +16,21 @@ prepares, leaves the app anonymous for good.
 """
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from app_support.process_identity import ProcessNamer
+
+from clipper.app import _name_this_process
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 APP_NAME = "Clipper"
 ROLE = "Clipper"
 
+# The launcher is VBScript: it cannot be run here, so its two guarantees are
+# read out of the file.  Everything on the Python side below is driven instead.
 LAUNCHER = (PROJECT_DIR / "launch_clipper.vbs").read_text(encoding="utf-8")
-ENTRY_POINT = (PROJECT_DIR / "clipper/app.py").read_text(encoding="utf-8")
 
 
 def test_the_launcher_prefers_the_copy_named_for_this_app():
@@ -43,15 +48,23 @@ def test_the_launcher_still_works_before_any_run_has_named_it():
 
 
 def test_the_app_prepares_that_copy_for_next_time():
-    assert "_name_this_process()" in ENTRY_POINT
-    assert f'ProcessNamer("{APP_NAME}"' in ENTRY_POINT
-    assert f'"{ROLE}"' in ENTRY_POINT
+    """Driven, not read: the source used to be slurped and searched for
+    `_name_this_process()`, `ProcessNamer("Clipper"` and `"Clipper"`, which
+    passes for a helper that is called and broken, and fails for one that was
+    renamed and works."""
+    namer = MagicMock()
 
+    with patch("app_support.process_identity.ProcessNamer", return_value=namer) as cls:
+        _name_this_process()
 
-def test_it_prepares_the_interpreter_the_launcher_actually_runs():
-    """The launcher runs python.exe -- it redirects the app's output into its
-    log -- so naming pythonw would leave a copy nothing ever starts."""
-    assert 'with_name("python.exe")' in ENTRY_POINT
+    assert cls.call_args.args == (APP_NAME,)
+    (role, interpreter) = namer.prepare_launcher.call_args.args
+    assert role == ROLE
+    assert namer.prepare_launcher.call_count == 1
+    assert interpreter == Path(sys.executable).with_name("python.exe"), (
+        "the launcher runs python.exe -- it redirects the app's output into its "
+        "log -- so naming pythonw would leave a copy nothing ever starts"
+    )
 
 
 def test_the_row_reads_as_the_app_and_nothing_more():
@@ -60,14 +73,24 @@ def test_the_row_reads_as_the_app_and_nothing_more():
 
 
 def test_it_stamps_its_own_mark():
-    assert (PROJECT_DIR / "clipper.ico").is_file()
-    assert "clipper.ico" in ENTRY_POINT
+    namer = MagicMock()
+
+    with patch("app_support.process_identity.ProcessNamer", return_value=namer) as cls:
+        _name_this_process()
+
+    icon = cls.call_args.kwargs["icon"]
+    assert icon.name == "clipper.ico"
+    assert icon.is_file()
 
 
 def test_naming_never_takes_a_launch_down():
     """A read-only venv or an antivirus hold must cost the name in the task list
     and nothing else."""
-    body = ENTRY_POINT[ENTRY_POINT.index("def _name_this_process"):]
-    body = body[:body.index("\ndef ", 1)]
+    with patch("app_support.process_identity.ProcessNamer",
+               side_effect=OSError("the venv is read-only")):
+        _name_this_process()  # must not raise
 
-    assert "except Exception:" in body
+    namer = MagicMock()
+    namer.prepare_launcher.side_effect = PermissionError("held open")
+    with patch("app_support.process_identity.ProcessNamer", return_value=namer):
+        _name_this_process()  # nor here
