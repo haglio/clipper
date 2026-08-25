@@ -199,9 +199,13 @@ class _FakeAutosave:
 
 @pytest.fixture()
 def frames_of():
-    """One 1x1 BGR frame per value -- the shape the loop transforms read in."""
-    def factory(values: list[int]) -> list[np.ndarray]:
-        return [np.full((1, 1, 3), value, dtype=np.uint8) for value in values]
+    """One solid BGR frame per value -- the shape the loop transforms read in.
+
+    1x1 by default, which is enough for the pure transforms; ``size`` gives the
+    pipeline cases frames big enough for the shrink loop to have somewhere to go.
+    """
+    def factory(values: list[int], size: int = 1) -> list[np.ndarray]:
+        return [np.full((size, size, 3), value, dtype=np.uint8) for value in values]
     return factory
 
 
