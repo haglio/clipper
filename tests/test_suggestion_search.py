@@ -9,7 +9,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from clipper.suggestion_search import candidate_similarity_curve, smooth_1d
+from clipper.frame_store import signature_for_index, structural_similarity_score
+from clipper.suggestion_search import (
+    best_duplicate_match_index,
+    best_turning_point_index,
+    candidate_similarity_curve,
+    smooth_1d,
+)
 
 
 def _signature(state, idx):
@@ -73,19 +79,17 @@ class TestTheCandidateWindow:
         assert _curve(state, 40, direction=+1) is None
 
 
-class TestTheBackwardWindowRunsFromTheFarEnd:
-    """HELD, not fixed: the two directions are not mirror images.
+class TestTheTwoDirectionsAreMirrorImages:
+    """Both windows start beside the reference frame and run away from it.
 
-    Searching forward, candidate 0 is the frame just past the reference and the
-    list runs away from it. Searching backward, candidate 0 is `loaded_start` --
-    the frame *farthest* from the reference -- and the list runs towards it. The
-    dip and peak walks in `best_turning_point_index` and
-    `best_duplicate_match_index` skip a fixed head of that list and take their
-    baseline from it, which forward means "the frames beside the reference" and
-    backward means "the frames at the other end of the loaded range". In
-    base-tip-base, the most common mode, that is where the suggested mark-in
-    point comes from. Backlog bug 14 (`all/design/004`), awaiting sign-off;
-    pinned so the fix is a visible change.
+    Backward used to start at `loaded_start` -- the frame *farthest* from the
+    reference -- and run towards it, while the dip and peak walks in
+    `best_turning_point_index` and `best_duplicate_match_index` skip a fixed head
+    of that list and take their baseline from it. Forward that head is "the
+    frames beside the reference"; backward it was "the frames at the other end of
+    the loaded range", which in base-tip-base -- the most common mode -- is where
+    the suggested mark-in point came from. Backlog bug 14 (`all/design/004`),
+    fixed on the owner's approval.
     """
 
     def test_forward_the_window_begins_next_to_the_reference(self, make_state):
@@ -96,19 +100,71 @@ class TestTheBackwardWindowRunsFromTheFarEnd:
         assert candidates[0] == 70  # the reference plus the minimum gap
         assert candidates[-1] == 120  # and it ends at the far edge
 
-    def test_backward_the_window_begins_at_the_far_edge_instead(self, make_state):
+    def test_backward_the_window_begins_next_to_the_reference_too(self, make_state):
         state = make_state(total_frames=200, loaded_start=20, loaded_end=120)
 
         candidates, _smoothed = _curve(state, 60, direction=-1)
 
-        assert candidates[0] == 20  # loaded_start, farthest from the reference
-        assert candidates[-1] == 50  # and it ends beside it
+        assert candidates[0] == 50  # the reference minus the minimum gap
+        assert candidates[-1] == 20  # and it ends at the far edge
 
-    def test_the_two_directions_are_not_reverses_of_each_other(self, make_state):
+    def test_each_step_away_from_the_reference_is_one_step_along_the_list(self, make_state):
         state = make_state(total_frames=200, loaded_start=20, loaded_end=120)
 
         forward, _f = _curve(state, 60, direction=+1)
         backward, _b = _curve(state, 60, direction=-1)
 
-        assert forward[0] - 60 == 10
-        assert backward[0] - 60 == -40  # not -10, which a mirror image would give
+        assert [c - 60 for c in forward[:3]] == [10, 11, 12]
+        assert [c - 60 for c in backward[:3]] == [-10, -11, -12]
+
+    def test_the_two_windows_hold_the_same_frames_in_opposite_order(self, make_state):
+        state = make_state(total_frames=200, loaded_start=20, loaded_end=120)
+
+        backward, _b = _curve(state, 60, direction=-1)
+
+        assert sorted(backward) == list(range(20, 51))
+
+
+class TestFindingTheRepeatBehindAFrame:
+    """The end-to-end effect of the window's order, on a clip that does loop.
+
+    One texture rolled a pixel at a time with a 60-frame period: neighbouring
+    frames look alike, similarity falls away smoothly, and it comes back exactly
+    at the repeat. Searching backward from frame 180 the nearest repeat is 120.
+    With the backward window running from the far end, the search answered 60 --
+    a whole period too early, and the turning point came back as 12, near the
+    start of the loaded range.
+    """
+
+    PERIOD = 60
+    REF = 180
+
+    @pytest.fixture()
+    def looping_clip(self, make_state):
+        rng = np.random.default_rng(11)
+        texture = rng.integers(0, 256, (64, 64, 3), dtype=np.uint8)
+        state = make_state(total_frames=201, loaded_start=0, loaded_end=200, fps=30.0)
+        state.frames = {
+            i: np.roll(texture, i % self.PERIOD, axis=1) for i in range(201)
+        }
+        state.frame_signatures = {}
+        return state
+
+    def test_the_backward_search_finds_the_nearest_repeat(self, looping_clip):
+        match = best_duplicate_match_index(
+            looping_clip, self.REF, direction=-1,
+            signature_for_index=signature_for_index,
+            structural_similarity_score=structural_similarity_score,
+        )
+
+        assert match == self.REF - self.PERIOD
+
+    def test_the_backward_turning_point_is_near_the_reference_not_the_far_edge(self, looping_clip):
+        turning = best_turning_point_index(
+            looping_clip, self.REF, direction=-1,
+            signature_for_index=signature_for_index,
+            structural_similarity_score=structural_similarity_score,
+        )
+
+        assert turning is not None
+        assert self.REF - self.PERIOD < turning < self.REF

@@ -24,10 +24,14 @@ def candidate_similarity_curve(
     structural_similarity_score: Callable[[np.ndarray, np.ndarray], float],
 ) -> tuple[list[int], np.ndarray] | None:
     min_gap = 10
+    # Both directions run outwards from the reference, so index 0 is always its
+    # nearest candidate. The dip and peak walks below skip a fixed head of this
+    # list and take their baseline from it; when the backward list ran the other
+    # way, that head was the far end of the loaded range instead.
     if direction > 0:
         candidates = list(range(ref_idx + min_gap, state.loaded_end + 1))
     else:
-        candidates = list(range(state.loaded_start, ref_idx - min_gap + 1))
+        candidates = list(range(ref_idx - min_gap, state.loaded_start - 1, -1))
     if not candidates:
         return None
 
