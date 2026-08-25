@@ -5,8 +5,13 @@ blocklist is git-ignored, and these tests must themselves stay publishable.
 """
 from __future__ import annotations
 
+import os
 import subprocess
+import warnings
 from pathlib import Path
+
+import pytest
+from _pytest.outcomes import Failed, Skipped
 
 from tools.sanitize_guard import (
     blocklist_path,
@@ -235,17 +240,56 @@ class TestHookEntryPoint:
         assert self._commit(repo).returncode == 0
 
 
+def _refuse_to_pass_unarmed(blocklist: Path) -> None:
+    """No terms resolved, so nothing was scanned. Say so rather than pass.
+
+    This used to `return`, and the docstring called that deliberate: "so the run
+    stays clean either way". It is the reason the guard is a no-op on the merge
+    queue — the one place a commit is stopped before it lands — while reading as
+    a pass in the log, indistinguishable from a tree that was checked.
+
+    On a machine that carries the overlay, an unresolved blocklist is a broken
+    guard and fails. A public checkout has none and, by the owner's decision, is
+    not to be given one: the terms are private and are not going into GitHub. So
+    there it skips, which puts "the tracked tree was not scanned" in the run
+    summary instead of a silent pass. Enforcement stays where the list is.
+    """
+    unscanned = (
+        f"the tracked tree was NOT scanned: no blocklist terms resolved at {blocklist}"
+    )
+    if os.environ.get("CI"):
+        # A skip alone shows only as a count under `pytest -q`; the warnings
+        # summary is printed without any extra flag, so the reason reaches the
+        # log the merge queue keeps.
+        warnings.warn(f"SANITIZE GUARD UNARMED: {unscanned}", stacklevel=2)
+        pytest.skip(f"{unscanned} — public checkout, nothing to enforce with")
+    pytest.fail(f"{unscanned} — this checkout should carry sanitize/{blocklist.name}")
+
+
+def test_an_unarmed_guard_fails_rather_than_passing_quietly(tmp_path: Path, monkeypatch):
+    monkeypatch.delenv("CI", raising=False)
+
+    with pytest.raises(Failed, match="NOT scanned"):
+        _refuse_to_pass_unarmed(tmp_path / "blocklist.local.txt")
+
+
+def test_an_unarmed_guard_on_a_public_checkout_says_so_in_the_summary(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("CI", "true")
+
+    with pytest.warns(UserWarning, match="SANITIZE GUARD UNARMED"):
+        with pytest.raises(Skipped, match="NOT scanned"):
+            _refuse_to_pass_unarmed(tmp_path / "blocklist.local.txt")
+
+
 def test_no_blocklisted_terms_in_the_tracked_tree():
     """Enforcement: with the real (git-ignored) blocklist present, no tracked
-    file may contain a banned term — reintroducing one fails the suite. A public
-    checkout has no blocklist, so there is nothing to enforce and the check is a
-    no-op (deliberately not a skip, so the run stays clean either way).
+    file may contain a banned term — reintroducing one fails the suite.
     """
     repo = Path(__file__).resolve().parent.parent
     blocklist = blocklist_path(repo)
     terms = load_blocklist(blocklist) if blocklist.exists() else []
     if not terms:
-        return
+        _refuse_to_pass_unarmed(blocklist)
     tracked = subprocess.run(
         ["git", "-C", str(repo), "ls-files"],
         capture_output=True, text=True, check=True,
