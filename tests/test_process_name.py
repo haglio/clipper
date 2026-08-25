@@ -87,10 +87,14 @@ def test_naming_never_takes_a_launch_down():
     """A read-only venv or an antivirus hold must cost the name in the task list
     and nothing else."""
     with patch("app_support.process_identity.ProcessNamer",
-               side_effect=OSError("the venv is read-only")):
+               side_effect=OSError("the venv is read-only")) as refusing:
         _name_this_process()  # must not raise
+
+    assert refusing.called, "it swallowed the failure without reaching the naming"
 
     namer = MagicMock()
     namer.prepare_launcher.side_effect = PermissionError("held open")
     with patch("app_support.process_identity.ProcessNamer", return_value=namer):
         _name_this_process()  # nor here
+
+    namer.prepare_launcher.assert_called_once()

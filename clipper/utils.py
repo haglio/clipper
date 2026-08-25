@@ -6,6 +6,11 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+# The characters Windows will not take in a filename. Named rather than inline
+# so a test can walk the list instead of carrying its own copy of it.
+FORBIDDEN_NAME_CHARS = '<>:"/\\|?*'
+
+
 def parse_timestamp(ts: str) -> float:
     parts = ts.strip().split(":")
     if len(parts) != 3:
@@ -22,11 +27,6 @@ def format_seconds(seconds: float) -> str:
     minutes = int((seconds % 3600) // 60)
     remaining = seconds % 60
     return f"{hours:02d}:{minutes:02d}:{remaining:06.3f}"
-
-
-# The characters Windows will not take in a filename. Named rather than inline
-# so a test can walk the list instead of carrying its own copy of it.
-FORBIDDEN_NAME_CHARS = '<>:"/\\|?*'
 
 
 def sanitize_name(name: str) -> str:
