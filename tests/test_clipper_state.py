@@ -94,10 +94,6 @@ class TestVideoStateDefaults:
         s = make_state()
         assert s.skip_postprocess is False
 
-    def test_skip_postprocess_explicit_true(self, make_state):
-        s = make_state()
-        s.skip_postprocess = True
-        assert s.skip_postprocess is True
 
 
 class TestVideoStateProperties:

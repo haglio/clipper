@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
+from unittest.mock import patch
 
 import cv2
 import numpy as np
@@ -21,6 +23,63 @@ from clipper.clip_postprocess_transforms import (
 def _make_textured_frame(w: int = 128, h: int = 128, seed: int = 42) -> np.ndarray:
     rng = np.random.RandomState(seed)
     return rng.randint(0, 256, (h, w, 3), dtype=np.uint8)
+
+
+# The lookup walks the filesystem, so it runs once here rather than four times
+# during collection, inside four decorators.
+_RIFE_EXE = _find_rife_exe()
+_NO_RIFE = pytest.mark.skipif(_RIFE_EXE is None, reason="RIFE binary not available")
+
+_VENDORED = ("tools", "rife-ncnn-vulkan-20221029-windows", "rife-ncnn-vulkan.exe")
+
+
+def _vendored_exe(root: Path) -> Path:
+    exe = root.joinpath(*_VENDORED)
+    exe.parent.mkdir(parents=True, exist_ok=True)
+    exe.write_bytes(b"")
+    return exe
+
+
+class TestFindRifeExe:
+    """Whether this returns a path gates four tests and the whole seam path.
+
+    Its only unconditional test used to be `result is None or isinstance(result,
+    str)`, which the return annotation already guarantees -- so a helper that
+    returned a wrong-but-stringy path was indistinguishable from a working one.
+    """
+
+    def test_prefers_the_copy_vendored_into_the_checkout(self, tmp_path: Path):
+        exe = _vendored_exe(tmp_path)
+
+        with patch("clipper.clip_postprocess_transforms.shutil.which", return_value=None):
+            assert _find_rife_exe(str(tmp_path)) == str(exe)
+
+    def test_takes_the_vendored_copy_over_one_on_the_path(self, tmp_path: Path):
+        exe = _vendored_exe(tmp_path)
+        elsewhere = tmp_path / "on_path" / "rife-ncnn-vulkan"
+        elsewhere.parent.mkdir()
+        elsewhere.write_bytes(b"")
+
+        with patch("clipper.clip_postprocess_transforms.shutil.which", return_value=str(elsewhere)):
+            assert _find_rife_exe(str(tmp_path)) == str(exe)
+
+    def test_falls_back_to_the_one_on_the_path(self, tmp_path: Path):
+        elsewhere = tmp_path / "on_path" / "rife-ncnn-vulkan"
+        elsewhere.parent.mkdir()
+        elsewhere.write_bytes(b"")
+
+        with patch("clipper.clip_postprocess_transforms.shutil.which", return_value=str(elsewhere)):
+            assert _find_rife_exe(str(tmp_path)) == str(elsewhere)
+
+    def test_is_none_when_the_checkout_has_no_vendored_copy(self, tmp_path: Path):
+        with patch("clipper.clip_postprocess_transforms.shutil.which", return_value=None):
+            assert _find_rife_exe(str(tmp_path)) is None
+
+    def test_a_directory_where_the_executable_should_be_is_not_an_executable(self, tmp_path: Path):
+        tmp_path.joinpath(*_VENDORED).mkdir(parents=True)
+
+        with patch("clipper.clip_postprocess_transforms.shutil.which", return_value=None):
+            assert _find_rife_exe(str(tmp_path)) is None
 
 
 class TestDecomposeComposeSimilarity:
@@ -137,16 +196,12 @@ class TestBuildRegisteredSeam:
 
 
 class TestRifeBridge:
-    def test_find_rife_exe_returns_str_or_none(self):
-        result = _find_rife_exe()
-        assert result is None or isinstance(result, str)
-
     def test_returns_none_with_zero_frames(self):
         frame = _make_textured_frame(64, 64)
         result = build_rife_bridge(frame, frame, 0)
         assert result is None
 
-    @pytest.mark.skipif(_find_rife_exe() is None, reason="RIFE binary not available")
+    @_NO_RIFE
     def test_produces_correct_count(self):
         frame_a = _make_textured_frame(128, 128, seed=1)
         frame_b = _make_textured_frame(128, 128, seed=2)
@@ -157,7 +212,7 @@ class TestRifeBridge:
             assert f.shape == frame_a.shape
             assert f.dtype == np.uint8
 
-    @pytest.mark.skipif(_find_rife_exe() is None, reason="RIFE binary not available")
+    @_NO_RIFE
     def test_bridge_frames_differ_from_endpoints(self):
         frame_a = _make_textured_frame(128, 128, seed=10)
         frame_b = _make_textured_frame(128, 128, seed=20)
@@ -178,14 +233,14 @@ class TestRifeSeam:
         frames = [_make_textured_frame(64, 64, seed=i) for i in range(3)]
         assert build_rife_seam(frames, 1) is None
 
-    @pytest.mark.skipif(_find_rife_exe() is None, reason="RIFE binary not available")
+    @_NO_RIFE
     def test_preserves_frame_count(self):
         frames = [_make_textured_frame(128, 128, seed=i) for i in range(10)]
         result = build_rife_seam(frames, 3)
         assert result is not None
         assert len(result) == len(frames)
 
-    @pytest.mark.skipif(_find_rife_exe() is None, reason="RIFE binary not available")
+    @_NO_RIFE
     def test_modifies_frames_near_seam(self):
         frames = [_make_textured_frame(128, 128, seed=i) for i in range(10)]
         result = build_rife_seam(frames, 3)

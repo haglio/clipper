@@ -192,11 +192,16 @@ def build_registered_seam(
     return out, True
 
 
-def _find_rife_exe() -> str | None:
-    """Locate the rife-ncnn-vulkan executable relative to the project root."""
-    # Walk up from this file to find the project root (contains tools/)
-    here = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(here)
+def _find_rife_exe(project_root: str | None = None) -> str | None:
+    """Locate the rife-ncnn-vulkan executable relative to the project root.
+
+    ``project_root`` defaults to the checkout this module lives in; a caller
+    passes one so the lookup can be exercised against a directory it controls.
+    """
+    if project_root is None:
+        # Walk up from this file to find the project root (contains tools/)
+        here = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(here)
     candidates = [
         os.path.join(project_root, "tools", "rife-ncnn-vulkan-20221029-windows", "rife-ncnn-vulkan.exe"),
         shutil.which("rife-ncnn-vulkan"),

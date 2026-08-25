@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-
 import pytest
+from PyQt6.QtCore import QEventLoop, QTimer
 from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.playback_timer import PlaybackTimer
@@ -27,9 +27,24 @@ class TestStartStop:
 
 
 class TestSignal:
-    def test_tick_signal_exists(self, timer):
-        # Verify the signal can be connected
-        results = []
-        timer.tick.connect(lambda: results.append(1))
-        # Don't wait for real ticks — just verify wiring
-        timer.tick.disconnect()
+    def test_the_tick_fires_once_the_timer_is_started(self, timer):
+        """The whole animation loop hangs off this signal.
+
+        The old test connected a slot, disconnected it and asserted nothing, so
+        a timer that never fired -- or one whose interval had grown to five
+        seconds -- passed.
+        """
+        ticks = []
+        timer.tick.connect(lambda: ticks.append(1))
+
+        loop = QEventLoop()
+        timer.tick.connect(loop.quit)
+        QTimer.singleShot(2000, loop.quit)  # a bound, not a wait
+        timer.start()
+        loop.exec()
+        timer.stop()
+
+        assert ticks
+
+    def test_it_ticks_fast_enough_for_smooth_playback(self, timer):
+        assert 0 < timer.interval_ms <= 20
