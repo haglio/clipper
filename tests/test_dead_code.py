@@ -58,7 +58,6 @@ _EXPORT_MUTATIONS: set[tuple[str, str]] = {
 _STATE_MUTATIONS: set[tuple[str, str]] = {
     ("clipper/frame_store.py", "render_rev"),
     ("clipper/loop_suggestions.py", "render_rev"),
-    ("clipper/navigation.py", "render_rev"),
     ("clipper/playback.py", "render_rev"),
     ("clipper/gui/main_window.py", "render_rev"),
     ("clipper/gui/main_window.py", "_export_worker"),
