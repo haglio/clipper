@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from pathlib import PureWindowsPath
+from unittest.mock import patch
 
 import pytest
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QFileDialog
 
 from clipper.content import load_content
 from clipper.gui import launcher_dialog
@@ -17,26 +18,39 @@ def dialog():
     return LauncherDialog()
 
 
+def _choose_file(dialog, path: str) -> None:
+    """Click "Clip whole vid..." and have the file chooser answer with `path`."""
+    with patch.object(QFileDialog, "getOpenFileName", return_value=(path, "")):
+        dialog.clip_whole_btn.click()
+
+
 class TestClipWholeButton:
     def test_clip_whole_button_exists(self, dialog):
         assert hasattr(dialog, "clip_whole_btn")
         assert dialog.clip_whole_btn.text() == "Clip whole vid..."
 
-    def test_build_result_clip_whole_mode(self, dialog):
-        dialog._clip_whole_file = "/path/to/loop.mp4"
-        result = dialog.build_result()
-        assert result == {
+    def test_picking_a_whole_video_returns_it_in_clip_whole_mode(self, dialog):
+        _choose_file(dialog, r"D:\example-suite\videos\videos\seaside walk.mp4")
+
+        assert dialog.build_result() == {
             "ok": True,
             "mode": "clip_whole",
-            "video_file": "/path/to/loop.mp4",
+            "video_file": r"D:\example-suite\videos\videos\seaside walk.mp4",
         }
 
-    def test_build_result_prefers_clip_whole_over_radio(self, dialog):
-        """When _clip_whole_file is set, mode is clip_whole regardless of radio."""
+    def test_a_chosen_whole_video_wins_over_the_selected_radio(self, dialog):
         dialog.new_radio.setChecked(True)
-        dialog._clip_whole_file = "/path/to/loop.mp4"
-        result = dialog.build_result()
-        assert result["mode"] == "clip_whole"
+
+        _choose_file(dialog, r"D:\example-suite\videos\videos\seaside walk.mp4")
+
+        assert dialog.build_result()["mode"] == "clip_whole"
+
+    def test_cancelling_the_chooser_leaves_the_dialog_in_its_normal_mode(self, dialog):
+        dialog.load_radio.setChecked(True)
+
+        _choose_file(dialog, "")
+
+        assert dialog.build_result()["mode"] == "load"
 
 
 class TestResult:

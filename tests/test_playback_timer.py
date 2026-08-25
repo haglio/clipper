@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 from PyQt6.QtCore import QEventLoop, QTimer
-from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.playback_timer import PlaybackTimer
 
@@ -14,37 +13,47 @@ def timer():
     return PlaybackTimer()
 
 
-class TestStartStop:
-    def test_start(self, timer):
+def _ticked_within(timer: PlaybackTimer, budget_ms: int) -> bool:
+    """Whether a tick arrives inside the budget; returns as soon as one does."""
+    seen = []
+    loop = QEventLoop()
+
+    def on_tick():
+        seen.append(1)
+        loop.quit()
+
+    timer.tick.connect(on_tick)
+    QTimer.singleShot(budget_ms, loop.quit)
+    loop.exec()
+    timer.tick.disconnect(on_tick)
+    return bool(seen)
+
+
+class TestTicking:
+    """The whole animation loop hangs off this signal.
+
+    Its old test connected a slot, disconnected it and asserted nothing, and
+    start/stop were read off the private QTimer -- so a timer that never fired,
+    or whose interval had grown to five seconds, passed either way.
+    """
+
+    def test_a_new_timer_does_not_tick(self, timer):
+        assert _ticked_within(timer, 100) is False
+
+    def test_it_ticks_once_started(self, timer):
         timer.start()
-        assert timer._timer.isActive()
+        try:
+            assert _ticked_within(timer, 2000) is True
+        finally:
+            timer.stop()
+
+    def test_it_stops_ticking_when_stopped(self, timer):
+        timer.start()
+        assert _ticked_within(timer, 2000) is True
+
         timer.stop()
 
-    def test_stop(self, timer):
-        timer.start()
-        timer.stop()
-        assert not timer._timer.isActive()
-
-
-class TestSignal:
-    def test_the_tick_fires_once_the_timer_is_started(self, timer):
-        """The whole animation loop hangs off this signal.
-
-        The old test connected a slot, disconnected it and asserted nothing, so
-        a timer that never fired -- or one whose interval had grown to five
-        seconds -- passed.
-        """
-        ticks = []
-        timer.tick.connect(lambda: ticks.append(1))
-
-        loop = QEventLoop()
-        timer.tick.connect(loop.quit)
-        QTimer.singleShot(2000, loop.quit)  # a bound, not a wait
-        timer.start()
-        loop.exec()
-        timer.stop()
-
-        assert ticks
+        assert _ticked_within(timer, 100) is False
 
     def test_it_ticks_fast_enough_for_smooth_playback(self, timer):
         assert 0 < timer.interval_ms <= 20

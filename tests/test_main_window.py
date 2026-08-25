@@ -9,7 +9,7 @@ from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QApplication
 
-from clipper.gui.main_window import ClipperMainWindow
+from clipper.gui.main_window import ClipperMainWindow, _WrapRow
 from clipper.state import ExportJob
 
 
@@ -314,6 +314,19 @@ class TestKeyDispatch:
         assert not window.isVisible()
 
 
+def _brace_ink(row, rendered) -> list[int]:
+    """The x columns the wrap brace paints, read off the row it is drawn on."""
+    image = rendered(row)
+    background = image.pixelColor(row.width() - 2, 1).name()
+    mid = row.height() // 2
+    return [x for x in range(row.width()) if image.pixelColor(x, mid).name() != background]
+
+
+def _brace_width(window, rendered) -> int:
+    ink = _brace_ink(window.findChild(_WrapRow), rendered)
+    return (max(ink) - min(ink)) if ink else 0
+
+
 @pytest.fixture()
 def shown_window(mock_state):
     """Window that has been shown so geometry is computed."""
@@ -438,7 +451,7 @@ class TestDynamicPositioning:
 
         assert blue_style != yellow_style
 
-    def test_wrap_brace_spans_loaded_range_in_blue_mode(self, shown_window, mock_state):
+    def test_wrap_brace_spans_loaded_range_in_blue_mode(self, shown_window, mock_state, rendered):
         w = shown_window
         mock_state.wrap_mode = "blue"
         mock_state.loaded_start = 0
@@ -448,9 +461,9 @@ class TestDynamicPositioning:
         w.update_button_positions()
 
         # Brace should span full timeline width (loaded range)
-        assert w._wrap_row._x2 - w._wrap_row._x1 > w.timeline.width() * 0.8
+        assert _brace_width(w, rendered) > w.timeline.width() * 0.8
 
-    def test_wrap_brace_narrows_to_active_range_in_yellow_mode(self, shown_window, mock_state):
+    def test_wrap_brace_narrows_to_active_range_in_yellow_mode(self, shown_window, mock_state, rendered):
         w = shown_window
         mock_state.wrap_mode = "yellow"
         mock_state.active_start = 40
@@ -463,5 +476,26 @@ class TestDynamicPositioning:
         w.update_button_positions()
 
         # Brace should be much narrower than timeline (only 20% of loaded range)
-        brace_width = w._wrap_row._x2 - w._wrap_row._x1
+        brace_width = _brace_width(w, rendered)
         assert brace_width < w.timeline.width() * 0.4
+
+
+class TestWrapBrace:
+    """The brace under the timeline showing what the cursor wraps within."""
+
+    def test_it_draws_a_line_across_exactly_the_span_it_was_given(self, rendered):
+        row = _WrapRow()
+        row.resize(600, 30)
+
+        row.set_brace(100, 400)
+
+        ink = _brace_ink(row, rendered)
+        assert (min(ink), max(ink)) == (100, 400)
+
+    def test_an_empty_span_draws_nothing(self, rendered):
+        row = _WrapRow()
+        row.resize(600, 30)
+
+        row.set_brace(300, 300)
+
+        assert _brace_ink(row, rendered) == []
