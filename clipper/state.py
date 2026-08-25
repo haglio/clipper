@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -75,6 +76,15 @@ class VideoState:
     suggestion_anchor_in: int | None = None
     suggestion_anchor_out: int | None = None
     frame_signatures: dict[int, np.ndarray] = field(default_factory=dict)
+    # The disk write mark_dirty triggers, held as a collaborator so a caller
+    # that only wants the flag can supply one that writes nothing.  Editing
+    # tests used to reach that by patching mark_dirty itself, which also
+    # patched away the flag and the render bump the edit operations exist to
+    # set -- so the call could be deleted from three of them with the whole
+    # suite green.
+    persist_session: Callable[[VideoState], None] = field(
+        default=persist_session_state, repr=False
+    )
 
     @property
     def active_count(self) -> int:
@@ -105,4 +115,4 @@ class VideoState:
         return build_current_payload(self)
 
     def autosave_session(self) -> None:
-        persist_session_state(self)
+        self.persist_session(self)

@@ -45,6 +45,20 @@ from clipper.state import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+class _FakeAutosave:
+    """Stands in for the session write ``mark_dirty`` triggers.
+
+    Counting the calls is what ``patch.object(s, "mark_dirty")`` used to be
+    reached for, minus the part that hid the flag itself.
+    """
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def __call__(self, state: VideoState) -> None:
+        self.calls += 1
+
+
 def _make_state(
     *,
     total_frames: int = 100,
@@ -92,6 +106,7 @@ def _make_state(
         wrap_mode=wrap_mode,
         initial_active_start=active_start if initial_active_start is None else initial_active_start,
         initial_active_end=active_end if initial_active_end is None else initial_active_end,
+        persist_session=_FakeAutosave(),
     )
 
 
@@ -237,27 +252,22 @@ class TestCurrentPayload:
 class TestCycleLoopMode:
     def test_cycles_to_next_mode(self):
         s = _make_state(loop_mode="base-tip-base")
-        with patch.object(s, "mark_dirty"):
-            cycle_loop_mode(s)
+        cycle_loop_mode(s)
         assert s.loop_mode == "tip-base-tip"
 
 
 class TestToggleWrapMode:
     def test_switching_to_yellow_clamps_current_into_active_range(self):
         s = _make_state(wrap_mode="blue", active_start=10, active_end=20, current=25)
-        with patch.object(s, "mark_dirty") as mark_dirty:
-            toggle_wrap_mode(s)
+        toggle_wrap_mode(s)
         assert s.wrap_mode == "yellow"
         assert s.current == 20
-        mark_dirty.assert_called_once()
 
     def test_switching_back_to_blue_preserves_current(self):
         s = _make_state(wrap_mode="yellow", active_start=10, active_end=20, current=15)
-        with patch.object(s, "mark_dirty") as mark_dirty:
-            toggle_wrap_mode(s)
+        toggle_wrap_mode(s)
         assert s.wrap_mode == "blue"
         assert s.current == 15
-        mark_dirty.assert_called_once()
 
 
 class TestMoveCurrent:
@@ -365,8 +375,7 @@ class TestContractLeft:
         # Need enough gap between loaded_start and active_start
         s.loaded_start = 10
         s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(10, 100)}
-        with patch.object(s, "mark_dirty"):
-            contract_left(s)
+        contract_left(s)
         assert s.loaded_start == 15
 
     def test_prunes_frames_and_signatures_before_new_loaded_start(self):
@@ -374,8 +383,7 @@ class TestContractLeft:
         s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(10, 31)}
         s.frame_signatures = {i: np.zeros((2, 2), dtype=np.float32) for i in range(10, 31)}
 
-        with patch.object(s, "mark_dirty"):
-            contract_left(s)
+        contract_left(s)
 
         assert s.loaded_start == 15
         assert all(idx >= 15 for idx in s.frames)
@@ -385,8 +393,7 @@ class TestContractLeft:
         s = _make_state(loaded_start=0, active_start=3, base_step=5)
         s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(0, 100)}
         original = s.loaded_start
-        with patch.object(s, "mark_dirty"):
-            contract_left(s)
+        contract_left(s)
         assert s.loaded_start == original
 
     def test_current_clamped_upward(self):
@@ -395,16 +402,14 @@ class TestContractLeft:
         s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(0, 100)}
         # Make gap > base_step
         s.active_start = 20
-        with patch.object(s, "mark_dirty"):
-            contract_left(s)
+        contract_left(s)
         assert s.current >= s.loaded_start
 
 
 class TestContractRight:
     def test_shrinks_loaded_end(self):
         s = _make_state(loaded_end=99, active_end=70, base_step=5)
-        with patch.object(s, "mark_dirty"):
-            contract_right(s)
+        contract_right(s)
         assert s.loaded_end == 94
 
     def test_prunes_frames_and_signatures_after_new_loaded_end(self):
@@ -412,8 +417,7 @@ class TestContractRight:
         s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(0, 31)}
         s.frame_signatures = {i: np.zeros((2, 2), dtype=np.float32) for i in range(0, 31)}
 
-        with patch.object(s, "mark_dirty"):
-            contract_right(s)
+        contract_right(s)
 
         assert s.loaded_end == 25
         assert all(idx <= 25 for idx in s.frames)
@@ -422,8 +426,7 @@ class TestContractRight:
     def test_does_nothing_when_gap_too_small(self):
         s = _make_state(loaded_end=99, active_end=97, base_step=5)
         original = s.loaded_end
-        with patch.object(s, "mark_dirty"):
-            contract_right(s)
+        contract_right(s)
         assert s.loaded_end == original
 
 
@@ -431,18 +434,99 @@ class TestContractRight:
 # set_mark_in / set_mark_out
 # ---------------------------------------------------------------------------
 
+def _suggest_in(idx: int):
+    def prepare(state: VideoState) -> None:
+        state.suggested_in = idx
+    return prepare
+
+
+def _suggest_out(idx: int):
+    def prepare(state: VideoState) -> None:
+        state.suggested_out = idx
+    return prepare
+
+
+def _no_prep(state: VideoState) -> None:
+    pass
+
+
+def _shift(direction: int):
+    def act(state: VideoState) -> None:
+        shift_active_range(state, direction)
+    return act
+
+
+# (label, _make_state kwargs, prepare, act) for every edit that changes the
+# clip the user is cutting.  Each must set the dirty flag and autosave.
+_EDITS_THAT_CHANGE_THE_CLIP = [
+    ("set_mark_in", {"active_start": 5, "active_end": 50, "current": 20}, _no_prep, set_mark_in),
+    ("set_mark_out", {"active_start": 5, "active_end": 50, "current": 30}, _no_prep, set_mark_out),
+    ("accept_suggested_in", {"active_start": 10, "active_end": 30}, _suggest_in(12), accept_suggested_in),
+    ("accept_suggested_out", {"active_start": 10, "active_end": 30}, _suggest_out(28), accept_suggested_out),
+    ("shift_active_range", {"active_start": 10, "active_end": 20, "current": 14}, _no_prep, _shift(1)),
+    ("cycle_loop_mode", {"loop_mode": "base-tip-base"}, _no_prep, cycle_loop_mode),
+    ("toggle_wrap_mode", {"wrap_mode": "blue", "active_start": 10, "active_end": 20, "current": 25}, _no_prep, toggle_wrap_mode),
+    ("contract_left", {"loaded_start": 10, "active_start": 20, "base_step": 5}, _no_prep, contract_left),
+    ("contract_right", {"loaded_end": 99, "active_end": 70, "base_step": 5}, _no_prep, contract_right),
+]
+
+# The same operations asked to do something they refuse: nothing changes, so
+# nothing is saved and the exit prompt stays away.
+_EDITS_THAT_REFUSE = [
+    ("set_mark_in past active_end", {"active_start": 5, "active_end": 50, "current": 55}, _no_prep, set_mark_in),
+    ("set_mark_out before active_start", {"active_start": 20, "active_end": 50, "current": 10}, _no_prep, set_mark_out),
+    ("accept_suggested_in at active_end", {"active_start": 10, "active_end": 30}, _suggest_in(30), accept_suggested_in),
+    ("accept_suggested_out at active_start", {"active_start": 10, "active_end": 30}, _suggest_out(10), accept_suggested_out),
+    ("shift_active_range out of bounds", {"active_start": 2, "active_end": 12, "current": 5}, _no_prep, _shift(-1)),
+    ("contract_left with no room", {"loaded_start": 0, "active_start": 3, "base_step": 5}, _no_prep, contract_left),
+    ("contract_right with no room", {"loaded_end": 99, "active_end": 97, "base_step": 5}, _no_prep, contract_right),
+]
+
+
+class TestEditingMarksTheSessionDirty:
+    """The flag that drives the exit prompt, and the autosave it triggers.
+
+    Both used to be invisible: every editing test patched ``mark_dirty`` away
+    to keep the session file off disk, so deleting the call from an edit
+    operation left the whole suite green while in the app the user's marks
+    stopped being saved and the exit dialog stopped appearing.
+    """
+
+    @pytest.mark.parametrize(
+        "kwargs, prepare, act",
+        [pytest.param(k, p, a, id=label) for label, k, p, a in _EDITS_THAT_CHANGE_THE_CLIP],
+    )
+    def test_an_edit_marks_the_session_dirty_and_saves_it(self, kwargs, prepare, act):
+        s = _make_state(**kwargs)
+        prepare(s)
+        before = s.render_rev
+        act(s)
+        assert s.dirty is True
+        assert s.render_rev > before
+        assert s.persist_session.calls == 1
+
+    @pytest.mark.parametrize(
+        "kwargs, prepare, act",
+        [pytest.param(k, p, a, id=label) for label, k, p, a in _EDITS_THAT_REFUSE],
+    )
+    def test_a_refused_edit_leaves_the_session_clean(self, kwargs, prepare, act):
+        s = _make_state(**kwargs)
+        prepare(s)
+        act(s)
+        assert s.dirty is False
+        assert s.persist_session.calls == 0
+
+
 class TestSetMarkIn:
     def test_advances_active_start_to_current(self):
         s = _make_state(active_start=5, active_end=50, current=20)
-        with patch.object(s, "mark_dirty"), patch.object(s, "reset_loop_anchor"):
-            set_mark_in(s)
+        set_mark_in(s)
         assert s.active_start == 20
 
     def test_does_not_advance_past_active_end(self):
         s = _make_state(active_start=5, active_end=50, current=55)
         original = s.active_start
-        with patch.object(s, "mark_dirty"), patch.object(s, "reset_loop_anchor"):
-            set_mark_in(s)
+        set_mark_in(s)
         # current > active_end, condition `current < active_end` is false → no change
         assert s.active_start == original
 
@@ -450,15 +534,13 @@ class TestSetMarkIn:
 class TestSetMarkOut:
     def test_retreats_active_end_to_current(self):
         s = _make_state(active_start=5, active_end=50, current=30)
-        with patch.object(s, "mark_dirty"), patch.object(s, "reset_loop_anchor"):
-            set_mark_out(s)
+        set_mark_out(s)
         assert s.active_end == 30
 
     def test_does_not_retreat_before_active_start(self):
         s = _make_state(active_start=20, active_end=50, current=10)
         original = s.active_end
-        with patch.object(s, "mark_dirty"), patch.object(s, "reset_loop_anchor"):
-            set_mark_out(s)
+        set_mark_out(s)
         assert s.active_end == original
 
 
@@ -466,63 +548,57 @@ class TestAcceptSuggestedMarks:
     def test_accept_suggested_in_updates_active_start(self):
         s = _make_state(active_start=10, active_end=30)
         s.suggested_in = 12
-        with patch.object(s, "mark_dirty") as mark_dirty, patch.object(s, "reset_loop_anchor") as reset_anchor:
-            with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
-                accept_suggested_in(s)
+        s.loop_anchor = 0.0
+        with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
+            accept_suggested_in(s)
         assert s.active_start == 12
         assert s.suggestion_anchor_in == 12
-        reset_anchor.assert_called_once()
+        assert s.loop_anchor > 0.0
         refresh_suggestions.assert_called_once_with(s)
-        mark_dirty.assert_called_once()
 
     def test_accept_suggested_out_updates_active_end(self):
         s = _make_state(active_start=10, active_end=30)
         s.suggested_out = 28
-        with patch.object(s, "mark_dirty") as mark_dirty, patch.object(s, "reset_loop_anchor") as reset_anchor:
-            with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
-                accept_suggested_out(s)
+        s.loop_anchor = 0.0
+        with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
+            accept_suggested_out(s)
         assert s.active_end == 28
         assert s.suggestion_anchor_out == 28
-        reset_anchor.assert_called_once()
+        assert s.loop_anchor > 0.0
         refresh_suggestions.assert_called_once_with(s)
-        mark_dirty.assert_called_once()
 
     def test_accept_suggested_in_ignores_invalid_candidate(self):
         s = _make_state(active_start=10, active_end=30)
         s.suggested_in = 30
-        with patch.object(s, "mark_dirty") as mark_dirty, patch.object(s, "reset_loop_anchor") as reset_anchor:
-            with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
-                accept_suggested_in(s)
+        s.loop_anchor = 0.0
+        with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
+            accept_suggested_in(s)
         assert s.active_start == 10
-        reset_anchor.assert_not_called()
+        assert s.loop_anchor == 0.0
         refresh_suggestions.assert_not_called()
-        mark_dirty.assert_not_called()
 
     def test_accept_suggested_out_ignores_invalid_candidate(self):
         s = _make_state(active_start=10, active_end=30)
         s.suggested_out = 10
-        with patch.object(s, "mark_dirty") as mark_dirty, patch.object(s, "reset_loop_anchor") as reset_anchor:
-            with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
-                accept_suggested_out(s)
+        s.loop_anchor = 0.0
+        with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
+            accept_suggested_out(s)
         assert s.active_end == 30
-        reset_anchor.assert_not_called()
+        assert s.loop_anchor == 0.0
         refresh_suggestions.assert_not_called()
-        mark_dirty.assert_not_called()
 
 
 class TestShiftActiveRange:
     def test_shift_right_reuses_old_out_as_new_in(self):
         s = _make_state(active_start=10, active_end=20, current=14)
-        with patch.object(s, "mark_dirty"), patch.object(s, "reset_loop_anchor"):
-            shift_active_range(s, 1)
+        shift_active_range(s, 1)
         assert s.active_start == 20
         assert s.active_end == 30
         assert s.current == 24
 
     def test_shift_left_reuses_old_in_as_new_out(self):
         s = _make_state(active_start=20, active_end=30, current=26)
-        with patch.object(s, "mark_dirty"), patch.object(s, "reset_loop_anchor"):
-            shift_active_range(s, -1)
+        shift_active_range(s, -1)
         assert s.active_start == 10
         assert s.active_end == 20
         assert s.current == 16
@@ -536,8 +612,7 @@ class TestShiftActiveRange:
 
         with patch("clipper.editing.ensure_loaded", side_effect=fake_ensure_loaded):
             with patch("clipper.editing.update_loop_suggestions"):
-                with patch.object(s, "mark_dirty"), patch.object(s, "reset_loop_anchor"):
-                    shift_active_range(s, 1)
+                shift_active_range(s, 1)
         assert s.loaded_end == 35
         assert s.active_start == 20
         assert s.active_end == 30
@@ -551,8 +626,7 @@ class TestShiftActiveRange:
 
         with patch("clipper.editing.ensure_loaded", side_effect=fake_ensure_loaded):
             with patch("clipper.editing.update_loop_suggestions"):
-                with patch.object(s, "mark_dirty"), patch.object(s, "reset_loop_anchor"):
-                    shift_active_range(s, -1)
+                shift_active_range(s, -1)
         assert s.loaded_start == 5
         assert s.active_start == 10
         assert s.active_end == 20
@@ -560,27 +634,32 @@ class TestShiftActiveRange:
     def test_shift_right_preserves_existing_loaded_end_when_buffer_already_exists(self):
         s = _make_state(loaded_start=0, loaded_end=40, active_start=10, active_end=20, current=14, base_step=5)
         with patch("clipper.editing.update_loop_suggestions"):
-            with patch.object(s, "mark_dirty"), patch.object(s, "reset_loop_anchor"):
-                shift_active_range(s, 1)
+            shift_active_range(s, 1)
         assert s.loaded_end == 40
         assert s.active_end == 30
 
     def test_shift_left_preserves_existing_loaded_start_when_buffer_already_exists(self):
         s = _make_state(loaded_start=0, loaded_end=40, active_start=20, active_end=30, current=24, base_step=5)
         with patch("clipper.editing.update_loop_suggestions"):
-            with patch.object(s, "mark_dirty"), patch.object(s, "reset_loop_anchor"):
-                shift_active_range(s, -1)
+            shift_active_range(s, -1)
         assert s.loaded_start == 0
         assert s.active_start == 10
+
+    def test_shift_pulls_the_cursor_back_inside_the_loaded_range(self):
+        """The cursor moves with the range and can overshoot what is loaded."""
+        s = _make_state(total_frames=41, loaded_start=0, loaded_end=40,
+                        active_start=0, active_end=20, current=39)
+        shift_active_range(s, 1)
+        assert (s.active_start, s.active_end) == (20, 40)
+        assert s.current == 40
 
     def test_shift_does_nothing_if_it_would_leave_video_bounds(self):
         s = _make_state(active_start=2, active_end=12, current=5)
         original = (s.active_start, s.active_end, s.current)
-        with patch.object(s, "mark_dirty") as mark_dirty, patch.object(s, "reset_loop_anchor") as reset_anchor:
-            shift_active_range(s, -1)
+        s.loop_anchor = 0.0
+        shift_active_range(s, -1)
         assert (s.active_start, s.active_end, s.current) == original
-        mark_dirty.assert_not_called()
-        reset_anchor.assert_not_called()
+        assert s.loop_anchor == 0.0
 
 
 class TestLoopSuggestions:
