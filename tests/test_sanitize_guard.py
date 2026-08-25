@@ -5,13 +5,12 @@ blocklist is git-ignored, and these tests must themselves stay publishable.
 """
 from __future__ import annotations
 
-import os
 import subprocess
 import warnings
 from pathlib import Path
 
 import pytest
-from _pytest.outcomes import Failed, Skipped
+from _pytest.outcomes import Skipped
 
 from tools.sanitize_guard import (
     blocklist_path,
@@ -240,45 +239,39 @@ class TestHookEntryPoint:
         assert self._commit(repo).returncode == 0
 
 
-def _refuse_to_pass_unarmed(blocklist: Path) -> None:
-    """No terms resolved, so nothing was scanned. Say so rather than pass.
+def _say_the_tree_was_not_scanned(blocklist: Path) -> None:
+    """No terms resolved, so nothing was scanned. Report that, do not pass.
 
-    This used to `return`, and the docstring called that deliberate: "so the run
-    stays clean either way". It is the reason the guard is a no-op on the merge
-    queue — the one place a commit is stopped before it lands — while reading as
-    a pass in the log, indistinguishable from a tree that was checked.
+    This used to `return`, and the docstring called it deliberate — "so the run
+    stays clean either way". That is what made the check a silent no-op on the
+    merge queue: CI checks out the public repository, which by design carries no
+    blocklist, so the one place a commit is stopped before it lands scanned
+    nothing and logged a pass indistinguishable from a scanned tree. The owner
+    ruled out the alternative remedy (putting the private terms into GitHub as a
+    secret), so CI cannot enforce this and the log must say so.
 
-    On a machine that carries the overlay, an unresolved blocklist is a broken
-    guard and fails. A public checkout has none and, by the owner's decision, is
-    not to be given one: the terms are private and are not going into GitHub. So
-    there it skips, which puts "the tracked tree was not scanned" in the run
-    summary instead of a silent pass. Enforcement stays where the list is.
+    It still must not take a run down: a public clone and a source archive
+    legitimately arrive without the overlay. So it warns and skips — the exit
+    code is unchanged, the summary says "1 skipped" rather than "1 passed", and
+    the reason rides in the warnings summary, which `pytest -q` prints without
+    the `-rs` the merge gate does not pass. Enforcement lives where the
+    blocklist lives.
+
+    Deliberately identical in shape to `app_support.sanitize.test_tracked_tree`,
+    the shipped check this file is to be replaced by (backlog item 44), so
+    adopting the plugin changes nothing about what a run reports.
     """
     unscanned = (
         f"the tracked tree was NOT scanned: no blocklist terms resolved at {blocklist}"
     )
-    if os.environ.get("CI"):
-        # A skip alone shows only as a count under `pytest -q`; the warnings
-        # summary is printed without any extra flag, so the reason reaches the
-        # log the merge queue keeps.
-        warnings.warn(f"SANITIZE GUARD UNARMED: {unscanned}", stacklevel=2)
-        pytest.skip(f"{unscanned} — public checkout, nothing to enforce with")
-    pytest.fail(f"{unscanned} — this checkout should carry sanitize/{blocklist.name}")
+    warnings.warn(f"SANITIZE GUARD UNARMED: {unscanned}", stacklevel=2)
+    pytest.skip(unscanned)
 
 
-def test_an_unarmed_guard_fails_rather_than_passing_quietly(tmp_path: Path, monkeypatch):
-    monkeypatch.delenv("CI", raising=False)
-
-    with pytest.raises(Failed, match="NOT scanned"):
-        _refuse_to_pass_unarmed(tmp_path / "blocklist.local.txt")
-
-
-def test_an_unarmed_guard_on_a_public_checkout_says_so_in_the_summary(tmp_path: Path, monkeypatch):
-    monkeypatch.setenv("CI", "true")
-
+def test_an_unarmed_guard_says_so_rather_than_passing_quietly(tmp_path: Path):
     with pytest.warns(UserWarning, match="SANITIZE GUARD UNARMED"):
         with pytest.raises(Skipped, match="NOT scanned"):
-            _refuse_to_pass_unarmed(tmp_path / "blocklist.local.txt")
+            _say_the_tree_was_not_scanned(tmp_path / "blocklist.local.txt")
 
 
 def test_no_blocklisted_terms_in_the_tracked_tree():
@@ -289,7 +282,7 @@ def test_no_blocklisted_terms_in_the_tracked_tree():
     blocklist = blocklist_path(repo)
     terms = load_blocklist(blocklist) if blocklist.exists() else []
     if not terms:
-        _refuse_to_pass_unarmed(blocklist)
+        _say_the_tree_was_not_scanned(blocklist)
     tracked = subprocess.run(
         ["git", "-C", str(repo), "ls-files"],
         capture_output=True, text=True, check=True,
