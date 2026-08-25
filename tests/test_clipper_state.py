@@ -678,57 +678,36 @@ class TestLoopSuggestions:
 
         assert (s.suggested_in, s.suggested_out) == first_pair
 
-    def test_base_tip_mode_uses_turning_point_for_suggested_out(self, make_state):
+    @pytest.mark.parametrize("loop_mode, initial, turning_points, expected", [
+        pytest.param("base-tip", (0, 60), [37], (None, 37), id="base-tip suggests the out point"),
+        pytest.param("tip-base", (10, 79), [33], (33, None), id="tip-base suggests the in point"),
+        pytest.param("base-tip", (0, 79), [35, 24], (24, 35), id="both marks moved"),
+    ])
+    def test_a_half_loop_mode_searches_for_turning_points_and_nothing_else(
+        self, make_state, loop_mode, initial, turning_points, expected
+    ):
+        """base-tip and tip-base look for the turn, never for a duplicate frame
+        and never for a better pair.
+
+        This is the one rule here no frame fixture can show, because it is about
+        which search runs rather than what it finds -- so it is the one test in
+        this file that patches the searches by name. Three near-identical copies
+        of it collapsed into this table.
+        """
         s = make_state(
-            total_frames=80,
-            loaded_start=0,
-            loaded_end=79,
-            active_start=10,
-            active_end=60,
-            initial_active_start=0,
-            initial_active_end=60,
-            loop_mode="base-tip",
+            total_frames=80, loaded_start=0, loaded_end=79,
+            active_start=10, active_end=60,
+            initial_active_start=initial[0], initial_active_end=initial[1],
+            loop_mode=loop_mode,
         )
-        with patch("clipper.loop_suggestions._best_turning_point_index", return_value=37) as turning:
-            with patch("clipper.loop_suggestions._best_duplicate_match_index", return_value=49) as duplicate:
-                update_loop_suggestions(s)
-        assert s.suggested_out == 37
-        turning.assert_called_once()
+
+        with patch("clipper.loop_suggestions._best_turning_point_index",
+                   side_effect=turning_points) as turning, \
+             patch("clipper.loop_suggestions._best_duplicate_match_index") as duplicate, \
+             patch("clipper.loop_suggestions._pair_transition_score") as pair_score:
+            update_loop_suggestions(s)
+
+        assert (s.suggested_in, s.suggested_out) == expected
+        assert turning.call_count == len(turning_points)
         duplicate.assert_not_called()
-
-    def test_tip_base_mode_uses_turning_point_for_suggested_in(self, make_state):
-        s = make_state(
-            total_frames=80,
-            loaded_start=0,
-            loaded_end=79,
-            active_start=10,
-            active_end=60,
-            initial_active_start=10,
-            initial_active_end=79,
-            loop_mode="tip-base",
-        )
-        with patch("clipper.loop_suggestions._best_turning_point_index", return_value=33) as turning:
-            with patch("clipper.loop_suggestions._pair_transition_score", return_value=999.0) as pair_score:
-                update_loop_suggestions(s)
-        assert s.suggested_in == 33
-        turning.assert_called_once()
-        pair_score.assert_not_called()
-
-    def test_half_loop_modes_skip_pair_refinement_when_both_marks_changed(self, make_state):
-        s = make_state(
-            total_frames=80,
-            loaded_start=0,
-            loaded_end=79,
-            active_start=10,
-            active_end=60,
-            initial_active_start=0,
-            initial_active_end=79,
-            loop_mode="base-tip",
-        )
-        with patch("clipper.loop_suggestions._best_turning_point_index", side_effect=[35, 24]) as turning:
-            with patch("clipper.loop_suggestions._pair_transition_score", return_value=999.0) as pair_score:
-                update_loop_suggestions(s)
-        assert s.suggested_out == 35
-        assert s.suggested_in == 24
-        assert turning.call_count == 2
         pair_score.assert_not_called()

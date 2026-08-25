@@ -1,183 +1,201 @@
+"""How the launcher's answer becomes a VideoState.
+
+The three cases below used to patch `parse_timestamp` (pure string arithmetic),
+`read_json`, `create_session` and `make_video_state` -- the function the caller
+exists to call -- and then assert `create_session` had been handed a particular
+argument tuple. That pins the call, not the session: it stays green if the
+session written is wrong, and it goes red on an argument reshuffle that changes
+nothing. Here only ffprobe and the decoder are stubbed; the JSON is written and
+read back for real.
+"""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import cv2
+import numpy as np
 import pytest
 
+from clipper import create_session as create_session_module
+from clipper import session_launch, state_factory
 from clipper.app import main as app_main
 from clipper.session_launch import build_clip_whole_state, build_state_from_launch_info, launch_state
 
 
-def test_build_state_from_launch_info_loads_saved_session():
-    state = SimpleNamespace(
-        session_path="",
-        original_session_payload={},
-        protect_existing_save_data=False,
+@pytest.fixture()
+def library(tmp_path: Path, monkeypatch):
+    """A sessions folder, a stubbed ffprobe and a decoder that answers."""
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    pointer = tmp_path / ".last_session.txt"
+
+    monkeypatch.setattr(create_session_module, "SESSIONS_DIR", sessions)
+    monkeypatch.setattr(create_session_module, "LAST_SESSION_FILE", pointer)
+    monkeypatch.setattr(session_launch, "LAST_SESSION_FILE", pointer)
+    monkeypatch.setattr(
+        create_session_module, "_ffprobe_video_metadata", lambda path: (30.0, 900)
     )
+
+    capture = MagicMock()
+    capture.isOpened.return_value = True
+    metadata = {cv2.CAP_PROP_FPS: 30.0, cv2.CAP_PROP_FRAME_COUNT: 900.0}
+    capture.get.side_effect = metadata.get
+    monkeypatch.setattr(state_factory.cv2, "VideoCapture", lambda path: capture)
+    monkeypatch.setattr(
+        state_factory,
+        "load_range",
+        lambda cap, start, end: {
+            i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(start, end + 1)
+        },
+    )
+    return SimpleNamespace(sessions=sessions, pointer=pointer)
+
+
+def _write_session(sessions: Path, name: str, **overrides) -> Path:
     payload = {
-        "video_path": "/video.mp4",
-        "session_name": "demo",
-        "loaded_start": 0,
-        "loaded_end": 10,
-        "active_start": 1,
-        "active_end": 9,
-        "current": 1,
-        "seconds_per_step": 1.0,
-        "fps": 30.0,
-        "total_frames": 100,
-    }
-
-    last_session_file = MagicMock()
-
-    with patch("clipper.session_launch.read_json", return_value=payload), \
-         patch("clipper.session_launch.make_video_state", return_value=state), \
-         patch("clipper.session_launch.LAST_SESSION_FILE", last_session_file):
-        result = build_state_from_launch_info({"mode": "load", "session_json": "C:\\demo.json"})
-
-    assert result is state
-    assert state.session_path == "C:\\demo.json"
-    assert state.original_session_payload == payload
-    assert state.protect_existing_save_data is True
-    last_session_file.write_text.assert_called_once_with("C:\\demo.json", encoding="utf-8")
-
-
-def test_build_state_from_launch_info_creates_new_session_via_create_session():
-    session_path = Path("C:\\sessions\\demo.json")
-    payload = {
-        "video_path": "/video.mp4",
-        "session_name": "demo",
-        "loaded_start": 375,
-        "loaded_end": 524,
-        "active_start": 375,
-        "active_end": 524,
-        "current": 375,
-        "seconds_per_step": 1.0,
+        "version": 1,
+        "session_name": name,
+        "video_path": "/library/seaside walk.mp4",
         "fps": 30.0,
         "total_frames": 900,
-    }
-    state = SimpleNamespace(
-        session_path="",
-        original_session_payload={},
-        protect_existing_save_data=False,
-    )
-    last_session_file = MagicMock()
-
-    with patch("clipper.session_launch.parse_timestamp", return_value=12.5), \
-         patch("clipper.session_launch.create_session", return_value=session_path) as mock_create, \
-         patch("clipper.session_launch.read_json", return_value=payload), \
-         patch("clipper.session_launch.make_video_state", return_value=state) as make_state, \
-         patch("clipper.session_launch.LAST_SESSION_FILE", last_session_file):
-        result = build_state_from_launch_info(
-            {
-                "mode": "new",
-                "video_file": "/video.mp4",
-                "session_name": "demo",
-                "timestamp": "00:00:12.5",
-                "seconds": 5.0,
-                "loop_mode": "tip-base",
-            }
-        )
-
-    mock_create.assert_called_once_with(
-        "/video.mp4", 12.5, session_name="demo", seconds=5.0, loop_mode="tip-base", vr=False,
-    )
-    assert result is state
-    assert state.session_path == str(session_path)
-    assert state.original_session_payload == payload
-    assert state.protect_existing_save_data is True
-    last_session_file.write_text.assert_called_once()
-
-
-def test_build_state_passes_vr_true_to_create_session():
-    session_path = Path("C:\\sessions\\vr_demo.json")
-    payload = {
-        "video_path": "/vr_video.mp4",
-        "session_name": "vr_demo",
-        "loaded_start": 0,
-        "loaded_end": 149,
-        "active_start": 0,
-        "active_end": 149,
-        "current": 0,
+        "loaded_start": 100,
+        "loaded_end": 160,
+        "active_start": 110,
+        "active_end": 150,
+        "current": 120,
         "seconds_per_step": 1.0,
-        "fps": 30.0,
-        "total_frames": 900,
-        "vr": True,
+        "loop_mode": "tip-base",
+        "wrap_mode": "yellow",
+        "speed": 1.25,
+        "vr": False,
     }
-    state = SimpleNamespace(
-        session_path="",
-        original_session_payload={},
-        protect_existing_save_data=False,
-    )
-    last_session_file = MagicMock()
+    payload.update(overrides)
+    path = sessions / f"{name}.json"
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return path
 
-    with patch("clipper.session_launch.parse_timestamp", return_value=0.0), \
-         patch("clipper.session_launch.create_session", return_value=session_path) as mock_create, \
-         patch("clipper.session_launch.read_json", return_value=payload), \
-         patch("clipper.session_launch.make_video_state", return_value=state), \
-         patch("clipper.session_launch.LAST_SESSION_FILE", last_session_file):
-        build_state_from_launch_info(
-            {
-                "mode": "new",
-                "video_file": "/vr_video.mp4",
-                "session_name": "vr_demo",
-                "timestamp": "00:00:00",
-                "seconds": 5.0,
-                "loop_mode": "base-tip-base",
-                "vr": True,
-            }
+
+class TestLoadingASavedSession:
+    def test_the_state_comes_back_the_way_the_file_left_it(self, library):
+        saved = _write_session(library.sessions, "seaside walk")
+
+        state = build_state_from_launch_info(
+            {"mode": "load", "session_json": str(saved)}
         )
 
-    mock_create.assert_called_once_with(
-        "/vr_video.mp4", 0.0, session_name="vr_demo", seconds=5.0,
-        loop_mode="base-tip-base", vr=True,
-    )
+        assert state.session_name == "seaside walk"
+        assert (state.active_start, state.active_end) == (110, 150)
+        assert (state.loaded_start, state.loaded_end) == (100, 160)
+        assert state.current == 120
+        assert state.loop_mode == "tip-base"
+        assert state.wrap_mode == "yellow"
+        assert state.speed == pytest.approx(1.25)
+
+    def test_it_is_guarded_as_existing_save_data_and_remembers_where_it_came_from(self, library):
+        saved = _write_session(library.sessions, "seaside walk")
+
+        state = build_state_from_launch_info(
+            {"mode": "load", "session_json": str(saved)}
+        )
+
+        assert state.session_path == str(saved)
+        assert state.original_session_payload == json.loads(saved.read_text(encoding="utf-8"))
+        assert state.protect_existing_save_data is True
+
+    def test_it_becomes_the_session_the_launcher_offers_next_time(self, library):
+        saved = _write_session(library.sessions, "seaside walk")
+
+        build_state_from_launch_info({"mode": "load", "session_json": str(saved)})
+
+        assert library.pointer.read_text(encoding="utf-8") == str(saved)
+
+
+class TestCreatingANewSession:
+    def _new(self, **overrides):
+        info = {
+            "mode": "new",
+            "video_file": "/library/seaside walk.mp4",
+            "session_name": "second pass",
+            "timestamp": "00:00:12.500",
+            "seconds": 5.0,
+            "loop_mode": "tip-base",
+        }
+        info.update(overrides)
+        return info
+
+    def test_the_typed_timestamp_becomes_the_window_written_to_disk(self, library):
+        state = build_state_from_launch_info(self._new())
+
+        written = json.loads((library.sessions / "second pass.json").read_text(encoding="utf-8"))
+        assert written["active_start"] == 375  # 12.5s at 30fps
+        assert written["active_end"] == 524  # plus five seconds, inclusive
+        assert written["loop_mode"] == "tip-base"
+        assert written["vr"] is False
+        assert (state.active_start, state.active_end) == (375, 524)
+
+    def test_an_hour_long_timestamp_is_parsed_whole(self, library):
+        build_state_from_launch_info(self._new(timestamp="00:00:20", seconds=1.0))
+
+        written = json.loads((library.sessions / "second pass.json").read_text(encoding="utf-8"))
+        assert written["active_start"] == 600
+
+    def test_a_vr_session_is_marked_vr_in_the_file_and_on_the_state(self, library):
+        state = build_state_from_launch_info(self._new(vr=True))
+
+        written = json.loads((library.sessions / "second pass.json").read_text(encoding="utf-8"))
+        assert written["vr"] is True
+        assert state.vr is True
+
+    def test_it_is_guarded_as_existing_save_data_and_becomes_the_last_session(self, library):
+        state = build_state_from_launch_info(self._new())
+
+        assert state.protect_existing_save_data is True
+        assert library.pointer.read_text(encoding="utf-8") == str(
+            library.sessions / "second pass.json"
+        )
+
+    def test_a_session_of_that_name_already_there_is_opened_rather_than_overwritten(self, library):
+        existing = _write_session(library.sessions, "second pass", active_start=7, active_end=9)
+
+        state = build_state_from_launch_info(self._new())
+
+        assert (state.active_start, state.active_end) == (7, 9)
+        assert json.loads(existing.read_text(encoding="utf-8"))["active_start"] == 7
 
 
 class TestBuildClipWholeState:
-    def test_active_range_covers_all_but_last_frame(self):
-        with patch("clipper.session_launch._ffprobe_video_metadata", return_value=(30.0, 300)), \
-             patch("clipper.session_launch.cv2") as mock_cv2:
-            mock_cap = MagicMock()
-            mock_cv2.VideoCapture.return_value = mock_cap
-            state = build_clip_whole_state("/video.mp4")
+    """The lightweight state behind "Clip whole vid...": no frames, no editor."""
 
-        assert state.active_start == 0
-        assert state.active_end == 298  # total_frames - 2: drops last frame
-
-    def test_skip_postprocess_is_true(self):
+    @pytest.fixture()
+    def whole(self):
         with patch("clipper.session_launch._ffprobe_video_metadata", return_value=(30.0, 300)), \
              patch("clipper.session_launch.cv2") as mock_cv2:
             mock_cv2.VideoCapture.return_value = MagicMock()
-            state = build_clip_whole_state("/video.mp4")
+            yield build_clip_whole_state("/library/seaside walk.mp4")
 
-        assert state.skip_postprocess is True
+    def test_the_range_covers_the_video_bar_its_duplicate_last_frame(self, whole):
+        assert (whole.active_start, whole.active_end) == (0, 298)
+        assert (whole.loaded_start, whole.loaded_end) == (0, 298)
 
-    def test_session_name_from_video_stem(self):
+    def test_it_loads_no_frames(self, whole):
+        assert whole.frames == {}
+
+    def test_it_skips_the_loop_post_process(self, whole):
+        assert whole.skip_postprocess is True
+
+    def test_the_session_takes_its_name_from_the_video(self, whole):
+        assert whole.session_name == "seaside walk"
+
+    def test_a_video_whose_name_cannot_be_a_filename_is_sanitized(self):
         with patch("clipper.session_launch._ffprobe_video_metadata", return_value=(30.0, 300)), \
              patch("clipper.session_launch.cv2") as mock_cv2:
             mock_cv2.VideoCapture.return_value = MagicMock()
-            state = build_clip_whole_state("/path/to/my_loop.mp4")
+            state = build_clip_whole_state("/library/take 1: second pass.mp4")
 
-        assert state.session_name == "my_loop"
-
-    def test_no_frames_loaded(self):
-        with patch("clipper.session_launch._ffprobe_video_metadata", return_value=(30.0, 300)), \
-             patch("clipper.session_launch.cv2") as mock_cv2:
-            mock_cv2.VideoCapture.return_value = MagicMock()
-            state = build_clip_whole_state("/video.mp4")
-
-        assert state.frames == {}
-
-    def test_loaded_range_matches_active_range(self):
-        with patch("clipper.session_launch._ffprobe_video_metadata", return_value=(30.0, 300)), \
-             patch("clipper.session_launch.cv2") as mock_cv2:
-            mock_cv2.VideoCapture.return_value = MagicMock()
-            state = build_clip_whole_state("/video.mp4")
-
-        assert state.loaded_start == 0
-        assert state.loaded_end == 298
+        assert state.session_name == "take 1_ second pass"
 
 
 def test_launch_state_raises_system_exit_when_launcher_is_cancelled():
