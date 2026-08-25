@@ -45,9 +45,9 @@ class TestConstruction:
         app = ClipperApp(mock_state)
         assert app.playback_timer is not None
 
-    def test_window_has_state(self, mock_state):
+    def test_the_window_is_built_around_the_state_it_was_given(self, mock_state):
         app = ClipperApp(mock_state)
-        assert app.window._state is mock_state
+        assert app.window.session_label.text() == mock_state.session_name
 
     def test_sets_application_icon(self, mock_state):
         app = ClipperApp(mock_state)

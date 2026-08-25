@@ -198,6 +198,19 @@ class _FakeAutosave:
 
 
 @pytest.fixture()
+def rendered():
+    """Paint a widget into an image, so a test can read the pixels it drew.
+
+    Nothing in this suite used to assert a painted pixel, so gutting any
+    ``paintEvent`` was caught only by the dead-code guard noticing the locals
+    it left unused.
+    """
+    def paint(widget):
+        return widget.grab().toImage()
+    return paint
+
+
+@pytest.fixture()
 def frames_of():
     """One solid BGR frame per value -- the shape the loop transforms read in.
 
