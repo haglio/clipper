@@ -1,7 +1,6 @@
 """Tests for clipper.state (pure logic, no real video files)."""
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -325,6 +324,69 @@ class TestContractLeft:
         assert s.current >= s.loaded_start
 
 
+class TestExtendLeft:
+    """The other half of loaded_bounds: `a` widens the range the cursor roams.
+
+    Both extend functions were imported by this file and tested by neither, so
+    `clipper/loaded_bounds.py` sat at the lowest coverage of the pure-logic
+    modules.
+    """
+
+    def test_widens_the_loaded_range_by_one_step(self, make_state):
+        s = make_state(loaded_start=20, loaded_end=60, base_step=5)
+
+        extend_left(s)
+
+        assert s.loaded_start == 15
+
+    def test_it_loads_the_frames_it_just_made_room_for(self, make_state):
+        s = make_state(loaded_start=20, loaded_end=60, base_step=5)
+
+        extend_left(s)
+
+        assert all(idx in s.frames for idx in range(15, 20))
+
+    def test_it_stops_at_the_start_of_the_video(self, make_state):
+        s = make_state(loaded_start=2, loaded_end=60, base_step=5)
+
+        extend_left(s)
+
+        assert s.loaded_start == 0
+
+    def test_at_the_start_of_the_video_it_still_saves(self, make_state):
+        """It marks dirty unconditionally -- there is nowhere to go, but the
+        session is written anyway."""
+        s = make_state(loaded_start=0, loaded_end=60, base_step=5)
+
+        extend_left(s)
+
+        assert s.loaded_start == 0
+        assert s.dirty is True
+
+
+class TestExtendRight:
+    def test_widens_the_loaded_range_by_one_step(self, make_state):
+        s = make_state(total_frames=100, loaded_start=0, loaded_end=60, base_step=5)
+
+        extend_right(s)
+
+        assert s.loaded_end == 65
+
+    def test_it_loads_the_frames_it_just_made_room_for(self, make_state):
+        s = make_state(total_frames=100, loaded_start=0, loaded_end=60, base_step=5)
+
+        extend_right(s)
+
+        assert all(idx in s.frames for idx in range(61, 66))
+
+    def test_it_stops_at_the_end_of_the_video(self, make_state):
+        s = make_state(total_frames=100, loaded_start=0, loaded_end=97, base_step=5)
+
+        extend_right(s)
+
+        assert s.loaded_end == 99
+
+
 class TestContractRight:
     def test_shrinks_loaded_end(self, make_state):
         s = make_state(loaded_end=99, active_end=70, base_step=5)
@@ -387,6 +449,8 @@ _EDITS_THAT_CHANGE_THE_CLIP = [
     ("toggle_wrap_mode", {"wrap_mode": "blue", "active_start": 10, "active_end": 20, "current": 25}, _no_prep, toggle_wrap_mode),
     ("contract_left", {"loaded_start": 10, "active_start": 20, "base_step": 5}, _no_prep, contract_left),
     ("contract_right", {"loaded_end": 99, "active_end": 70, "base_step": 5}, _no_prep, contract_right),
+    ("extend_left", {"loaded_start": 20, "loaded_end": 60, "base_step": 5}, _no_prep, extend_left),
+    ("extend_right", {"total_frames": 100, "loaded_end": 60, "base_step": 5}, _no_prep, extend_right),
 ]
 
 # The same operations asked to do something they refuse: nothing changes, so

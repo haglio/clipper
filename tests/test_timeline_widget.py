@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import QMouseEvent
-from PyQt6.QtWidgets import QApplication
 
 from shared_ui.colors import (
     TIMELINE_ACTIVE,

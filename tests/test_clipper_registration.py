@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 from pathlib import Path
 from unittest.mock import patch
 
@@ -98,6 +97,8 @@ class TestDecomposeComposeSimilarity:
         tx, ty, angle, scale = decompose_similarity(M, center)
         assert abs(tx - 5.5) < 1e-6
         assert abs(ty - (-3.2)) < 1e-6
+        assert abs(angle) < 1e-9        # a translation turns nothing
+        assert abs(scale - 1.0) < 1e-9  # and resizes nothing
 
     def test_roundtrip_known_transform(self):
         center = (64.0, 64.0)
@@ -155,20 +156,18 @@ class TestEstimateAlignment:
     def test_fails_on_blank_frames(self):
         blank = np.zeros((64, 64, 3), dtype=np.uint8)
         M, inlier_ratio = estimate_alignment(blank, blank)
-        assert M is None
+        assert (M, inlier_ratio) == (None, 0.0)
 
     def test_fails_on_uniform_color(self):
         frame = np.full((64, 64, 3), 128, dtype=np.uint8)
         M, inlier_ratio = estimate_alignment(frame, frame)
-        assert M is None
+        assert (M, inlier_ratio) == (None, 0.0)
 
 
 class TestBuildRegisteredSeam:
     def test_reduces_endpoint_drift(self):
         frame = _make_textured_frame(128, 128, seed=10)
-        M_shift = np.array([[1, 0, 8], [0, 1, 6]], dtype=np.float32)
-        shifted = cv2.warpAffine(frame, M_shift, (128, 128), borderMode=cv2.BORDER_REFLECT)
-        # Create a 10-frame sequence where first = frame and last = shifted
+        # A ten-frame drift: the first frame, and the same frame shifted (8, 6).
         frames = []
         for i in range(10):
             t = i / 9.0
@@ -191,8 +190,11 @@ class TestBuildRegisteredSeam:
 
     def test_too_few_frames(self):
         frame = _make_textured_frame(64, 64)
+
         result, ok = build_registered_seam([frame], seam_frames=1)
+
         assert ok is False
+        np.testing.assert_array_equal(result[0], frame)
 
 
 class TestRifeBridge:

@@ -53,9 +53,9 @@ class TestConstruction:
         assert app.window.session_label.text() == mock_state.session_name
 
     def test_sets_application_icon(self, mock_state):
-        app = ClipperApp(mock_state)
-        qapp = QApplication.instance()
-        assert not qapp.windowIcon().isNull()
+        ClipperApp(mock_state)
+
+        assert not QApplication.instance().windowIcon().isNull()
 
 
 # The state _on_tick is driven against: a real one, with frames it can decode.

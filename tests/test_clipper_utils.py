@@ -112,7 +112,7 @@ class TestSafeAtomicWriteJson:
     def test_writes_file(self, tmp_path: Path):
         target = tmp_path / "out.json"
         ok, err = safe_atomic_write_json(target, {"key": "value"})
-        assert ok is True
+        assert (ok, err) == (True, "")
         assert target.exists()
 
     def test_content_is_valid_json(self, tmp_path: Path):

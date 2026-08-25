@@ -6,7 +6,7 @@ from pathlib import PureWindowsPath
 from unittest.mock import patch
 
 import pytest
-from PyQt6.QtWidgets import QApplication, QFileDialog
+from PyQt6.QtWidgets import QFileDialog
 
 from clipper.content import load_content
 from clipper.gui import launcher_dialog

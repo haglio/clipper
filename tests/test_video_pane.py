@@ -6,8 +6,6 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-from PyQt6.QtGui import QImage
-from PyQt6.QtWidgets import QApplication
 
 from shared_ui.colors import BG_SECONDARY
 
