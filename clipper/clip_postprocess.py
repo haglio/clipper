@@ -67,7 +67,7 @@ def main():
         "--seam-ms",
         type=float,
         default=250.0,
-        help="RIFE seam convergence duration per side in ms (default: 250). Set to 0 to disable.",
+        help="RIFE seam convergence duration per side in ms, for --mode register only (default: 250). Set to 0 to disable.",
     )
     ap.add_argument(
         "--copy-audio",
