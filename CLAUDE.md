@@ -18,6 +18,28 @@ Clipper is a standalone PyQt6/OpenCV video clip editor, extracted from the fun_t
 - **Launcher chain**: `Clipper.lnk` -> `wscript.exe` -> `launch_clipper.vbs` -> `python -m clipper`.
 - **Shared scaffolding**: logging setup, exception hooks and `hidden_subprocess_kwargs` come from the sibling `../app_support`, which every app in this family installs editable — fix those there, not here. Install it with `--config-settings editable_mode=compat`; its README says why, and its `tests/test_install.py` goes red without it.
 
+## Fetching RIFE
+
+The frame interpolator the loop-fix pipeline defaults to is **not in the repo**.
+A fresh checkout has no `tools/rife-ncnn-vulkan-20221029-windows/`; fetch it once:
+
+```powershell
+.\.venv\Scripts\python.exe tools\fetch_rife.py
+```
+
+That pulls upstream's 432 MB release, keeps the six files clipper uses (17 MB),
+puts them where `clip_postprocess_transforms._find_rife_exe` looks, and deletes
+the zip. The directory is git-ignored. `--require` additionally exits non-zero
+unless the binary actually *runs*, which is what the merge gate uses.
+
+Same shape as `player_core/vendor/libmpv-2.dll`, with one difference worth
+knowing: player_core deliberately does *not* give CI its DLL, because fun_time's
+hidden-desktop suite covers the real player. Clipper has no second suite, and
+windows-latest is the only place a Windows PE can execute — so clipper's gate
+does fetch it, and fails rather than skipping the four tests that drive the seam
+bridge. Everywhere else those four skip; without the binary the postprocess falls
+back to its geometric seam, which is also what happens in production.
+
 ## Communication rules
 
 - **Answer questions before doing work.** When the user asks questions or raises concerns, respond to each one. Do not silently go off and do a batch of work instead of engaging with the conversation.
