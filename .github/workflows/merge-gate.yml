@@ -5,7 +5,7 @@ name: merge gate (full suite)
 # main only when this is green -- so a red tree can never land. Also runs on PRs
 # for early feedback and on push to main as a visible post-merge backstop.
 #
-# windows-latest: clipper is a Windows Pygame/Qt app whose suite exercises
+# windows-latest: clipper is a Windows app whose suite exercises
 # Windows-only subprocess behaviour (STARTUPINFO / SW_HIDE via app_support), and
 # its Qt widget tests need a headless platform, so QT_QPA_PLATFORM=offscreen.
 #

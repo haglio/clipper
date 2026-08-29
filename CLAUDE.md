@@ -10,7 +10,7 @@ Shared rules are in the global `~/.claude/CLAUDE.md`. This file contains only cl
 
 ## Architecture
 
-Clipper is a standalone Pygame/OpenCV video clip editor, extracted from the fun_time project. Key relationships:
+Clipper is a standalone PyQt6/OpenCV video clip editor, extracted from the fun_time project. Key relationships:
 
 - **Config**: `clipper/config.py` reads `fun_time_config.json` from the sibling fun_time project for VLC prefill (HTTP ports, search roots). This is a read-only dependency; clipper never writes to fun_time's config.
 - **Output dirs**: Clips export to `<suite-root>/videos/genau/clips/`, audio to `<suite-root>/videos/genau/audio/`. These are shared with fun_time's Genau listener.
