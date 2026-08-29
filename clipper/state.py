@@ -73,10 +73,6 @@ class VideoState:
     )
 
     @property
-    def active_count(self) -> int:
-        return self.active_end - self.active_start + 1
-
-    @property
     def loaded_count(self) -> int:
         return self.loaded_end - self.loaded_start + 1
 
