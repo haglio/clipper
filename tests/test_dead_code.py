@@ -50,7 +50,6 @@ _EXPORT_MUTATIONS: set[tuple[str, str]] = {
     ("clipper/export_steps.py", "clip_output"),
     ("clipper/export_steps.py", "audio_status"),
     ("clipper/export_steps.py", "audio_output"),
-    ("clipper/export_steps.py", "run_loop_fix"),
 }
 
 # Attribute mutations on state objects — used by production code but vulture
