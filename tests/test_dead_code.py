@@ -25,11 +25,6 @@ _QT_OVERRIDES: set[tuple[str, str]] = {
     ("clipper/gui/video_pane.py", "paintEvent"),
 }
 
-# Python runtime hooks.
-_PYTHON_HOOKS: set[tuple[str, str]] = {
-    ("clipper/__init__.py", "__getattr__"),
-}
-
 # Dataclass / namedtuple fields accessed dynamically (obj.attr).
 # Vulture can't trace attribute access on dynamically-typed objects.
 _DATACLASS_FIELDS: set[tuple[str, str]] = set()
@@ -69,7 +64,6 @@ _STATE_MUTATIONS: set[tuple[str, str]] = {
 
 WHITELIST: set[tuple[str, str]] = (
     _QT_OVERRIDES
-    | _PYTHON_HOOKS
     | _DATACLASS_FIELDS
     | _EXPORT_MUTATIONS
     | _STATE_MUTATIONS
