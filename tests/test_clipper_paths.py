@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ast
 import inspect
+import json
 import textwrap
 from pathlib import Path
 
@@ -36,11 +37,9 @@ def _constants_ensure_runtime_dirs_creates() -> set[str]:
     }
 
 
-def _with_a_local_overlay(tmp_path: Path, monkeypatch) -> None:
-    """Stand in the ``content.local.json`` a machine with a real library has."""
-    local = tmp_path / "content.local.json"
-    local.write_text("{}", encoding="utf-8")
-    monkeypatch.setattr(paths, "LOCAL_CONTENT", local)
+def _with_a_real_library(tmp_path: Path, monkeypatch) -> None:
+    """A ``suite_root`` of this machine's own, as a configured overlay gives."""
+    monkeypatch.setattr(paths, "_SUITE_ROOT", tmp_path / "library")
 
 
 @pytest.fixture()
@@ -57,7 +56,7 @@ def runtime_dirs(tmp_path: Path, monkeypatch):
     """
     for name in set(_RUNTIME_DIRS) | _constants_ensure_runtime_dirs_creates():
         monkeypatch.setattr(paths, name, tmp_path / name.lower())
-    _with_a_local_overlay(tmp_path, monkeypatch)
+    _with_a_real_library(tmp_path, monkeypatch)
     return {name: tmp_path / name.lower() for name in _RUNTIME_DIRS}
 
 
@@ -85,14 +84,14 @@ class TestEnsureRuntimeDirs:
         deep = tmp_path / "videos" / "genau" / "clips"
         for name in set(_RUNTIME_DIRS) | _constants_ensure_runtime_dirs_creates():
             monkeypatch.setattr(paths, name, deep if name == "CLIPS_DIR" else tmp_path / name.lower())
-        _with_a_local_overlay(tmp_path, monkeypatch)
+        _with_a_real_library(tmp_path, monkeypatch)
 
         ensure_runtime_dirs()
 
         assert deep.is_dir()
 
 
-class TestACheckoutWithNoLocalOverlay:
+class TestAMachineWithNoLibraryYet:
     """The committed example's ``suite_root`` is a placeholder, not a library.
 
     ``C:/path/to/suite-root`` is a *relative* path on POSIX, so deriving the
@@ -103,28 +102,40 @@ class TestACheckoutWithNoLocalOverlay:
     from a public commit.
     """
 
-    def test_a_local_overlay_is_what_makes_a_library(self, tmp_path, monkeypatch):
-        local = tmp_path / "content.local.json"
-        local.write_text("{}", encoding="utf-8")
-        monkeypatch.setattr(paths, "LOCAL_CONTENT", local)
+    def test_a_suite_root_of_its_own_is_what_makes_a_library(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(paths, "_SUITE_ROOT", tmp_path / "library")
 
         assert library_is_configured() is True
 
-    def test_without_one_there_is_no_library(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(paths, "LOCAL_CONTENT", tmp_path / "content.local.json")
+    def test_the_placeholder_is_not_a_library(self, monkeypatch):
+        monkeypatch.setattr(paths, "_SUITE_ROOT", paths._PLACEHOLDER_SUITE_ROOT)
 
         assert library_is_configured() is False
 
-    def test_the_repos_own_directories_are_still_made(self, runtime_dirs, tmp_path, monkeypatch):
-        monkeypatch.setattr(paths, "LOCAL_CONTENT", tmp_path / "absent.json")
+    def test_an_unedited_copy_of_the_example_is_not_a_library_either(self, tmp_path, monkeypatch):
+        """Setting a machine up is copy-then-edit, and this is between the two.
+
+        Asking whether a ``content.local.json`` exists answers yes here, which
+        is how the ``C:`` tree came back while a guard was supposedly stopping it.
+        """
+        local = tmp_path / "content.local.json"
+        local.write_text(paths.EXAMPLE_CONTENT.read_text(encoding="utf-8"), encoding="utf-8")
+        monkeypatch.setattr(
+            paths, "_SUITE_ROOT", Path(json.loads(local.read_text(encoding="utf-8"))["suite_root"])
+        )
+
+        assert library_is_configured() is False
+
+    def test_the_repos_own_directories_are_still_made(self, runtime_dirs, monkeypatch):
+        monkeypatch.setattr(paths, "_SUITE_ROOT", paths._PLACEHOLDER_SUITE_ROOT)
 
         ensure_runtime_dirs()
 
         assert runtime_dirs["SESSIONS_DIR"].is_dir()
         assert runtime_dirs["RAW_CLIPS_DIR"].is_dir()
 
-    def test_no_library_directory_is_made(self, runtime_dirs, tmp_path, monkeypatch):
-        monkeypatch.setattr(paths, "LOCAL_CONTENT", tmp_path / "absent.json")
+    def test_no_library_directory_is_made(self, runtime_dirs, monkeypatch):
+        monkeypatch.setattr(paths, "_SUITE_ROOT", paths._PLACEHOLDER_SUITE_ROOT)
 
         ensure_runtime_dirs()
 
