@@ -78,6 +78,4 @@ class TimelineControls(QWidget):
         layout.addLayout(mode_row)
 
     def set_loop_mode(self, mode: str) -> None:
-        from clipper.loop_modes import LOOP_MODE_LABELS
-
-        self.loop_mode_btn.setText(LOOP_MODE_LABELS.get(mode, mode))
+        self.loop_mode_btn.setText(mode)
