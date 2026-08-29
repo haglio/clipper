@@ -13,27 +13,22 @@ _CLIPPER = _PROJECT / "clipper"
 # Format: {(relative_posix_path, name)} — keeps the set readable and diffable.
 # Only add entries that are *provably* invoked by a framework, platform API,
 # or dynamic attribute access (dataclass fields accessed via obj.attr).
+#
+# Entries are (path, name) pairs and nothing else.  This used to carry a second
+# set that exempted clipper/config.py and clipper/state.py whole, on the stated
+# grounds that every field in them was read dynamically.  Neither was true, and
+# a file-wide exemption cannot fail: the two files holding the most dead surface
+# in the repo were the two the gate could never see, and it hid 67 findings.
 
 # Qt method overrides — called by the Qt event loop, not user code.
 _QT_OVERRIDES: set[tuple[str, str]] = {
     ("clipper/gui/legend_widget.py", "paintEvent"),
     ("clipper/gui/main_window.py", "paintEvent"),
     ("clipper/gui/main_window.py", "closeEvent"),
-    ("clipper/gui/main_window.py", "keyPressEvent"),
     ("clipper/gui/timeline_widget.py", "mousePressEvent"),
     ("clipper/gui/timeline_widget.py", "paintEvent"),
     ("clipper/gui/video_pane.py", "paintEvent"),
 }
-
-# Dataclass / namedtuple fields accessed dynamically (obj.attr).
-# Vulture can't trace attribute access on dynamically-typed objects.
-_DATACLASS_FIELDS: set[tuple[str, str]] = set()
-
-# config.py — ALL fields are loaded from JSON and accessed as config.field.
-_CONFIG_FILE = "clipper/config.py"
-
-# state.py — dataclass fields read/written by production code.
-_STATE_FILE = "clipper/state.py"
 
 # ExportJob mutations — the export steps write these and the Qt signal bridge
 # forwards them to the dialog from __setattr__, which vulture cannot follow.
@@ -54,15 +49,34 @@ _STATE_MUTATIONS: set[tuple[str, str]] = {
     ("clipper/state_factory.py", "last_saved_payload"),
 }
 
+# The declarations those mutations write to, one line per field, each with the
+# reader vulture cannot see.  These are what the file-wide state.py exemption
+# used to cover; naming them costs four lines and leaves the rest of the file
+# under the gate.
+_STATE_FIELDS: set[tuple[str, str]] = {
+    # ExportJob.stage — read by _SignalBridge.__setattr__ (gui/export_worker.py:57),
+    # which turns the write into the dialog's stage_changed signal.
+    ("clipper/state.py", "stage"),
+    # VideoState.original_session_payload — the payload the session was opened
+    # with, kept so a discard-on-exit has something to compare against.
+    ("clipper/state.py", "original_session_payload"),
+    # VideoState.last_saved_payload — the last payload that reached disk.  A
+    # failed write leaves it alone, which is how the warning path proves the
+    # good copy survived (tests/test_clipper_session_persistence.py:96-100).
+    ("clipper/state.py", "last_saved_payload"),
+    # VideoState.render_rev — bumped by every edit that changes what is drawn.
+    # No production reader consults it: the 60 Hz tick repaints unconditionally,
+    # so it survives as the observable the edit tables read to prove an edit
+    # happened.  See the 2026-08-29 changelog note.
+    ("clipper/state.py", "render_rev"),
+}
+
 WHITELIST: set[tuple[str, str]] = (
     _QT_OVERRIDES
-    | _DATACLASS_FIELDS
     | _EXPORT_MUTATIONS
     | _STATE_MUTATIONS
+    | _STATE_FIELDS
 )
-
-# Files where ALL findings are whitelisted (every field is dynamically accessed).
-_WHITELISTED_FILES: set[str] = {_CONFIG_FILE, _STATE_FILE}
 
 
 def _relative_posix(path: str) -> str:
@@ -80,8 +94,6 @@ def test_no_dead_code():
     unlisted = []
     for item in v.get_unused_code():
         rel = _relative_posix(item.filename)
-        if rel in _WHITELISTED_FILES:
-            continue
         if (rel, item.name) in WHITELIST:
             continue
         unlisted.append(
