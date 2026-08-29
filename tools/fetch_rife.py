@@ -29,7 +29,7 @@ is deleted once they are extracted.
 from __future__ import annotations
 
 import hashlib
-import subprocess
+import shutil
 import sys
 import urllib.request
 import zipfile
@@ -56,30 +56,49 @@ MEMBERS = (
     "rife-v4.6/flownet.param",
 )
 
-_PROBE_TIMEOUT = 60
+_DOWNLOAD_TIMEOUT = 120
 
 
 def is_present() -> bool:
-    """Whether every file the app and its licence need is already extracted."""
-    return all((DEST / member).is_file() for member in MEMBERS)
+    """Whether every file the app and its licence need is extracted and non-empty.
+
+    Non-empty because a restored cache or an interrupted extract can leave a
+    file that exists and holds nothing, and ``is_file()`` alone calls that
+    fetched.
+    """
+    return all(
+        (DEST / member).is_file() and (DEST / member).stat().st_size > 0
+        for member in MEMBERS
+    )
 
 
 def runs() -> bool:
-    """Whether the extracted executable can actually be run on this machine.
+    """Whether the interpolator actually produces a frame on this machine.
 
-    The release is a Windows PE.  Elsewhere it is found and then refuses --
-    ``subprocess`` raises PermissionError -- so presence is not runnability, and
-    a test gated on presence alone fails where it meant to skip.  Any completed
-    run counts, whatever the exit code: with no arguments the binary prints its
-    usage and exits non-zero, and executing at all is the whole question.
+    Not whether the file is on disk, and not whether the process starts.  The
+    release is a Windows PE that every other platform finds and then refuses;
+    and a Windows box with no Vulkan device *starts* it happily and gets
+    nothing back, because upstream prints its usage and exits before touching
+    Vulkan when it is called with no arguments.  A spawn probe would answer
+    yes to both, and the merge gate spends a step on this precisely so the four
+    seam-bridge tests do not have to find out for it.
+
+    So the question asked is the one those tests need answered: one real
+    interpolation, through the same production call they make.  The app is
+    imported lazily, so fetching does not need it installed.
     """
     if not is_present():
         return False
+
+    import numpy as np
+
+    from clipper.clip_postprocess_transforms import build_rife_bridge
+
+    y, x = (a.astype(np.uint8) for a in np.mgrid[0:64, 0:64])
     try:
-        subprocess.run([str(RIFE_EXE)], capture_output=True, timeout=_PROBE_TIMEOUT)
-    except (OSError, subprocess.SubprocessError):
+        return build_rife_bridge(np.dstack([x, y, x]), np.dstack([y, x, y]), 1) is not None
+    except Exception:
         return False
-    return True
 
 
 def sha256_of(path: Path) -> str:
@@ -102,7 +121,11 @@ def download(target: Path = ZIP_PATH) -> Path:
         return target
     target.parent.mkdir(parents=True, exist_ok=True)
     print(f"fetching {URL}")
-    urllib.request.urlretrieve(URL, target)  # noqa: S310 - literal https URL above
+    # Streamed with a timeout rather than urlretrieve, which has none: a stalled
+    # connection would otherwise hold a CI job open until the runner's own limit.
+    with urllib.request.urlopen(URL, timeout=_DOWNLOAD_TIMEOUT) as response:  # noqa: S310
+        with target.open("wb") as handle:
+            shutil.copyfileobj(response, handle)
     actual = sha256_of(target)
     if actual != SHA256:
         target.unlink(missing_ok=True)
@@ -135,10 +158,14 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if runs():
-        print(f"RIFE is at {DEST} and runs here")
+        print(f"RIFE is at {DEST} and interpolates here")
         return 0
 
-    print(f"RIFE is at {DEST} but does not run here (it is a Windows binary)")
+    print(
+        f"RIFE is at {DEST} but produced no frame here — expected off Windows, "
+        "where it is a PE that cannot be executed; on Windows it means the "
+        "binary ran and the interpolation did not (no usable Vulkan device)."
+    )
     if require:
         print(
             "--require was given, so this is a failure: the merge gate depends on "

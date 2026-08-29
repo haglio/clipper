@@ -9,6 +9,7 @@ where it meant to get four skips.
 from __future__ import annotations
 
 import hashlib
+import io
 import subprocess
 import zipfile
 from pathlib import Path
@@ -41,7 +42,7 @@ def _release_zip(path: Path) -> Path:
 
 
 def _never_called(*_args, **_kwargs):
-    raise AssertionError("an intact archive should not be downloaded again")
+    raise AssertionError("nothing here should have gone to the network")
 
 
 class TestWhereItLands:
@@ -103,8 +104,22 @@ class TestIsPresent:
         assert fetch_rife.is_present() is False
 
 
+def _bridge_returning(result):
+    def _bridge(_a, _b, _n):
+        if isinstance(result, Exception):
+            raise result
+        return result
+    return _bridge
+
+
 class TestRuns:
-    """Presence is not runnability, which is the whole point of the predicate."""
+    """Presence is not runnability, and starting is not interpolating.
+
+    A spawn probe answers yes on a Windows box with no Vulkan device -- upstream
+    prints its usage and exits before touching Vulkan when called with no
+    arguments -- so the four seam-bridge tests would run and fail there instead
+    of the gate saying why. The predicate asks for a frame.
+    """
 
     @pytest.fixture()
     def extracted(self, tmp_path: Path, monkeypatch) -> Path:
@@ -122,23 +137,80 @@ class TestRuns:
         """What every non-Windows machine sees: the file is there and refuses."""
         assert fetch_rife.runs() is False
 
-    def test_a_binary_that_starts_at_all_runs(self, extracted: Path, monkeypatch):
-        """Any completed run counts: with no arguments it prints usage and exits."""
+    def test_a_bridge_frame_coming_back_is_what_running_means(
+        self, extracted: Path, monkeypatch
+    ):
         monkeypatch.setattr(
-            fetch_rife.subprocess,
-            "run",
-            lambda *a, **k: subprocess.CompletedProcess(a[0], 255, b"", b"usage:"),
+            "clipper.clip_postprocess_transforms.build_rife_bridge",
+            _bridge_returning([object()]),
         )
 
         assert fetch_rife.runs() is True
 
-    def test_a_binary_that_never_returns_does_not_run(self, extracted: Path, monkeypatch):
-        def _hang(*_args, **_kwargs):
-            raise subprocess.TimeoutExpired(cmd="rife", timeout=1)
-
-        monkeypatch.setattr(fetch_rife.subprocess, "run", _hang)
+    def test_a_binary_that_starts_and_interpolates_nothing_does_not_run(
+        self, extracted: Path, monkeypatch
+    ):
+        """The Vulkan-less case: the process runs, the bridge comes back empty."""
+        monkeypatch.setattr(
+            "clipper.clip_postprocess_transforms.build_rife_bridge",
+            _bridge_returning(None),
+        )
 
         assert fetch_rife.runs() is False
+
+    def test_a_bridge_that_raises_does_not_run(self, extracted: Path, monkeypatch):
+        monkeypatch.setattr(
+            "clipper.clip_postprocess_transforms.build_rife_bridge",
+            _bridge_returning(subprocess.TimeoutExpired(cmd="rife", timeout=1)),
+        )
+
+        assert fetch_rife.runs() is False
+
+
+class TestMain:
+    """The entry point the merge gate runs, and the flag it runs it with."""
+
+    @pytest.fixture()
+    def fetched(self, tmp_path: Path, monkeypatch) -> Path:
+        """A checkout that already has the files, so main() does not download."""
+        monkeypatch.setattr(fetch_rife, "DEST", tmp_path)
+        fetch_rife.extract(_release_zip(tmp_path / "release.zip"), tmp_path)
+        return tmp_path
+
+    def _with_runs(self, monkeypatch, answer: bool) -> None:
+        monkeypatch.setattr(fetch_rife, "runs", lambda: answer)
+
+    def test_it_reports_success_when_the_interpolator_works(self, fetched, monkeypatch):
+        self._with_runs(monkeypatch, True)
+
+        assert fetch_rife.main([]) == 0
+        assert fetch_rife.main(["--require"]) == 0
+
+    def test_a_binary_that_does_not_run_is_fine_without_require(self, fetched, monkeypatch):
+        """A developer machine fetches the Windows release and cannot use it."""
+        self._with_runs(monkeypatch, False)
+
+        assert fetch_rife.main([]) == 0
+
+    def test_a_binary_that_does_not_run_fails_under_require(self, fetched, monkeypatch):
+        """This is the merge gate's whole assertion."""
+        self._with_runs(monkeypatch, False)
+
+        assert fetch_rife.main(["--require"]) == 1
+
+    def test_a_fetch_that_lands_nothing_fails_either_way(self, tmp_path: Path, monkeypatch):
+        monkeypatch.setattr(fetch_rife, "DEST", tmp_path / "nothing")
+        monkeypatch.setattr(fetch_rife, "download", lambda *a, **k: tmp_path / "absent.zip")
+        monkeypatch.setattr(fetch_rife, "extract", lambda *a, **k: None)
+
+        assert fetch_rife.main([]) == 1
+        assert fetch_rife.main(["--require"]) == 1
+
+    def test_it_fetches_only_when_something_is_missing(self, fetched, monkeypatch):
+        self._with_runs(monkeypatch, True)
+        monkeypatch.setattr(fetch_rife, "download", _never_called)
+
+        assert fetch_rife.main([]) == 0
 
 
 class TestDownload:
@@ -148,7 +220,7 @@ class TestDownload:
         archive = tmp_path / fetch_rife.ASSET
         archive.write_bytes(_RELEASE_BYTES)
         monkeypatch.setattr(fetch_rife, "SHA256", hashlib.sha256(_RELEASE_BYTES).hexdigest())
-        monkeypatch.setattr(fetch_rife.urllib.request, "urlretrieve", _never_called)
+        monkeypatch.setattr(fetch_rife.urllib.request, "urlopen", _never_called)
 
         assert fetch_rife.download(archive) == archive
 
@@ -157,26 +229,26 @@ class TestDownload:
         archive.write_bytes(b"half a download")
         fetched: list[str] = []
 
-        def _fetch(url, target):
-            fetched.append(url)
-            Path(target).write_bytes(_RELEASE_BYTES)
+        def _open(url, timeout=None):
+            fetched.append((url, timeout))
+            return io.BytesIO(_RELEASE_BYTES)
 
         monkeypatch.setattr(fetch_rife, "SHA256", hashlib.sha256(_RELEASE_BYTES).hexdigest())
-        monkeypatch.setattr(fetch_rife.urllib.request, "urlretrieve", _fetch)
+        monkeypatch.setattr(fetch_rife.urllib.request, "urlopen", _open)
 
         fetch_rife.download(archive)
 
-        assert fetched == [fetch_rife.URL]
+        assert fetched == [(fetch_rife.URL, fetch_rife._DOWNLOAD_TIMEOUT)]
 
     def test_a_download_that_does_not_match_is_refused_and_removed(
         self, tmp_path: Path, monkeypatch
     ):
         archive = tmp_path / fetch_rife.ASSET
 
-        def _fetch(_url, target):
-            Path(target).write_bytes(b"something else entirely")
+        def _open(_url, timeout=None):
+            return io.BytesIO(b"something else entirely")
 
-        monkeypatch.setattr(fetch_rife.urllib.request, "urlretrieve", _fetch)
+        monkeypatch.setattr(fetch_rife.urllib.request, "urlopen", _open)
 
         with pytest.raises(SystemExit, match="sha256 mismatch"):
             fetch_rife.download(archive)
