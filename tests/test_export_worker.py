@@ -135,13 +135,6 @@ class TestRunCallsExportSteps:
 
         assert steps["raw"].calls[0][1].stem == "take 1_ second pass"
 
-    def test_the_run_hands_the_state_its_export_job(self, state, steps):
-        assert state.export_job is None
-
-        ExportWorker(state).run()
-
-        assert isinstance(state.export_job, ExportJob)
-
 
 class TestFailures:
     def test_a_failed_clip_stops_the_run_and_reports_why(self, state, steps):

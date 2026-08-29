@@ -58,7 +58,6 @@ class ExportWorker(QThread):
                     w.stage_changed.emit(str(value))
 
         job = _SignalBridge()
-        self._state.export_job = job
 
         session_base = sanitize_name(self._state.session_name)
         raw_path = RAW_CLIPS_DIR / f"{session_base}.mp4"

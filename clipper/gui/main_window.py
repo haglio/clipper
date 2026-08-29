@@ -435,9 +435,6 @@ class ClipperMainWindow(QMainWindow):
             change_speed(self._state, 0.25)
         elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self._on_export()
-        elif key == Qt.Key.Key_Escape:
-            if self._state.export_job and not self._state.export_job.dismissed:
-                self._state.export_job.dismissed = True
         elif text == "q":
             self.close()
         else:
