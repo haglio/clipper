@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from clipper import paths
-from clipper.paths import ensure_runtime_dirs
+from clipper.paths import ensure_runtime_dirs, library_is_configured
 
 
 # The five directories the app writes into. Named here rather than read out of
@@ -36,6 +36,13 @@ def _constants_ensure_runtime_dirs_creates() -> set[str]:
     }
 
 
+def _with_a_local_overlay(tmp_path: Path, monkeypatch) -> None:
+    """Stand in the ``content.local.json`` a machine with a real library has."""
+    local = tmp_path / "content.local.json"
+    local.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(paths, "LOCAL_CONTENT", local)
+
+
 @pytest.fixture()
 def runtime_dirs(tmp_path: Path, monkeypatch):
     """Point every directory ``ensure_runtime_dirs`` creates at tmp_path.
@@ -50,6 +57,7 @@ def runtime_dirs(tmp_path: Path, monkeypatch):
     """
     for name in set(_RUNTIME_DIRS) | _constants_ensure_runtime_dirs_creates():
         monkeypatch.setattr(paths, name, tmp_path / name.lower())
+    _with_a_local_overlay(tmp_path, monkeypatch)
     return {name: tmp_path / name.lower() for name in _RUNTIME_DIRS}
 
 
@@ -77,7 +85,49 @@ class TestEnsureRuntimeDirs:
         deep = tmp_path / "videos" / "genau" / "clips"
         for name in set(_RUNTIME_DIRS) | _constants_ensure_runtime_dirs_creates():
             monkeypatch.setattr(paths, name, deep if name == "CLIPS_DIR" else tmp_path / name.lower())
+        _with_a_local_overlay(tmp_path, monkeypatch)
 
         ensure_runtime_dirs()
 
         assert deep.is_dir()
+
+
+class TestACheckoutWithNoLocalOverlay:
+    """The committed example's ``suite_root`` is a placeholder, not a library.
+
+    ``C:/path/to/suite-root`` is a *relative* path on POSIX, so deriving the
+    library folders from it made a literal ``C:`` tree inside the checkout; on
+    Windows the same string is absolute and made ``C:\\path\\to\\suite-root`` on
+    the system drive. Neither is anywhere clipper should write, and the next
+    export would have put real media there -- inside the repo, one ``git add``
+    from a public commit.
+    """
+
+    def test_a_local_overlay_is_what_makes_a_library(self, tmp_path, monkeypatch):
+        local = tmp_path / "content.local.json"
+        local.write_text("{}", encoding="utf-8")
+        monkeypatch.setattr(paths, "LOCAL_CONTENT", local)
+
+        assert library_is_configured() is True
+
+    def test_without_one_there_is_no_library(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(paths, "LOCAL_CONTENT", tmp_path / "content.local.json")
+
+        assert library_is_configured() is False
+
+    def test_the_repos_own_directories_are_still_made(self, runtime_dirs, tmp_path, monkeypatch):
+        monkeypatch.setattr(paths, "LOCAL_CONTENT", tmp_path / "absent.json")
+
+        ensure_runtime_dirs()
+
+        assert runtime_dirs["SESSIONS_DIR"].is_dir()
+        assert runtime_dirs["RAW_CLIPS_DIR"].is_dir()
+
+    def test_no_library_directory_is_made(self, runtime_dirs, tmp_path, monkeypatch):
+        monkeypatch.setattr(paths, "LOCAL_CONTENT", tmp_path / "absent.json")
+
+        ensure_runtime_dirs()
+
+        made = [name for name in ("CLIPS_DIR", "VR_CLIPS_DIR", "AUDIO_DIR")
+                if runtime_dirs[name].is_dir()]
+        assert made == []
