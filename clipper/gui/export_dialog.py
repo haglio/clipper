@@ -1,4 +1,4 @@
-"""Export progress dialog — follows Evolver's ProgressPopup pattern."""
+"""Export progress dialog — a bar per stage, and a Close that waits for the end."""
 
 from __future__ import annotations
 

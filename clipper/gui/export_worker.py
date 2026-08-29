@@ -1,4 +1,4 @@
-"""QThread-based export worker following Evolver's PipelineWorker pattern."""
+"""Runs the three export steps off the Qt thread, reporting progress by signal."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""QTimer-driven playback loop replacing cv2.waitKeyEx polling."""
+"""The clock the loop preview runs on: a tick at ~60 fps, and nothing else."""
 
 from __future__ import annotations
 

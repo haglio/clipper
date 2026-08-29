@@ -15,15 +15,9 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 def project_roots(content: dict[str, Any] | None = None) -> tuple[Path, ...]:
     """The folders that hold the suite's sibling app checkouts, in search order.
 
-    ``suite_root`` used to answer this as well as naming where the media library
-    is, and for a long time both were true of one folder. They came apart when
-    the checkouts were moved out of the file-synced tree the library stays in,
-    so the checkouts get their own key and ``suite_root`` keeps the library.
-
-    A *list*, because the move runs one repo at a time: with a single path there
-    is a window where a sibling that has not moved yet is unreachable. An
-    overlay that says nothing still means ``suite_root/projects``, exactly as
-    before.
+    A *list*, because checkouts move one repo at a time: a single path leaves a
+    window in which a sibling that has not moved yet is unreachable.  An overlay
+    that says nothing means ``suite_root/projects``.
     """
     content = _CONTENT if content is None else content
     roots = content.get("project_roots")

@@ -36,17 +36,9 @@ def _init_logger() -> logging.Logger:
 def _name_this_process() -> None:
     """Leave ``launch_clipper.vbs`` an interpreter that says "Clipper" next time.
 
-    Windows takes what it shows about a process from the file it was started
-    from -- the Details tab's name, the Processes tab's description, the icon
-    beside it -- so a plain interpreter puts Clipper in the task list as one more
-    anonymous "Python".  That costs nothing until something strands a process,
-    and then the task list is the only way back and cannot say which row is safe
-    to end.
-
-    Naming this process on the way in is the one thing that cannot be done:
-    writing the copy takes the very interpreter being named.  So each run makes
-    it for the run after and the launcher picks it up, which costs one launch,
-    once.  A checkout that has never started launches exactly as it used to.
+    Naming *this* process is the one thing that cannot be done: writing the
+    named copy takes the very interpreter being named.  So each run prepares it
+    for the run after, and the launcher picks it up.
     """
     try:
         from pathlib import Path as _Path

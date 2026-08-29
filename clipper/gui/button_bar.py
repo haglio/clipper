@@ -9,9 +9,7 @@ from shared_ui.colors import TEXT_PRIMARY
 from shared_ui.icons import glyph_icon
 from shared_ui.spacing import BUTTON_ICON
 
-# The chrome's own text color, so a glyph on a button matches the label beside
-# it. It was its own near-white before, which is the sort of stray that leaves
-# one app looking a shade off from the rest of the family.
+# The chrome's own text color, so a glyph on a button matches the label beside it.
 _ICON_COLOR = TEXT_PRIMARY
 # The family's icon size, so a mark on a button here is the size a mark on a
 # button anywhere else is.
@@ -29,10 +27,8 @@ class ButtonBar(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
 
-        # The family's own transport marks rather than an icon font's: Fun Time's
-        # bar and Evolver's Run Now draw these same two, and all three apps are
-        # open together.  Play's corners are rounded, which is what an icon font
-        # gave it and a hand-drawn triangle did not.
+        # The family's own transport marks: Fun Time's bar and Evolver's Run Now
+        # draw these same two, and all three apps are open together.
         self._icon_play = glyph_icon("play", color=_ICON_COLOR)
         self._icon_pause = glyph_icon("pause", color=_ICON_COLOR)
 
