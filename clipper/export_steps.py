@@ -115,16 +115,12 @@ def export_raw_clip(state: VideoState, out_path: Path, job: ExportJob) -> tuple[
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(out_path),
     ]
     job.stage = "exporting raw silent clip"
-    job.clip_status = "encoding"
     ok, detail = _run_ffmpeg_with_progress(cmd, clip_duration, lambda p: setattr(job, "clip_progress", p), job)
     if not ok:
         return False, detail
-    job.clip_status = "finalizing..."
     ok2, detail2 = validate_video_file(out_path)
     if not ok2:
         return False, detail2
-    job.clip_status = "done"
-    job.raw_clip_output = str(out_path)
     return True, str(out_path)
 
 
@@ -146,7 +142,6 @@ def run_clip_postprocess(state: VideoState, raw_path: Path, out_path: Path, job:
         if proc.poll() is not None:
             break
         job.fix_progress = min(0.95, job.fix_progress + 0.01)
-        job.fix_status = "working"
         time.sleep(0.1)
     if proc.stdout:
         rest = proc.stdout.read()
@@ -162,8 +157,6 @@ def run_clip_postprocess(state: VideoState, raw_path: Path, out_path: Path, job:
     if rc != 0:
         return False, f"{CLIP_POSTPROCESS_SCRIPT.name} failed:\n" + "\n".join(lines[-20:])
     job.fix_progress = 1.0
-    job.fix_status = "done"
-    job.clip_output = str(out_path)
     return True, str(out_path)
 
 
@@ -189,7 +182,6 @@ def export_full_audio_mp3(state: VideoState, out_path: Path, job: ExportJob) -> 
     if not ffmpeg:
         return False, "ffmpeg not found on PATH"
     if not _has_audio_stream(state.path):
-        job.audio_status = "skipped"
         job.audio_progress = 1.0
         return True, "No audio stream in source video"
     full_duration = max(1.0 / state.fps, state.total_frames / state.fps)
@@ -198,12 +190,9 @@ def export_full_audio_mp3(state: VideoState, out_path: Path, job: ExportJob) -> 
         "-i", state.path, "-vn", "-map", "0:a:0?", "-c:a", "libmp3lame", "-q:a", "2", str(out_path),
     ]
     job.stage = "extracting full audio to mp3"
-    job.audio_status = "encoding"
     ok, detail = _run_ffmpeg_with_progress(cmd, full_duration, lambda p: setattr(job, "audio_progress", p), job)
     if not ok:
         return False, detail
     if not out_path.exists() or out_path.stat().st_size == 0:
         return False, "No MP3 output created"
-    job.audio_status = "done"
-    job.audio_output = str(out_path)
     return True, str(out_path)

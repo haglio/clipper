@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import subprocess
-import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -19,22 +18,11 @@ from .session_persistence import (
 
 @dataclass
 class ExportJob:
-    active: bool = False
-    done: bool = False
-    failed: bool = False
     dismissed: bool = False
     stage: str = ""
     clip_progress: float = 0.0
     fix_progress: float = 0.0
     audio_progress: float = 0.0
-    clip_status: str = "waiting"
-    fix_status: str = "waiting"
-    audio_status: str = "waiting"
-    error_message: str = ""
-    raw_clip_output: str = ""
-    clip_output: str = ""
-    audio_output: str = ""
-    worker: threading.Thread | None = None
     procs: list[subprocess.Popen[str]] = field(default_factory=list)
 
 
