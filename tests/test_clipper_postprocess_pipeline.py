@@ -263,3 +263,62 @@ def test_postprocess_clip_refuses_a_size_budget_of_zero(tmp_path, run_pipeline):
 def test_postprocess_clip_refuses_a_clip_too_short_to_bridge(tmp_path, run_pipeline):
     with pytest.raises(RuntimeError, match="Clip is too short"):
         run_pipeline(_args(tmp_path), values=(10, 20))
+
+
+# --seam-ms's blend sibling. Every case above passes symmetric_blend=0, so the
+# branch that actually blends -- and the cap that decides how wide it gets --
+# had no test at all. Sixteen frames, because the cap is a quarter of the clip
+# and an eight-frame source makes it equal to the width asked for below, which
+# is exactly the coincidence that lets a broken cap pass.
+_BLEND_SOURCE = list(range(10, 170, 10))
+
+
+def _blend_run(frames_of, values_of, symmetric_blend):
+    """The frames the bridge is built from, for one --symmetric-blend width."""
+    out, normalized_n = build_output_frames(
+        frames_of(_BLEND_SOURCE), loop_mode="base-tip-base", bridge_frames=1,
+        mode="blend", keep_length=False, symmetric_blend=symmetric_blend,
+    )
+    return values_of(out[:normalized_n]), normalized_n
+
+
+def _moved(before, after):
+    return [i for i, (a, b) in enumerate(zip(before, after)) if a != b]
+
+
+def test_a_symmetric_blend_pulls_the_two_ends_toward_each_other(frames_of, values_of):
+    plain, _ = _blend_run(frames_of, values_of, 0)
+
+    blended, _ = _blend_run(frames_of, values_of, 2)
+
+    assert abs(blended[0] - blended[-1]) < abs(plain[0] - plain[-1])
+
+
+def test_it_moves_the_number_of_frames_at_each_end_that_was_asked_for(frames_of, values_of):
+    plain, n = _blend_run(frames_of, values_of, 0)
+
+    blended, _ = _blend_run(frames_of, values_of, 2)
+
+    assert _moved(plain, blended) == [0, 1, n - 2, n - 1]
+
+
+def test_a_blend_wider_than_a_quarter_of_the_clip_is_capped_there(frames_of, values_of):
+    plain, n = _blend_run(frames_of, values_of, 0)
+    quarter = n // 4
+
+    greedy, _ = _blend_run(frames_of, values_of, 999)
+
+    assert _moved(plain, greedy) == list(range(quarter)) + list(range(n - quarter, n))
+    assert quarter < 999
+
+
+def test_the_register_fallback_blends_the_same_way(frames_of, values_of):
+    """Both bridge paths reach the blend; flat frames send register down the fallback."""
+    blended, n = _blend_run(frames_of, values_of, 2)
+
+    out, registered_n = build_output_frames(
+        frames_of(_BLEND_SOURCE), loop_mode="base-tip-base", bridge_frames=1,
+        mode="register", keep_length=False, symmetric_blend=2,
+    )
+
+    assert (values_of(out[:registered_n]), registered_n) == (blended, n)
