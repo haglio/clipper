@@ -61,7 +61,6 @@ class TestExportJob:
         """
         job = ExportJob()
 
-        assert job.dismissed is False
         assert job.stage == ""
         assert (job.clip_progress, job.fix_progress, job.audio_progress) == (0.0, 0.0, 0.0)
 

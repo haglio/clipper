@@ -31,7 +31,6 @@ def mock_state():
     state.loop_paused = False
     state.suggested_in = None
     state.suggested_out = None
-    state.export_job = None
     state.dirty = False
     state.should_prompt_on_exit = False
     state.session_warning = ""

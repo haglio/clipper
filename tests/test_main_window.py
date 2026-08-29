@@ -10,7 +10,6 @@ from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.main_window import ClipperMainWindow, _WrapRow
-from clipper.state import ExportJob
 
 
 @pytest.fixture()
@@ -31,7 +30,6 @@ def mock_state():
     state.loop_paused = False
     state.suggested_in = None
     state.suggested_out = None
-    state.export_job = None
     state.dirty = False
     state.should_prompt_on_exit = False
     state.session_warning = ""
@@ -178,10 +176,6 @@ def _with_suggestions(state):
     state.suggested_out = 35
 
 
-def _with_an_export_running(state):
-    state.export_job = ExportJob()
-
-
 # (label, Qt key, event text, prepare, what to read afterwards, what it must be)
 # -- every branch of keyPressEvent, read off a real VideoState.  Six of these
 # used to be `patch(...); assert_called_once_with(state)`, which pins the
@@ -237,8 +231,6 @@ _KEY_BINDINGS = [
     ("_ slows down", Qt.Key.Key_Underscore, "_", _no_prep, lambda s: s.speed, 0.75),
     ("+ speeds up", Qt.Key.Key_Plus, "+", _no_prep, lambda s: s.speed, 1.25),
     ("= speeds up", Qt.Key.Key_Equal, "=", _no_prep, lambda s: s.speed, 1.25),
-    ("escape dismisses the export", Qt.Key.Key_Escape, "", _with_an_export_running,
-     lambda s: s.export_job.dismissed, True),
 ]
 
 
@@ -293,15 +285,6 @@ class TestKeyDispatch:
 
         dialog_cls.return_value.show.assert_called_once()
         worker_cls.return_value.start.assert_called_once()
-
-    def test_escape_leaves_an_already_dismissed_export_alone(self, make_state):
-        state = make_state(**_DISPATCH_STATE)
-        state.export_job = ExportJob(dismissed=True, stage="fixing")
-        window = ClipperMainWindow(state)
-
-        _press(window, Qt.Key.Key_Escape)
-
-        assert state.export_job.stage == "fixing"
 
     def test_q_closes_the_window(self, make_state):
         state = make_state(**_DISPATCH_STATE)
