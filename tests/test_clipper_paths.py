@@ -12,7 +12,7 @@ from clipper import paths
 from clipper.paths import ensure_runtime_dirs
 
 
-# The six directories the app writes into. Named here rather than read out of
+# The five directories the app writes into. Named here rather than read out of
 # the function, so dropping one from the loop is a red test and not a folder
 # that silently stops being made.
 _RUNTIME_DIRS = (
@@ -21,7 +21,6 @@ _RUNTIME_DIRS = (
     "CLIPS_DIR",
     "VR_CLIPS_DIR",
     "AUDIO_DIR",
-    "FRAMES_DIR",
 )
 
 
@@ -41,12 +40,13 @@ def _constants_ensure_runtime_dirs_creates() -> set[str]:
 def runtime_dirs(tmp_path: Path, monkeypatch):
     """Point every directory ``ensure_runtime_dirs`` creates at tmp_path.
 
-    Four of the six used to be patched and two were not, so simply running the
-    suite created ``<suite-root>/videos/genau/vr_clips`` and ``.../frames`` for
-    real -- a literal ``C:`` tree inside the checkout on a developer machine,
-    and the live media library on the Windows machines the app runs on. The
-    fixture redirects the constants named above *and* any the function iterates
-    that are not, so a seventh cannot escape while its test is being written.
+    Four of the six the loop then had were patched and two were not, so simply
+    running the suite created ``<suite-root>/videos/genau/vr_clips`` and
+    ``.../frames`` for real -- a literal ``C:`` tree inside the checkout on a
+    developer machine, and the live media library on the Windows machines the
+    app runs on. The fixture redirects the constants named above *and* any the
+    function iterates that are not, so a sixth cannot escape while its test is
+    being written.
     """
     for name in set(_RUNTIME_DIRS) | _constants_ensure_runtime_dirs_creates():
         monkeypatch.setattr(paths, name, tmp_path / name.lower())
@@ -61,7 +61,7 @@ class TestEnsureRuntimeDirs:
         assert missing == []
 
     def test_the_directories_it_creates_are_the_ones_named_here(self):
-        """A seventh added to the loop needs a line above, or it escapes."""
+        """A sixth added to the loop needs a line above, or it escapes."""
         assert _constants_ensure_runtime_dirs_creates() == set(_RUNTIME_DIRS)
 
     def test_a_second_run_keeps_what_the_first_one_left(self, runtime_dirs):
