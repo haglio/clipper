@@ -18,7 +18,6 @@ from .session_persistence import (
 
 @dataclass
 class ExportJob:
-    dismissed: bool = False
     stage: str = ""
     clip_progress: float = 0.0
     fix_progress: float = 0.0
@@ -48,7 +47,6 @@ class VideoState:
     skip_postprocess: bool = False
     speed: float = 1.0
     vr: bool = False
-    export_job: ExportJob | None = None
     session_warning: str = ""
     dirty: bool = False
     protect_existing_save_data: bool = False
