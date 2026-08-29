@@ -144,9 +144,8 @@ class TestEstimateAlignment:
         # Shift by 5 pixels right and 3 pixels down
         M_shift = np.array([[1, 0, 5], [0, 1, 3]], dtype=np.float32)
         shifted = cv2.warpAffine(frame, M_shift, (128, 128), borderMode=cv2.BORDER_REFLECT)
-        M, inlier_ratio = estimate_alignment(frame, shifted)
+        M = estimate_alignment(frame, shifted)
         assert M is not None
-        assert inlier_ratio > 0.3
         tx, ty, angle, scale = decompose_similarity(M, (64.0, 64.0))
         assert abs(tx - 5.0) < 2.0
         assert abs(ty - 3.0) < 2.0
@@ -155,13 +154,11 @@ class TestEstimateAlignment:
 
     def test_fails_on_blank_frames(self):
         blank = np.zeros((64, 64, 3), dtype=np.uint8)
-        M, inlier_ratio = estimate_alignment(blank, blank)
-        assert (M, inlier_ratio) == (None, 0.0)
+        assert estimate_alignment(blank, blank) is None
 
     def test_fails_on_uniform_color(self):
         frame = np.full((64, 64, 3), 128, dtype=np.uint8)
-        M, inlier_ratio = estimate_alignment(frame, frame)
-        assert (M, inlier_ratio) == (None, 0.0)
+        assert estimate_alignment(frame, frame) is None
 
 
 class TestBuildRegisteredSeam:
