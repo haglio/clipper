@@ -74,13 +74,16 @@ def build_output_frames(
             return list(work_frames), normalized_n
         # Fallback to existing approach
         if symmetric_blend > 0:
-            sf = min(symmetric_blend, max(1, normalized_n // 4))
-            work_frames = build_symmetric_blend(work_frames, sf)
+            blend_frames = min(symmetric_blend, max(1, normalized_n // 4))
+            work_frames = build_symmetric_blend(work_frames, blend_frames)
         bridge = build_bridge(work_frames[-1], work_frames[0], bridge_frames, "flow")
     else:
+        # seam_frames is not read here: --seam-ms drives RIFE seam convergence,
+        # which only the register path runs.  The blend width below comes from
+        # --symmetric-blend, and reusing the parameter's name for it hid that.
         if symmetric_blend > 0:
-            seam_frames = min(symmetric_blend, max(1, normalized_n // 4))
-            work_frames = build_symmetric_blend(work_frames, seam_frames)
+            blend_frames = min(symmetric_blend, max(1, normalized_n // 4))
+            work_frames = build_symmetric_blend(work_frames, blend_frames)
         bridge = build_bridge(work_frames[-1], work_frames[0], bridge_frames, mode)
 
     if keep_length:
