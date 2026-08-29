@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PyQt6.QtCore import QRectF, Qt
-from PyQt6.QtGui import QColor, QFont, QPainter
+from PyQt6.QtGui import QFont, QPainter
 from PyQt6.QtWidgets import QWidget
 
 from shared_ui.colors import (

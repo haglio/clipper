@@ -6,7 +6,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-from clipper.clip_postprocess import main, normalize_loop_mode, shift_frames_halfway
+from clipper.clip_postprocess import main
+from clipper.clip_postprocess_transforms import normalize_loop_mode, shift_frames_halfway
 
 
 class TestShiftFramesHalfway:
