@@ -13,10 +13,10 @@ from pathlib import Path
 from .config import load_config
 from .utils import format_seconds, sanitize_name
 from .vlc_prefill_paths import (
-    _looks_like_vlc_title as _path_looks_like_vlc_title,
-    _resolve_media_path,
-    _resolve_media_path_from_title as _path_resolve_media_path_from_title,
-    _timestamp_seconds_from_title as _path_timestamp_seconds_from_title,
+    looks_like_vlc_title,
+    resolve_media_path,
+    resolve_media_path_from_title,
+    timestamp_seconds_from_title,
 )
 
 
@@ -70,10 +70,10 @@ def _detect_from_http() -> _VlcProbe | None:
 
 def _detect_from_windows() -> _VlcProbe | None:
     for title in _ordered_vlc_window_titles():
-        media_path = _resolve_media_path_from_title(title)
+        media_path = resolve_media_path_from_title(title)
         if media_path is None:
             continue
-        return _VlcProbe(media_path=media_path, position_seconds=_timestamp_seconds_from_title(title))
+        return _VlcProbe(media_path=media_path, position_seconds=timestamp_seconds_from_title(title))
     return None
 
 
@@ -89,7 +89,7 @@ def _current_media_path_from_playlist(port: int) -> Path | None:
         if leaf.get("current") == "current":
             uri = leaf.get("uri")
             if uri:
-                return _resolve_media_path(uri)
+                return resolve_media_path(uri)
     return None
 
 
@@ -144,7 +144,7 @@ def _media_path_from_http_payload(payload: ET.Element) -> Path | None:
         or _text_of(info.find("./info[@name='filename']"))
         or _text_of(info.find("./info[@name='title']"))
     )
-    return _resolve_media_path(raw)
+    return resolve_media_path(raw)
 
 
 def _http_time_seconds(payload: ET.Element) -> float | None:
@@ -172,7 +172,7 @@ def _ordered_vlc_window_titles() -> list[str]:
         buf = ctypes.create_unicode_buffer(length + 1)
         user32.GetWindowTextW(hwnd, buf, length + 1)
         title = buf.value.strip()
-        if not _looks_like_vlc_title(title) or title in seen:
+        if not looks_like_vlc_title(title) or title in seen:
             return
         seen.add(title)
         titles.append(title)
@@ -189,18 +189,6 @@ def _ordered_vlc_window_titles() -> list[str]:
 
     user32.EnumWindows(enum_proc, 0)
     return titles
-
-
-def _looks_like_vlc_title(title: str) -> bool:
-    return _path_looks_like_vlc_title(title)
-
-
-def _timestamp_seconds_from_title(title: str) -> float | None:
-    return _path_timestamp_seconds_from_title(title)
-
-
-def _resolve_media_path_from_title(title: str) -> Path | None:
-    return _path_resolve_media_path_from_title(title)
 
 
 def _text_of(element: ET.Element | None) -> str | None:

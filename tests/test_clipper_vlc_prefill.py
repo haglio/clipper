@@ -10,14 +10,16 @@ from clipper.vlc_prefill import (
     VlcSessionPrefill,
     _VlcProbe,
     _current_media_path_from_playlist,
-    _resolve_media_path,
-    _timestamp_seconds_from_title,
     _vlc_http_password,
     _vlc_http_password_from_config,
     detect_vlc_session_prefill,
 )
 from clipper import vlc_prefill_paths
-from clipper.vlc_prefill_paths import _strip_vlc_title_suffix
+from clipper.vlc_prefill_paths import (
+    resolve_media_path,
+    strip_vlc_title_suffix,
+    timestamp_seconds_from_title,
+)
 
 
 class TestDetectVlcSessionPrefill:
@@ -127,7 +129,7 @@ class TestResolveMediaPath:
         video.write_bytes(b"")
         uri = video.resolve().as_uri()
 
-        result = _resolve_media_path(uri)
+        result = resolve_media_path(uri)
 
         assert result == video.resolve()
 
@@ -137,7 +139,7 @@ class TestResolveMediaPath:
         video = root / "delta.mp4"
         video.write_bytes(b"")
         with patch("clipper.vlc_prefill_paths.search_roots", return_value=(root,)):
-            result = _resolve_media_path("delta.mp4")
+            result = resolve_media_path("delta.mp4")
         assert result == video
 
 
@@ -151,14 +153,14 @@ class TestTitleParsing:
         ],
     )
     def test_strips_known_suffixes(self, raw: str, expected: str):
-        assert _strip_vlc_title_suffix(raw) == expected
+        assert strip_vlc_title_suffix(raw) == expected
 
     def test_extracts_timestamp_from_title(self):
-        result = _timestamp_seconds_from_title("Example.mp4 01:02:03.500 - VLC media player")
+        result = timestamp_seconds_from_title("Example.mp4 01:02:03.500 - VLC media player")
         assert result == pytest.approx(3723.5)
 
     def test_returns_none_when_title_has_no_timestamp(self):
-        assert _timestamp_seconds_from_title("Example.mp4 - VLC media player") is None
+        assert timestamp_seconds_from_title("Example.mp4 - VLC media player") is None
 
 
 class TestPlaylistFallback:
