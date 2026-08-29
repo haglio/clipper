@@ -7,11 +7,9 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from clipper.clip_postprocess_pipeline import postprocess_clip
-    from clipper.clip_postprocess_transforms import normalize_loop_mode, shift_frames_halfway
     from clipper.loop_modes import LOOP_MODE_BASE_TIP_BASE, LOOP_MODES
 else:
     from .clip_postprocess_pipeline import postprocess_clip
-    from .clip_postprocess_transforms import normalize_loop_mode, shift_frames_halfway
     from .loop_modes import LOOP_MODE_BASE_TIP_BASE, LOOP_MODES
 
 
