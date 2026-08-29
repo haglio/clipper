@@ -22,7 +22,7 @@ from unittest.mock import MagicMock, patch
 
 from app_support.process_identity import ProcessNamer
 
-from clipper.app import _name_this_process
+from clipper.app import CLIPPER_APP_USER_MODEL_ID, _name_this_process
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 APP_NAME = "Clipper"
@@ -31,6 +31,7 @@ ROLE = "Clipper"
 # The launcher is VBScript: it cannot be run here, so its two guarantees are
 # read out of the file.  Everything on the Python side below is driven instead.
 LAUNCHER = (PROJECT_DIR / "launch_clipper.vbs").read_text(encoding="utf-8")
+STAMPER = (PROJECT_DIR / "set_shortcut_appid.ps1").read_text(encoding="utf-8")
 
 
 def test_the_launcher_prefers_the_copy_named_for_this_app():
@@ -98,3 +99,17 @@ def test_naming_never_takes_a_launch_down():
         _name_this_process()  # nor here
 
     namer.prepare_launcher.assert_called_once()
+
+
+def test_the_shortcut_stamper_names_the_app_id_the_app_sets():
+    """`set_shortcut_appid.ps1` and clipper/app.py must agree on the AppId.
+
+    The script is run by hand, once, after the shortcut is made: no CI step, no
+    launcher and no test called it, so nothing would have noticed the two
+    drifting. A shortcut stamped with one AppId and a process setting another
+    gives Windows two things to group and the taskbar a second, blank button.
+
+    A text assertion because a .ps1 is a text file that really does contain the
+    literal -- the same carve-out the launcher assertions above sit under.
+    """
+    assert f"$AppId = '{CLIPPER_APP_USER_MODEL_ID}'" in STAMPER
