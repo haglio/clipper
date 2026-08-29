@@ -84,17 +84,13 @@ class TestVideoStateDefaults:
 
 
 class TestVideoStateProperties:
-    def test_active_count(self, make_state):
-        s = make_state(active_start=10, active_end=19)
-        assert s.active_count == 10
-
     def test_loaded_count(self, make_state):
         s = make_state(loaded_start=0, loaded_end=49)
         assert s.loaded_count == 50
 
-    def test_active_count_single_frame(self, make_state):
-        s = make_state(active_start=5, active_end=5)
-        assert s.active_count == 1
+    def test_loaded_count_single_frame(self, make_state):
+        s = make_state(loaded_start=5, loaded_end=5)
+        assert s.loaded_count == 1
 
     def test_should_prompt_on_exit_only_for_existing_saved_data(self, make_state):
         s = make_state()
