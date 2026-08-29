@@ -132,10 +132,10 @@ def warp_affine(frame: np.ndarray, M: np.ndarray) -> np.ndarray:
     return cv2.warpAffine(frame, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
 
 
-def estimate_alignment(frame_a: np.ndarray, frame_b: np.ndarray) -> tuple[np.ndarray | None, float]:
+def estimate_alignment(frame_a: np.ndarray, frame_b: np.ndarray) -> np.ndarray | None:
     h, w = frame_a.shape[:2]
     if h < 16 or w < 16:
-        return None, 0.0
+        return None
     gray_a = cv2.cvtColor(frame_a, cv2.COLOR_BGR2GRAY)
     gray_b = cv2.cvtColor(frame_b, cv2.COLOR_BGR2GRAY)
     orb = cv2.ORB_create(nfeatures=2000)
@@ -143,9 +143,9 @@ def estimate_alignment(frame_a: np.ndarray, frame_b: np.ndarray) -> tuple[np.nda
         kp_a, desc_a = orb.detectAndCompute(gray_a, None)
         kp_b, desc_b = orb.detectAndCompute(gray_b, None)
     except cv2.error:
-        return None, 0.0
+        return None
     if desc_a is None or desc_b is None or len(kp_a) < 8 or len(kp_b) < 8:
-        return None, 0.0
+        return None
     bf = cv2.BFMatcher(cv2.NORM_HAMMING)
     raw_matches = bf.knnMatch(desc_a, desc_b, k=2)
     good = []
@@ -153,16 +153,15 @@ def estimate_alignment(frame_a: np.ndarray, frame_b: np.ndarray) -> tuple[np.nda
         if len(m_pair) == 2 and m_pair[0].distance < 0.75 * m_pair[1].distance:
             good.append(m_pair[0])
     if len(good) < 8:
-        return None, 0.0
+        return None
     pts_a = np.array([kp_a[m.queryIdx].pt for m in good], dtype=np.float32)
     pts_b = np.array([kp_b[m.trainIdx].pt for m in good], dtype=np.float32)
     M, inliers = cv2.estimateAffinePartial2D(pts_a, pts_b, method=cv2.RANSAC, ransacReprojThreshold=3.0)
     if M is None or inliers is None:
-        return None, 0.0
-    inlier_ratio = float(inliers.sum()) / len(good)
-    if inlier_ratio < 0.3:
-        return None, inlier_ratio
-    return M, inlier_ratio
+        return None
+    if float(inliers.sum()) / len(good) < 0.3:
+        return None
+    return M
 
 
 def build_registered_seam(
@@ -172,7 +171,7 @@ def build_registered_seam(
     if n < 2 or seam_frames < 1:
         return frames, False
 
-    M, inlier_ratio = estimate_alignment(frames[-1], frames[0])
+    M = estimate_alignment(frames[-1], frames[0])
     if M is None:
         return frames, False
 
