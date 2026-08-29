@@ -41,7 +41,6 @@ AUDIO_DIR = _GENAU_DIR / "audio"
 FRAMES_DIR = _GENAU_DIR / "frames"
 LAST_SESSION_FILE = SESSIONS_DIR / ".last_session.txt"
 CLIP_POSTPROCESS_SCRIPT = MODULE_DIR / "clip_postprocess.py"
-LOOP_FIX_SCRIPT = CLIP_POSTPROCESS_SCRIPT
 
 
 def ensure_runtime_dirs() -> None:
@@ -65,7 +64,6 @@ __all__ = [
     "ESC_KEYS",
     "LAST_SESSION_FILE",
     "LOOP_MODE_CYCLE_KEYS",
-    "LOOP_FIX_SCRIPT",
     "MARK_IN_KEYS",
     "MARK_OUT_KEYS",
     "MODULE_DIR",
