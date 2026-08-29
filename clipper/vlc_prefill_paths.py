@@ -108,12 +108,3 @@ def search_roots_for_filename(filename: str) -> Path | None:
             if match is not None and match.is_file():
                 return match
     return None
-
-
-_resolve_media_path = resolve_media_path
-_resolve_media_path_from_title = resolve_media_path_from_title
-_search_roots = search_roots
-_search_roots_for_filename = search_roots_for_filename
-_strip_vlc_title_suffix = strip_vlc_title_suffix
-_timestamp_seconds_from_title = timestamp_seconds_from_title
-_looks_like_vlc_title = looks_like_vlc_title
