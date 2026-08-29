@@ -15,7 +15,7 @@ Clipper is a standalone PyQt6/OpenCV video clip editor, extracted from the fun_t
 - **Config**: `clipper/config.py` reads `fun_time_config.json` from the sibling fun_time project for VLC prefill (HTTP ports, search roots). This is a read-only dependency; clipper never writes to fun_time's config.
 - **Output dirs**: Clips export to `<suite-root>/videos/genau/clips/`, audio to `<suite-root>/videos/genau/audio/`. These are shared with fun_time's Genau listener.
 - **Entry point**: `python -m clipper` -> `__main__.py` -> `app.py:main()` -> launcher dialog -> UI.
-- **Launcher chain**: `Clipper.lnk` -> `wscript.exe` -> `launch_clipper.vbs` -> `python -m clipper`.
+- **Launcher chain**: `Clipper.lnk` -> `wscript.exe` -> `launch_clipper.vbs` -> `python -m clipper`. `Clipper.lnk` is git-ignored, so it is made by hand on each machine; **after making it, run `set_shortcut_appid.ps1` once** to stamp the shortcut with the same AppUserModelID the app sets at startup, or Windows gives the running app a second, unlabelled taskbar button instead of grouping it under the shortcut. Nothing calls that script — not CI, not the launcher — so this line is its only caller; `tests/test_process_name.py` pins its default AppId against `clipper/app.py`'s constant so the two cannot drift.
 - **Shared scaffolding**: logging setup, exception hooks and `hidden_subprocess_kwargs` come from the sibling `../app_support`, which every app in this family installs editable — fix those there, not here. Install it with `--config-settings editable_mode=compat`; its README says why, and its `tests/test_install.py` goes red without it.
 
 ## Fetching RIFE
