@@ -14,6 +14,13 @@ name: merge gate (full suite)
 # use compat mode or the "clipper" repo dir shadows the package as a namespace on
 # sys.path (see tests/conftest.py).
 #
+# RIFE is fetched here rather than tracked, and --require makes a fetch that does
+# not end in a runnable binary a red gate. This runner is the only place in the
+# family the interpolator can execute -- it is a Windows PE, and the four tests
+# that drive the seam bridge skip everywhere else -- so if it were merely allowed
+# to skip here, clipper's default loop-fix pipeline would have no coverage at all.
+# The release zip is 432 MB, so the extracted 17 MB is cached on the release tag.
+#
 # shell: bash gives every run step `set -eo pipefail`; the default Windows shell
 # (pwsh) only checks the last line's exit code, so a failed sibling/pip install
 # would pass silently and surface later as a confusing collection error.
@@ -52,6 +59,14 @@ jobs:
             "app_support @ git+https://github.com/haglio/app_support.git" \
             "shared_ui @ git+https://github.com/haglio/shared_ui.git"
           pip install -e ".[dev]" --config-settings editable_mode=compat
+      - name: Cache the RIFE interpolator
+        uses: actions/cache@v4
+        with:
+          path: tools/rife-ncnn-vulkan-20221029-windows
+          key: rife-20221029-${{ runner.os }}
+      - name: Fetch RIFE, and refuse to run without it
+        shell: bash
+        run: python tools/fetch_rife.py --require
       - name: Run the suite
         shell: bash
         run: python -m pytest -q

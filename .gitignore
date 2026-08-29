@@ -21,6 +21,12 @@ pytest-cache-files-*/
 # Windows shortcuts are machine-specific and embed the real install path.
 *.lnk
 
+# The RIFE interpolator is fetched, not tracked: tools/fetch_rife.py puts it
+# where clip_postprocess_transforms._find_rife_exe looks. The release zip is
+# 432 MB and the script deletes it once the six files it wants are out.
+/tools/rife-ncnn-vulkan-*/
+/tools/rife-ncnn-vulkan-*.zip
+
 # The example overlay's placeholder suite_root, "C:/path/to/suite-root", is a
 # relative path on POSIX. ensure_runtime_dirs no longer derives library folders
 # from it, so nothing here makes this any more; the line stays because a
