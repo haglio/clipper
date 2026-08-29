@@ -122,6 +122,10 @@ def create_session(
 
     If a session file with the same name already exists, returns its path
     without overwriting.
+
+    ``sessions_dir`` is a seam only the tests supply, and deliberately so: it
+    is the one argument that keeps this function from writing into the real
+    ``sessions/`` while it is being exercised.
     """
     if sessions_dir is None:
         sessions_dir = SESSIONS_DIR
