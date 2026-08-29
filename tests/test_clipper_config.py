@@ -30,6 +30,18 @@ def _without(cfg_path: Path, *keys: str) -> Path:
     return cfg_path
 
 
+def _every_value_clipper_reads(cfg) -> tuple:
+    """The six. Between them they are everything any clipper module asks for."""
+    return (
+        cfg.controller.vlc2_http_port,
+        cfg.controller.vlc3_http_port,
+        cfg.paths.primary_vlc_dirs,
+        cfg.paths.portrait_dirs,
+        cfg.paths.landscape_dirs,
+        cfg.paths.weird_dir,
+    )
+
+
 def _replacing(cfg_path: Path, dotted: str, value) -> Path:
     raw = json.loads(cfg_path.read_text(encoding="utf-8"))
     target = raw
@@ -64,11 +76,15 @@ class TestALoadableConfig:
 
         Every one of these used to raise, and both call sites swallow the raise
         and fall back -- so a fun_time config missing a key about a serial port
-        cost clipper its VLC prefill.
+        cost clipper its VLC prefill.  Asserting all six kept values rather than
+        one, because "it did not raise" is only half of what has to hold: the
+        rest of the parse must come through intact.
         """
+        whole = _every_value_clipper_reads(config.load_config(cfg_path))
+
         cfg = config.load_config(_without(cfg_path, dotted))
 
-        assert cfg.controller.vlc2_http_port == 8091
+        assert _every_value_clipper_reads(cfg) == whole
 
     def test_a_config_file_that_is_not_there_names_itself(self, tmp_path: Path):
         missing = tmp_path / "no_such_config.json"

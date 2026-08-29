@@ -56,9 +56,10 @@ def _resolve_path(base_dir: Path, raw_path: str) -> Path:
     return (base_dir / path).resolve()
 
 
-def _require_dict(parent: dict[str, Any], key: str, source_path: Path, context: str = "config") -> dict[str, Any]:
+def _require_dict(parent: dict[str, Any], key: str, source_path: Path) -> dict[str, Any]:
+    """A top-level section, by name. Nesting went with the layout config."""
+    dotted = f"config.{key}"
     value = parent.get(key)
-    dotted = f"{context}.{key}" if context else key
     if value is None:
         raise ValueError(f"Missing required config section: {dotted} (in {source_path})")
     if not isinstance(value, dict):
@@ -111,14 +112,9 @@ def _require_path_value(parent: dict[str, Any], key: str, source_path: Path, con
     return _resolve_path(_FUN_TIME_DIR, _require_value(parent, key, source_path, context))
 
 
-def _require_typed_value(
-    parent: dict[str, Any],
-    key: str,
-    source_path: Path,
-    context: str,
-    cast: type,
-):
-    return cast(_require_value(parent, key, source_path, context))
+def _require_int_value(parent: dict[str, Any], key: str, source_path: Path, context: str) -> int:
+    """A port, cast: fun_time writes some of these as strings."""
+    return int(_require_value(parent, key, source_path, context))
 
 
 def _load_paths_config(paths_raw: dict[str, Any], source_path: Path) -> PathsConfig:
@@ -138,8 +134,8 @@ def _load_paths_config(paths_raw: dict[str, Any], source_path: Path) -> PathsCon
 
 def _load_controller_config(controller_raw: dict[str, Any], source_path: Path) -> ControllerConfig:
     return ControllerConfig(
-        vlc2_http_port=_require_typed_value(controller_raw, "vlc2_http_port", source_path, "config.controller", int),
-        vlc3_http_port=_require_typed_value(controller_raw, "vlc3_http_port", source_path, "config.controller", int),
+        vlc2_http_port=_require_int_value(controller_raw, "vlc2_http_port", source_path, "config.controller"),
+        vlc3_http_port=_require_int_value(controller_raw, "vlc3_http_port", source_path, "config.controller"),
     )
 
 
