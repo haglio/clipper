@@ -77,9 +77,6 @@ class TimelineControls(QWidget):
         layout.addLayout(bounds_row)
         layout.addLayout(mode_row)
 
-    def set_wrap_mode(self, mode: str) -> None:
-        self.wrap_btn.setText("wrap")
-
     def set_loop_mode(self, mode: str) -> None:
         from clipper.loop_modes import LOOP_MODE_LABELS
 

@@ -88,7 +88,6 @@ class ClipperApp:
 
         # Sync controls
         w.button_bar.set_playing(not state.loop_paused)
-        w.timeline_controls.set_wrap_mode(state.wrap_mode)
         w.timeline_controls.set_loop_mode(state.loop_mode)
 
         # Update info labels
