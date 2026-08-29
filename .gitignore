@@ -21,6 +21,12 @@ pytest-cache-files-*/
 # Windows shortcuts are machine-specific and embed the real install path.
 *.lnk
 
+# The example overlay's placeholder suite_root, "C:/path/to/suite-root", is a
+# relative path on POSIX. ensure_runtime_dirs no longer derives library folders
+# from it, so nothing here makes this any more; the line stays because a
+# checkout running an older clipper still can, and what lands under it is media.
+/C:/
+
 # pCloud conflict copies (this dir syncs via pCloud). Never our files; an
 # untracked one dirties main and blocks merges. '[' escaped to match literally.
 *\[conflicted*
