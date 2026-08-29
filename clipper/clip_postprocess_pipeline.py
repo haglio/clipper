@@ -30,6 +30,18 @@ def compute_seam_frames(*, fps: float, seam_ms: float, normalized_frame_count: i
     return min(frames, normalized_frame_count // 3)
 
 
+def _softly_blended(work_frames: list, symmetric_blend: int, normalized_n: int) -> list:
+    """Pull the first and last frames toward each other, if --symmetric-blend asked.
+
+    The width is the flag, capped at a quarter of the clip.  Both bridge paths
+    below reach this, which is why it is not written out twice.
+    """
+    if symmetric_blend <= 0:
+        return work_frames
+    blend_frames = min(symmetric_blend, max(1, normalized_n // 4))
+    return build_symmetric_blend(work_frames, blend_frames)
+
+
 def build_output_frames(
     frames: list,
     *,
@@ -73,17 +85,13 @@ def build_output_frames(
             # RIFE unavailable — geometric-only (no bridge)
             return list(work_frames), normalized_n
         # Fallback to existing approach
-        if symmetric_blend > 0:
-            blend_frames = min(symmetric_blend, max(1, normalized_n // 4))
-            work_frames = build_symmetric_blend(work_frames, blend_frames)
+        work_frames = _softly_blended(work_frames, symmetric_blend, normalized_n)
         bridge = build_bridge(work_frames[-1], work_frames[0], bridge_frames, "flow")
     else:
         # seam_frames is not read here: --seam-ms drives RIFE seam convergence,
-        # which only the register path runs.  The blend width below comes from
+        # which only the register path runs.  The blend width comes from
         # --symmetric-blend, and reusing the parameter's name for it hid that.
-        if symmetric_blend > 0:
-            blend_frames = min(symmetric_blend, max(1, normalized_n // 4))
-            work_frames = build_symmetric_blend(work_frames, blend_frames)
+        work_frames = _softly_blended(work_frames, symmetric_blend, normalized_n)
         bridge = build_bridge(work_frames[-1], work_frames[0], bridge_frames, mode)
 
     if keep_length:
