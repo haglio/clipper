@@ -17,6 +17,7 @@ from clipper.clip_postprocess_transforms import (
     estimate_alignment,
     fractional_similarity,
 )
+from tools import fetch_rife
 
 
 def _make_textured_frame(w: int = 128, h: int = 128, seed: int = 42) -> np.ndarray:
@@ -24,10 +25,16 @@ def _make_textured_frame(w: int = 128, h: int = 128, seed: int = 42) -> np.ndarr
     return rng.randint(0, 256, (h, w, 3), dtype=np.uint8)
 
 
-# The lookup walks the filesystem, so it runs once here rather than four times
-# during collection, inside four decorators.
-_RIFE_EXE = _find_rife_exe()
-_NO_RIFE = pytest.mark.skipif(_RIFE_EXE is None, reason="RIFE binary not available")
+# Whether the interpolator *runs* here, not whether the file is on disk. The
+# release is a Windows PE, so on every other machine the old presence check
+# skipped nothing and these four failed on a PermissionError from subprocess
+# instead. The probe spawns a process, so it runs once here rather than four
+# times during collection, inside four decorators.
+_RIFE_RUNS = fetch_rife.runs()
+_NO_RIFE = pytest.mark.skipif(
+    not _RIFE_RUNS,
+    reason="rife-ncnn-vulkan does not run here — see CLAUDE.md, Fetching RIFE",
+)
 
 _VENDORED = ("tools", "rife-ncnn-vulkan-20221029-windows", "rife-ncnn-vulkan.exe")
 
