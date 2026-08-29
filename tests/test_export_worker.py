@@ -141,8 +141,6 @@ class TestRunCallsExportSteps:
         ExportWorker(state).run()
 
         assert isinstance(state.export_job, ExportJob)
-        assert state.export_job.active is False
-        assert state.export_job.done is True
 
 
 class TestFailures:
@@ -189,7 +187,6 @@ class TestFailures:
             worker.run()
 
         assert seen["export_finished"] == [(False, "the disk went away")]
-        assert state.export_job.done is True
 
     def test_a_finished_run_names_the_clip_it_wrote(self, state, steps):
         worker = ExportWorker(state)
@@ -242,7 +239,6 @@ class TestSkipPostprocess:
         worker.run()
 
         assert seen["fix_progress"] == [0.0, 1.0]
-        assert state.export_job.fix_status == "skipped"
 
     def test_the_audio_is_still_pulled(self, state, steps):
         ExportWorker(state).run()

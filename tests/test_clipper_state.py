@@ -54,16 +54,16 @@ def _pattern_frame(seed: int) -> np.ndarray:
 
 class TestExportJob:
     def test_a_fresh_job_has_not_started(self):
-        """Seven one-line tests for seven fields; the whole default instead."""
+        """Seven one-line tests for seven fields; the whole default instead.
+
+        Eleven more fields used to be asserted here.  Nothing read any of them,
+        so the assertions were the only thing keeping them alive.
+        """
         job = ExportJob()
 
-        assert (job.active, job.done, job.failed, job.dismissed) == (False,) * 4
+        assert job.dismissed is False
         assert job.stage == ""
         assert (job.clip_progress, job.fix_progress, job.audio_progress) == (0.0, 0.0, 0.0)
-        assert (job.clip_status, job.fix_status, job.audio_status) == ("waiting",) * 3
-        assert job.error_message == ""
-        assert (job.raw_clip_output, job.clip_output, job.audio_output) == ("", "", "")
-        assert job.worker is None
 
     def test_each_job_gets_its_own_process_list(self):
         first, second = ExportJob(), ExportJob()

@@ -40,7 +40,7 @@ class ExportWorker(QThread):
 
             def __init__(self) -> None:
                 object.__setattr__(self, "_w", worker)
-                super().__init__(active=True, stage="preparing export")
+                super().__init__(stage="preparing export")
 
             def __setattr__(self, name: str, value: object) -> None:
                 super().__setattr__(name, value)
@@ -77,7 +77,6 @@ class ExportWorker(QThread):
 
             if self._state.skip_postprocess:
                 job.fix_progress = 1.0
-                job.fix_status = "skipped"
             else:
                 ok, detail = run_clip_postprocess(self._state, raw_path, clip_path, job)
                 if not ok:
@@ -92,6 +91,3 @@ class ExportWorker(QThread):
             self.export_finished.emit(True, f"Done: {clip_path}")
         except Exception as exc:
             self.export_finished.emit(False, str(exc))
-        finally:
-            job.active = False
-            job.done = True
