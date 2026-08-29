@@ -35,16 +35,10 @@ _CONFIG_FILE = "clipper/config.py"
 # state.py — dataclass fields read/written by production code.
 _STATE_FILE = "clipper/state.py"
 
-# ExportJob mutations — export pipeline writes these during long-running ops.
+# ExportJob mutations — the export steps write these and the Qt signal bridge
+# forwards them to the dialog from __setattr__, which vulture cannot follow.
 _EXPORT_MUTATIONS: set[tuple[str, str]] = {
     ("clipper/export_steps.py", "stage"),
-    ("clipper/export_steps.py", "clip_status"),
-    ("clipper/export_steps.py", "raw_clip_output"),
-    ("clipper/export_steps.py", "fix_status"),
-    ("clipper/gui/export_worker.py", "fix_status"),
-    ("clipper/export_steps.py", "clip_output"),
-    ("clipper/export_steps.py", "audio_status"),
-    ("clipper/export_steps.py", "audio_output"),
 }
 
 # Attribute mutations on state objects — used by production code but vulture
@@ -55,8 +49,6 @@ _STATE_MUTATIONS: set[tuple[str, str]] = {
     ("clipper/playback.py", "render_rev"),
     ("clipper/gui/main_window.py", "render_rev"),
     ("clipper/gui/main_window.py", "_export_worker"),
-    ("clipper/gui/export_worker.py", "done"),
-    ("clipper/gui/export_worker.py", "active"),
     ("clipper/session_launch.py", "original_session_payload"),
     ("clipper/session_persistence.py", "last_saved_payload"),
     ("clipper/state_factory.py", "last_saved_payload"),
