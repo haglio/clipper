@@ -167,9 +167,6 @@ def run_clip_postprocess(state: VideoState, raw_path: Path, out_path: Path, job:
     return True, str(out_path)
 
 
-run_loop_fix = run_clip_postprocess
-
-
 def _has_audio_stream(video_path: str) -> bool:
     ffprobe = find_tool("ffprobe")
     if not ffprobe:
