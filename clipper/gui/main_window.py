@@ -302,8 +302,7 @@ class ClipperMainWindow(QMainWindow):
         bb.export_btn.setFixedSize(72, 28)
         tc.wrap_btn.setFixedSize(64, 28)
 
-        # Prevent buttons from stealing keyboard focus — all keys must reach
-        # keyPressEvent so arrow/space/enter work like the original CV2 UI.
+        # Every key must reach keyPressEvent, so no button takes focus.
         for btn in self.findChildren(QPushButton):
             btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 

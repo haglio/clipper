@@ -25,7 +25,7 @@ VR_VIDEO_DIR = PureWindowsPath(load_content()["suite_root"]) / "videos" / "video
 
 
 class LauncherDialog(QDialog):
-    """Session launcher replacing the Tkinter dialog."""
+    """Chooses between loading a saved session and creating a new one."""
 
     def __init__(self, parent=None, *, last_session: str = ""):
         super().__init__(parent)
@@ -99,7 +99,11 @@ class LauncherDialog(QDialog):
         layout.addLayout(btn_row)
 
     def build_result(self) -> dict:
-        """Build the result dict matching the legacy launcher_dialog() return shape."""
+        """What the caller launches from: ``ok``, a ``mode``, and that mode's fields.
+
+        ``clip_whole`` carries a video_file; ``load`` a session_json; ``new`` the
+        seven fields the form collects.
+        """
         if self._clip_whole_file:
             return {
                 "ok": True,

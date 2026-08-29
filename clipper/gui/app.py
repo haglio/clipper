@@ -1,4 +1,4 @@
-"""ClipperApp — wires all GUI components together, following Evolver's pattern."""
+"""ClipperApp — owns the QApplication, the window and the playback clock."""
 
 from __future__ import annotations
 
