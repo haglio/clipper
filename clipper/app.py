@@ -5,7 +5,7 @@ import sys
 
 from app_support.logging_utils import configure_logging, install_exception_logging
 
-from .config import PROJECT_DIR
+from .paths import PROJECT_DIR
 from .session_launch import launch_state
 
 CLIPPER_APP_USER_MODEL_ID = "FunTime.Clipper"

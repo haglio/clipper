@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .config import PROJECT_DIR
+from .paths import PROJECT_DIR
 
 
 def clipper_icon_path() -> Path:
