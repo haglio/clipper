@@ -39,6 +39,27 @@ from clipper.state import VideoState
 # Helpers
 # ---------------------------------------------------------------------------
 
+class _CapturesUpTo:
+    """A decoder that gives up after a frame, the way a truncated file does."""
+
+    def __init__(self, last_readable: int):
+        self._last = last_readable
+        self._pos = 0
+
+    def set(self, prop, value) -> bool:
+        self._pos = int(value)
+        return True
+
+    def read(self):
+        if self._pos > self._last:
+            return False, None
+        self._pos += 1
+        return True, np.zeros((2, 2, 3), dtype=np.uint8)
+
+    def release(self) -> None:
+        pass
+
+
 def _pattern_frame(seed: int) -> np.ndarray:
     rng = np.random.default_rng(seed)
     return rng.integers(0, 256, size=(40, 40, 3), dtype=np.uint8)
@@ -330,6 +351,25 @@ class TestExtendRight:
         extend_right(s)
 
         assert s.loaded_end == 99
+
+    def test_it_takes_the_whole_step_even_when_the_decoder_gives_up_early(self, make_state):
+        """The window ends up spanning frames nothing decoded.
+
+        That is what the app does, and until now nothing said so -- which is
+        how the trailing `if new_end != loaded_end` in this function came to
+        look like a no-op.  It is one only while every requested frame
+        decodes.  A file the decoder abandons early leaves `loaded_end` past
+        the last frame in `state.frames`, and `safe_frame` raises for the
+        frames in between; recorded in the item-40 changelog rather than
+        changed here.
+        """
+        s = make_state(total_frames=100, loaded_start=0, loaded_end=60, base_step=5)
+        s.cap = _CapturesUpTo(62)
+
+        extend_right(s)
+
+        assert s.loaded_end == 65
+        assert max(s.frames) == 62
 
 
 class TestContractRight:
