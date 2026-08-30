@@ -1,7 +1,7 @@
 """How the launcher's answer becomes a VideoState.
 
 The three cases below used to patch `parse_timestamp` (pure string arithmetic),
-`read_json`, `create_session` and `make_video_state` -- the function the caller
+`read_json`, `create_session` and `load_video_state` -- the function the caller
 exists to call -- and then assert `create_session` had been handed a particular
 argument tuple. That pins the call, not the session: it stays green if the
 session written is wrong, and it goes red on an argument reshuffle that changes
