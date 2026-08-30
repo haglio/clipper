@@ -106,20 +106,17 @@ class TestOnTick:
         assert (timeline.active_start, timeline.active_end) == (20, 40)
         assert timeline.cursor_pos == 33
         assert state.active_start <= timeline.loop_pos <= state.active_end
-        assert timeline.wrap_mode == "blue"
 
     def test_it_follows_the_state_when_it_moves(self, live_app):
         live_app._on_tick()
         live_app._state.window.jump_to(47)
         live_app._state.clip.mark_out(50)
-        live_app._state.wrap_mode = "yellow"
 
         live_app._on_tick()
 
         timeline = live_app.window.timeline
         assert timeline.cursor_pos == 47
         assert timeline.active_end == 50
-        assert timeline.wrap_mode == "yellow"
 
     def test_it_passes_the_suggestions_through(self, live_app):
         live_app._state.suggestions.offer(22, 38)

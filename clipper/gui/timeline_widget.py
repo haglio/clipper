@@ -34,7 +34,6 @@ class TimelineWidget(QWidget):
         self.loop_pos: int = 0
         self.suggested_in: int | None = None
         self.suggested_out: int | None = None
-        self.wrap_mode: str = "blue"
         self.setMinimumHeight(24)
         self.setFixedHeight(24)
 
@@ -61,10 +60,6 @@ class TimelineWidget(QWidget):
     def set_suggestions(self, in_idx: int | None, out_idx: int | None) -> None:
         self.suggested_in = in_idx
         self.suggested_out = out_idx
-        self.update()
-
-    def set_wrap_mode(self, mode: str) -> None:
-        self.wrap_mode = mode
         self.update()
 
     # -- Coordinate mapping ---------------------------------------------------
