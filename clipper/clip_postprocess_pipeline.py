@@ -18,7 +18,6 @@ from .clip_postprocess_transforms import (
 logger = logging.getLogger(__name__)
 
 
-
 def compute_bridge_frames(*, fps: float, bridge_ms: float, bridge_frames: int | None, normalized_frame_count: int) -> int:
     frames = bridge_frames
     if frames is None:
