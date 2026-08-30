@@ -168,10 +168,16 @@ def create_session(
 
 
 def _update_last_session(session_path: Path) -> None:
+    """Point the launcher at the session just made.  Never fatal, never silent.
+
+    A read-only `sessions/` used to stop the launcher remembering anything and
+    say nothing at all, here and in `autosave_session`.  The session itself is
+    written either way, so this is a log line rather than a raised error.
+    """
     try:
         LAST_SESSION_FILE.write_text(str(session_path), encoding="utf-8")
-    except Exception:
-        pass
+    except OSError:
+        logger.warning("Could not update %s", LAST_SESSION_FILE, exc_info=True)
 
 
 def main(argv: list[str] | None = None) -> int:

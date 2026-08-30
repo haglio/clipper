@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
 
@@ -13,6 +14,9 @@ from .clip_postprocess_transforms import (
     normalize_loop_mode,
     resize_frames,
 )
+
+logger = logging.getLogger(__name__)
+
 
 
 def compute_bridge_frames(*, fps: float, bridge_ms: float, bridge_frames: int | None, normalized_frame_count: int) -> int:
@@ -158,7 +162,10 @@ def postprocess_clip(args: Any) -> dict[str, int | float | str]:
 
         h, w = frames_to_encode[0].shape[:2]
         if min(h, w) <= min_dim:
-            print(f"Warning: output is still >{args.max_mb:g} MB at minimum allowed resolution.")
+            logger.warning(
+                "Output is still >%g MB at the minimum allowed resolution.",
+                args.max_mb,
+            )
             break
 
         scale *= 0.9

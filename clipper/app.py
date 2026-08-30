@@ -22,7 +22,8 @@ def _set_windows_app_user_model_id() -> None:
         set_app_id.restype = ctypes.c_long
         _ = set_app_id(CLIPPER_APP_USER_MODEL_ID)
     except Exception:
-        pass
+        logging.getLogger(__name__).debug(
+            "Could not set the AppUserModelID", exc_info=True)
 
 
 def _init_logger() -> logging.Logger:
@@ -49,7 +50,9 @@ def _name_this_process() -> None:
         ProcessNamer("Clipper", icon=icon).prepare_launcher(
             "Clipper", _Path(sys.executable).with_name("python.exe"))
     except Exception:
-        pass  # Cosmetic: costs a name in the task list, never a launch.
+        # Cosmetic: costs a name in the task list, never a launch.
+        logging.getLogger(__name__).debug(
+            "Could not prepare the named launcher", exc_info=True)
 
 
 def main() -> int:

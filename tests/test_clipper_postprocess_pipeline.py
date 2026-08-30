@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -223,16 +224,22 @@ def test_postprocess_clip_shrinks_and_re_encodes_until_the_output_fits(tmp_path,
     assert encoder.calls[1]["shape"] == (72, 72)
 
 
-def test_postprocess_clip_stops_shrinking_at_the_smallest_allowed_frame(tmp_path, run_pipeline, capsys):
-    """It must give up rather than loop forever on a clip that will not fit."""
+def test_postprocess_clip_stops_shrinking_at_the_smallest_allowed_frame(tmp_path, run_pipeline, caplog):
+    """It must give up rather than loop forever on a clip that will not fit.
+
+    It says so through the logger rather than `print`.  This module runs as a
+    subprocess, and the parent merges its stderr into the stdout it collects,
+    so the line still reaches the caller either way.
+    """
     encoder = _RecordingEncoder(2 * 1024 * 1024)
 
-    summary, encoder = run_pipeline(_args(tmp_path), size=64, encoder=encoder)
+    with caplog.at_level(logging.WARNING, logger="clipper.clip_postprocess_pipeline"):
+        summary, encoder = run_pipeline(_args(tmp_path), size=64, encoder=encoder)
 
     assert summary["encode_attempts"] == 1
     assert summary["final_scale"] == 1.0
     assert summary["final_size_bytes"] > 1024 * 1024
-    assert "minimum allowed resolution" in capsys.readouterr().out
+    assert "minimum allowed resolution" in caplog.text
 
 
 @pytest.mark.parametrize("copy_audio, expected_audio", [(True, "input"), (False, None)])
