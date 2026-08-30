@@ -1,4 +1,4 @@
 {
-  "_comment": "Placeholder content overlay. The real values live in content.local.json (git-ignored). suite_root is the folder holding the media library. project_roots is optional: the folders holding the sibling app checkouts, searched in order, for when they do not live under suite_root/projects; omit it and that is exactly where they are looked for.",
+  "_comment": "Placeholder content overlay. The real values live in content.local.json (git-ignored). suite_root is the folder holding the media library. nau_status_file is optional: the full path to Fun Time's nau_status.txt (in its state_dir), the file Nau publishes what it is playing into -- it lets the launcher prefill a new session from whatever the main player is showing, and omitting it simply opens the launcher blank.",
   "suite_root": "C:/path/to/suite-root"
 }

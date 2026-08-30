@@ -12,7 +12,7 @@ Shared rules are in the global `~/.claude/CLAUDE.md`. This file contains only cl
 
 Clipper is a standalone PyQt6/OpenCV video clip editor, extracted from the fun_time project. Key relationships:
 
-- **Config**: `clipper/config.py` reads `fun_time_config.json` from the sibling fun_time project for VLC prefill (HTTP ports, search roots). This is a read-only dependency; clipper never writes to fun_time's config.
+- **What the suite tells clipper**: exactly two things, both about one video. Fun Time's `;` pushes — it reads Nau's status file and runs `python -m clipper.create_session --video <path> --time <seconds>`. `clipper/nau_prefill.py` pulls the same two fields out of the same file, for the case where clipper is opened on its own; the file's location is one optional key in clipper's own `content.local.json`. **Clipper does not read fun_time's config**, and has no path to the fun_time checkout. It used to do both, for a VLC prefill the suite outgrew.
 - **Output dirs**: Clips export to `<suite-root>/videos/genau/clips/`, audio to `<suite-root>/videos/genau/audio/`. These are shared with fun_time's Genau listener.
 - **Entry point**: `python -m clipper` -> `__main__.py` -> `app.py:main()` -> launcher dialog -> UI.
 - **Launcher chain**: `Clipper.lnk` -> `wscript.exe` -> `launch_clipper.vbs` -> `python -m clipper`. `Clipper.lnk` is git-ignored, so it is made by hand on each machine; **after making it, run `set_shortcut_appid.ps1` once** to stamp the shortcut with the same AppUserModelID the app sets at startup, or Windows gives the running app a second, unlabelled taskbar button instead of grouping it under the shortcut. Nothing calls that script — not CI, not the launcher — so this line is its only caller; `tests/test_process_name.py` pins its default AppId against `clipper/app.py`'s constant so the two cannot drift.
@@ -47,14 +47,13 @@ back to its geometric seam, which is also what happens in production.
 
 ## Testing principles
 
-- **Test through realistic inputs, not mocked internals.** When a function integrates multiple subsystems (HTTP fetch → XML parse → path resolution → filesystem lookup), at least one test must feed realistic data through the actual function with only the network/OS boundary mocked. A test that mocks `_detect_from_http` to return a finished result does not test `_detect_from_http`.
-- **Test each resolution path independently.** If a function has a primary path and a fallback, write separate tests proving each path works — and that the fallback is only reached when the primary fails. Use `mock.assert_not_called()` to verify the fallback was not touched when the primary succeeds.
-- **Mock at the boundary, not in the middle.** Patch the I/O functions (`_fetch_http_status`, `_fetch_playlist_xml`) and the external-state functions (`search_roots`), not the intermediate logic that stitches them together. If you mock the intermediate logic, you're testing your mocks, not your code.
+- **Test through realistic inputs, not mocked internals.** Feed the real thing through the real function, with only the outside world stubbed. `tests/test_nau_prefill.py` builds its status payload from the key set it reads out of Nau's own `status_fields`, rather than from a fixture in the shape clipper happens to want — so the test fails when the producer's format moves, which is the whole reason to have it.
+- **Test each resolution path independently.** If a function has a primary path and a fallback, write separate tests proving each works — and that the fallback is not reached when the primary succeeds. `tests/test_fetch_rife.py` does this for the archive: an intact copy already on disk is reused, and `mock.assert_not_called()`-style stubs prove nothing was downloaded.
+- **Mock at the boundary, not in the middle.** Patch the I/O (`clip_postprocess_media`'s `ffprobe_video`, `read_frames`, `encode_with_ffmpeg`) and let everything above it run for real, as `tests/test_clipper_postprocess_pipeline.py` does. Stubbing the intermediate logic tests the stubs.
 
 ## Repo-specific gotchas
 
 - The test environment is the project `.venv`, not system Python or Conda.
-- `clipper/config.py` has a hardcoded path to the fun_time project for config resolution. If fun_time moves, this path needs updating.
 - `sessions/` and `raw_clips/` are at the project root (not inside `clipper/`). They are gitignored runtime data.
 
 ## Test fixtures must be fabricated, never copied from the real library
