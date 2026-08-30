@@ -59,6 +59,18 @@ class FrameWindow:
         """Take in `end`, once its frames are loaded.  Never narrows."""
         self.loaded_end = max(self.loaded_end, end)
 
+    def reach_right_to(self, end: int) -> None:
+        """Put the right edge on `end`, decoded or not.
+
+        Unlike `widen_right_to` this takes the caller's word for it, which is
+        what `extend_right` has always done: it asks for a step out and then
+        claims it whether or not every frame arrived.  On a file the decoder
+        gives up on early that leaves the window spanning frames nothing
+        produced, and `safe_frame` raises for them.  Kept because it is the
+        behaviour the app has; see the item-40 changelog note.
+        """
+        self.loaded_end = end
+
     def step_cursor_back(self, low: int, high: int) -> None:
         """One frame back, wrapping to `high` at `low`."""
         self.current = high if self.current <= low else self.current - 1

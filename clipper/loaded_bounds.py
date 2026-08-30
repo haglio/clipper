@@ -30,6 +30,11 @@ def contract_right(state: VideoState) -> None:
 
 
 def extend_right(state: VideoState) -> None:
-    ensure_loaded(state, state.loaded_start, state.window.step_out_right())
+    target = state.window.step_out_right()
+    ensure_loaded(state, state.loaded_start, target)
+    # Takes the step whether or not the decoder produced every frame of it.
+    # `ensure_loaded` stops at the last frame it actually read, and this puts
+    # the edge back out at what was asked for.
+    state.window.reach_right_to(target)
     update_loop_suggestions(state)
     state.mark_dirty()
