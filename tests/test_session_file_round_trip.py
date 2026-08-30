@@ -44,7 +44,7 @@ GOLDEN_SESSION = """{
 class _StubCapture:
     """The slice of cv2.VideoCapture the session loader reaches for.
 
-    Wider than conftest's ``_FakeCapture``: ``make_video_state`` asks the
+    Wider than conftest's ``_FakeCapture``: ``load_video_state`` asks the
     capture for its own fps and frame count before it reads a frame.
     """
 

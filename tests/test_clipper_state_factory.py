@@ -1,3 +1,4 @@
+"""Tests for clipper.state_factory — opening a saved session."""
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -6,7 +7,7 @@ import numpy as np
 import pytest
 
 from clipper.loop_modes import LOOP_MODE_BASE_TIP_BASE
-from clipper.state_factory import make_video_state
+from clipper.state_factory import load_video_state
 
 
 def _build_capture(*, fps: float = 30.0, total_frames: float = 120.0) -> MagicMock:
@@ -16,86 +17,75 @@ def _build_capture(*, fps: float = 30.0, total_frames: float = 120.0) -> MagicMo
     return cap
 
 
-def test_make_video_state_defaults_invalid_new_session_loop_mode():
-    cap = _build_capture()
-    frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(30)}
-
-    with patch("clipper.state_factory.cv2.VideoCapture", return_value=cap):
-        with patch("clipper.state_factory.load_range", return_value=frames):
-            state = make_video_state("/fake/video.mp4", "demo", 0.0, 1.0, loop_mode="not-a-mode")
-
-    assert state.loop_mode == LOOP_MODE_BASE_TIP_BASE
-
-
-def test_make_video_state_defaults_invalid_payload_loop_mode_and_clamps_speed():
-    cap = _build_capture()
-    frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(10, 41)}
+def _payload(**overrides) -> dict:
     payload = {
-        "video_path": "/video.mp4",
+        "version": 1,
         "session_name": "demo",
+        "video_path": "/video.mp4",
+        "fps": 30.0,
+        "total_frames": 120,
         "loaded_start": 10,
         "loaded_end": 40,
         "active_start": 12,
         "active_end": 35,
         "current": 18,
         "seconds_per_step": 1.0,
-        "fps": 30.0,
-        "total_frames": 120,
-        "loop_mode": "still-not-a-mode",
-        "wrap_mode": "yellow",
-        "speed": 2.3,
+        "loop_mode": "base-tip-base",
+        "wrap_mode": "blue",
+        "speed": 1.0,
+        "vr": False,
     }
+    payload.update(overrides)
+    return payload
 
-    with patch("clipper.state_factory.cv2.VideoCapture", return_value=cap):
+
+def _load(payload: dict, *, frames: dict | None = None, capture=None):
+    if frames is None:
+        frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(10, 41)}
+    with patch("clipper.state_factory.cv2.VideoCapture",
+               return_value=capture or _build_capture()):
         with patch("clipper.state_factory.load_range", return_value=frames):
-            state = make_video_state("/fake/video.mp4", "demo", 0.0, 1.0, payload_override=payload)
+            return load_video_state(payload, "the file stem")
+
+
+def test_a_loop_mode_the_app_does_not_have_falls_back_to_the_default():
+    state = _load(_payload(loop_mode="not-a-mode"))
 
     assert state.loop_mode == LOOP_MODE_BASE_TIP_BASE
+
+
+def test_a_speed_past_the_ceiling_is_clamped_to_it():
+    state = _load(_payload(speed=2.3))
+
     assert state.speed == pytest.approx(2.0)
 
 
-def test_make_video_state_raises_when_requested_interval_has_no_frames():
-    cap = _build_capture()
-
-    with patch("clipper.state_factory.cv2.VideoCapture", return_value=cap):
-        with patch("clipper.state_factory.load_range", return_value={}):
-            with pytest.raises(RuntimeError, match="No frames were extracted"):
-                make_video_state("/fake/video.mp4", "demo", 0.0, 1.0)
+def test_it_raises_when_the_session_interval_yields_no_frames():
+    with pytest.raises(RuntimeError, match="No frames were extracted"):
+        _load(_payload(), frames={})
 
 
-def test_make_video_state_vr_defaults_false():
-    cap = _build_capture()
-    frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(30)}
+def test_a_session_written_before_vr_existed_reads_as_not_vr():
+    """`vr` was added to the format after it shipped, so an older file has no
+    such key and must not stop opening."""
+    payload = _payload()
+    del payload["vr"]
 
-    with patch("clipper.state_factory.cv2.VideoCapture", return_value=cap):
-        with patch("clipper.state_factory.load_range", return_value=frames):
-            state = make_video_state("/fake/video.mp4", "demo", 0.0, 1.0)
+    state = _load(payload)
 
     assert state.vr is False
 
 
-def test_make_video_state_loads_vr_from_payload():
-    cap = _build_capture()
-    frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(10, 41)}
-    payload = {
-        "video_path": "/video.mp4",
-        "session_name": "demo",
-        "loaded_start": 10,
-        "loaded_end": 40,
-        "active_start": 12,
-        "active_end": 35,
-        "current": 18,
-        "seconds_per_step": 1.0,
-        "fps": 30.0,
-        "total_frames": 120,
-        "loop_mode": "base-tip-base",
-        "wrap_mode": "blue",
-        "speed": 1.0,
-        "vr": True,
-    }
-
-    with patch("clipper.state_factory.cv2.VideoCapture", return_value=cap):
-        with patch("clipper.state_factory.load_range", return_value=frames):
-            state = make_video_state("/fake/video.mp4", "demo", 0.0, 1.0, payload_override=payload)
+def test_it_loads_vr_from_the_payload():
+    state = _load(_payload(vr=True))
 
     assert state.vr is True
+
+
+def test_a_payload_with_no_name_of_its_own_takes_the_caller_s():
+    payload = _payload()
+    del payload["session_name"]
+
+    state = _load(payload)
+
+    assert state.session_name == "the file stem"
