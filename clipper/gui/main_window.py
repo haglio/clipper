@@ -23,12 +23,16 @@ from shared_ui.colors import (
 )
 from shared_ui.fonts import FONT_UI, SIZE_HEADING, make_font
 
+from clipper.frame_store import safe_frame
+from clipper.playback import current_loop_frame_index, loop_preview_indices
+from clipper.utils import format_seconds
 from clipper.wrap_modes import WRAP_OVER_LOADED, wrap_bounds
 
 from .button_bar import ButtonBar
 from .exit_dialog import ExitDialog
 from .export_dialog import ExportDialog
 from .export_worker import ExportWorker
+from .frame_converter import bgr_to_qimage, scale_to_fit
 from .legend_widget import LegendWidget
 from .main_window_style import (
     LABEL_STYLE,
@@ -335,6 +339,75 @@ class ClipperMainWindow(QMainWindow):
         tc.wrap_btn.show()
 
         self._wrap_row.set_brace(wx1, wx2)
+
+    # -- Drawing the state ------------------------------------------------------
+
+    def render(self, state: VideoState) -> None:
+        """Push the state into every widget this window owns.
+
+        `ClipperApp` used to do this from `_on_tick`: seventy lines binding
+        `w = self.window` and then reaching two levels deep into twelve of its
+        widgets, so the clock knew the window's widget names and the state's
+        field names in equal measure.
+        """
+        loop_idx = self._draw_frames(state)
+        self._draw_timeline(state, loop_idx)
+        self._write_labels(state, loop_idx)
+        self.button_bar.set_playing(not state.loop_paused)
+        self.timeline_controls.set_loop_mode(state.loop_mode)
+        self.warning_label.setText(state.session_warning)
+        self.update_button_positions()
+
+    def _draw_frames(self, state: VideoState) -> int:
+        """Put the loop frame and the cursor frame in their panes.
+
+        Returns the loop frame's index, which the timeline and the loop label
+        both want.  A frame that will not decode costs its pane and nothing
+        else.
+        """
+        loop_idx = state.active_start
+        try:
+            loop_idx = current_loop_frame_index(state)
+            self._fill(self.right_pane, safe_frame(state, loop_idx))
+        except (KeyError, IndexError):
+            pass
+        try:
+            self._fill(self.left_pane, safe_frame(state, state.current))
+        except (KeyError, IndexError):
+            pass
+        return loop_idx
+
+    def _fill(self, pane: VideoPane, frame) -> None:
+        image = bgr_to_qimage(frame)
+        pane.set_frame(scale_to_fit(image, pane.width(), pane.height()))
+
+    def _draw_timeline(self, state: VideoState, loop_idx: int) -> None:
+        self.timeline.set_loaded_range(state.loaded_start, state.loaded_end)
+        self.timeline.set_active_range(state.active_start, state.active_end)
+        self.timeline.set_cursor_position(state.current)
+        self.timeline.set_loop_position(loop_idx)
+        self.timeline.set_suggestions(state.suggested_in, state.suggested_out)
+
+    def _write_labels(self, state: VideoState, loop_idx: int) -> None:
+        cursor_max = state.loaded_count - 1
+        width = max(2, len(str(max(0, cursor_max))))
+        self.cursor_label.setText(
+            f"cursor: {state.current - state.loaded_start:0{width}d}/{cursor_max}"
+            f" @ {format_seconds(state.current / state.fps)}"
+        )
+
+        # `_draw_frames` has just asked the loop cursor for its frame, and the
+        # cursor settles its position on every path out of that call, so the
+        # position is set whichever branch answered.
+        preview_total = len(loop_preview_indices(state))
+        width = max(2, len(str(max(0, preview_total))))
+        self.loop_label.setText(
+            f"loop frame: {state.paused_loop_pos:0{width}d}/{preview_total}"
+            f" @ {format_seconds(loop_idx / state.fps)}"
+        )
+
+        playing = "playing" if not state.loop_paused else "paused"
+        self.speed_label.setText(f"speed: {state.speed:.2f}x ({playing})")
 
     # -- Window events ---------------------------------------------------------
 
