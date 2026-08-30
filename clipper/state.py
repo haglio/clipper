@@ -13,6 +13,7 @@ from .clip_range import ClipRange
 from .frame_window import FrameWindow
 from .loop_cursor import LoopCursor
 from .loop_modes import LOOP_MODE_BASE_TIP_BASE
+from .suggestions import Suggestions
 from .session_persistence import (
     autosave_session as persist_session_state,
     current_payload as build_current_payload,
@@ -37,6 +38,7 @@ class VideoState:
     clip: ClipRange
     frames: dict[int, np.ndarray]
     loop: LoopCursor
+    suggestions: Suggestions
     session_name: str
     session_path: str
     original_session_payload: dict[str, Any]
@@ -49,10 +51,6 @@ class VideoState:
     protect_existing_save_data: bool = False
     last_saved_payload: dict[str, Any] | None = None
     render_rev: int = 0
-    initial_active_start: int | None = None
-    initial_active_end: int | None = None
-    suggested_in: int | None = None
-    suggested_out: int | None = None
     frame_signatures: dict[int, np.ndarray] = field(default_factory=dict)
     # The disk write mark_dirty triggers, held as a collaborator so a caller
     # that only wants the flag can supply one that writes nothing.  Editing
@@ -105,6 +103,18 @@ class VideoState:
     @property
     def active_end(self) -> int:
         return self.clip.end
+
+    # The offered pair is drawn on the timeline and read by the two accept
+    # operations; the opening selection it is compared against is nobody's
+    # business but the search's.
+
+    @property
+    def suggested_in(self) -> int | None:
+        return self.suggestions.suggested_in
+
+    @property
+    def suggested_out(self) -> int | None:
+        return self.suggestions.suggested_out
 
     # The loop cursor's, likewise.  `speed` is a session-JSON key; the other
     # two are what the tick reads to draw the transport.  The anchor and the

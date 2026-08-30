@@ -15,6 +15,7 @@ from .loop_cursor import LoopCursor
 from .paths import LAST_SESSION_FILE, SESSIONS_DIR, ensure_runtime_dirs
 from .state import VideoState
 from .state_factory import make_video_state
+from .suggestions import Suggestions
 from .utils import parse_timestamp, read_json, sanitize_name
 from .nau_prefill import detect_nau_session_prefill
 
@@ -54,6 +55,7 @@ def build_clip_whole_state(video_file: str) -> VideoState:
         clip=ClipRange(start=0, end=end_idx),
         frames={},
         loop=LoopCursor(anchor=time.monotonic()),
+        suggestions=Suggestions(),
         session_name=session_name,
         session_path=str(SESSIONS_DIR / f"{session_name}.json"),
         original_session_payload={},
