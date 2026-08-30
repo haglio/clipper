@@ -39,10 +39,6 @@ _EXPORT_MUTATIONS: set[tuple[str, str]] = {
 # Attribute mutations on state objects — used by production code but vulture
 # can't trace setattr on dynamic types.
 _STATE_MUTATIONS: set[tuple[str, str]] = {
-    ("clipper/frame_store.py", "render_rev"),
-    ("clipper/loop_suggestions.py", "render_rev"),
-    ("clipper/playback.py", "render_rev"),
-    ("clipper/gui/main_window.py", "render_rev"),
     ("clipper/gui/main_window.py", "_export_worker"),
     ("clipper/session_launch.py", "original_session_payload"),
     ("clipper/session_persistence.py", "last_saved_payload"),
