@@ -14,6 +14,7 @@ from pathlib import Path
 
 from app_support.subprocess_utils import hidden_subprocess_kwargs
 
+from .loop_modes import LOOP_MODE_BASE_TIP_BASE
 from .paths import LAST_SESSION_FILE, SESSIONS_DIR
 from .session_persistence import session_payload
 from .utils import safe_atomic_write_json, sanitize_name
@@ -22,7 +23,7 @@ from .wrap_modes import WRAP_OVER_LOADED
 logger = logging.getLogger(__name__)
 
 DEFAULT_SECONDS = 5.0
-DEFAULT_LOOP_MODE = "base-tip-base"
+DEFAULT_LOOP_MODE = LOOP_MODE_BASE_TIP_BASE
 
 
 def ffprobe_video_metadata(video_path: str) -> tuple[float, int]:

@@ -22,7 +22,8 @@ import pytest
 from clipper import create_session as create_session_module
 from clipper import session_launch, state_factory
 from clipper.app import main as app_main
-from clipper.session_launch import build_clip_whole_state, build_state_from_launch_info, launch_state
+from clipper.launch_choice import ClipWholeVideo, LoadSession, NewSession
+from clipper.session_launch import build_clip_whole_state, build_state, launch_state
 
 
 @pytest.fixture()
@@ -82,9 +83,7 @@ class TestLoadingASavedSession:
     def test_the_state_comes_back_the_way_the_file_left_it(self, library):
         saved = _write_session(library.sessions, "seaside walk")
 
-        state = build_state_from_launch_info(
-            {"mode": "load", "session_json": str(saved)}
-        )
+        state = build_state(LoadSession(session_json=str(saved)))
 
         assert state.session_name == "seaside walk"
         assert (state.active_start, state.active_end) == (110, 150)
@@ -97,9 +96,7 @@ class TestLoadingASavedSession:
     def test_it_is_guarded_as_existing_save_data_and_remembers_where_it_came_from(self, library):
         saved = _write_session(library.sessions, "seaside walk")
 
-        state = build_state_from_launch_info(
-            {"mode": "load", "session_json": str(saved)}
-        )
+        state = build_state(LoadSession(session_json=str(saved)))
 
         assert state.session_path == str(saved)
         assert state.original_session_payload == json.loads(saved.read_text(encoding="utf-8"))
@@ -108,26 +105,25 @@ class TestLoadingASavedSession:
     def test_it_becomes_the_session_the_launcher_offers_next_time(self, library):
         saved = _write_session(library.sessions, "seaside walk")
 
-        build_state_from_launch_info({"mode": "load", "session_json": str(saved)})
+        build_state(LoadSession(session_json=str(saved)))
 
         assert library.pointer.read_text(encoding="utf-8") == str(saved)
 
 
 class TestCreatingANewSession:
     def _new(self, **overrides):
-        info = {
-            "mode": "new",
+        fields = {
             "video_file": "/library/seaside walk.mp4",
             "session_name": "second pass",
             "timestamp": "00:00:12.500",
             "seconds": 5.0,
             "loop_mode": "tip-base",
         }
-        info.update(overrides)
-        return info
+        fields.update(overrides)
+        return NewSession(**fields)
 
     def test_the_typed_timestamp_becomes_the_window_written_to_disk(self, library):
-        state = build_state_from_launch_info(self._new())
+        state = build_state(self._new())
 
         written = json.loads((library.sessions / "second pass.json").read_text(encoding="utf-8"))
         assert written["active_start"] == 375  # 12.5s at 30fps
@@ -137,20 +133,20 @@ class TestCreatingANewSession:
         assert (state.active_start, state.active_end) == (375, 524)
 
     def test_an_hour_long_timestamp_is_parsed_whole(self, library):
-        build_state_from_launch_info(self._new(timestamp="00:00:20", seconds=1.0))
+        build_state(self._new(timestamp="00:00:20", seconds=1.0))
 
         written = json.loads((library.sessions / "second pass.json").read_text(encoding="utf-8"))
         assert written["active_start"] == 600
 
     def test_a_vr_session_is_marked_vr_in_the_file_and_on_the_state(self, library):
-        state = build_state_from_launch_info(self._new(vr=True))
+        state = build_state(self._new(vr=True))
 
         written = json.loads((library.sessions / "second pass.json").read_text(encoding="utf-8"))
         assert written["vr"] is True
         assert state.vr is True
 
     def test_it_is_guarded_as_existing_save_data_and_becomes_the_last_session(self, library):
-        state = build_state_from_launch_info(self._new())
+        state = build_state(self._new())
 
         assert state.protect_existing_save_data is True
         assert library.pointer.read_text(encoding="utf-8") == str(
@@ -160,7 +156,7 @@ class TestCreatingANewSession:
     def test_a_session_of_that_name_already_there_is_opened_rather_than_overwritten(self, library):
         existing = _write_session(library.sessions, "second pass", active_start=7, active_end=9)
 
-        state = build_state_from_launch_info(self._new())
+        state = build_state(self._new())
 
         assert (state.active_start, state.active_end) == (7, 9)
         assert json.loads(existing.read_text(encoding="utf-8"))["active_start"] == 7
@@ -198,7 +194,8 @@ class TestBuildClipWholeState:
         assert state.session_name == "take 1_ second pass"
 
 
-def test_launch_state_raises_system_exit_when_launcher_is_cancelled():
+def test_a_cancelled_launcher_gives_no_state_to_open():
+    """Cancel used to raise `SystemExit(0)` out of a `-> VideoState | None`."""
     mock_dialog = MagicMock()
     mock_dialog.exec.return_value = 0  # QDialog.DialogCode.Rejected
 
@@ -206,20 +203,13 @@ def test_launch_state_raises_system_exit_when_launcher_is_cancelled():
          patch("clipper.session_launch.LAST_SESSION_FILE", MagicMock(exists=MagicMock(return_value=False))), \
          patch("clipper.session_launch.LauncherDialog", return_value=mock_dialog), \
          patch("clipper.session_launch.detect_nau_session_prefill", return_value=None):
-        with pytest.raises(SystemExit) as excinfo:
-            launch_state()
-
-    assert excinfo.value.code == 0
+        assert launch_state() is None
 
 
 def test_launch_state_runs_clip_whole_and_returns_none():
     mock_dialog = MagicMock()
     mock_dialog.exec.return_value = 1  # Accepted
-    mock_dialog.build_result.return_value = {
-        "ok": True,
-        "mode": "clip_whole",
-        "video_file": "/path/to/loop.mp4",
-    }
+    mock_dialog.build_result.return_value = ClipWholeVideo(video_file="/path/to/loop.mp4")
 
     with patch("clipper.session_launch.ensure_runtime_dirs"), \
          patch("clipper.session_launch.LAST_SESSION_FILE", MagicMock(exists=MagicMock(return_value=False))), \
@@ -235,19 +225,20 @@ def test_launch_state_runs_clip_whole_and_returns_none():
 def test_launch_state_builds_state_from_launcher_info():
     mock_dialog = MagicMock()
     mock_dialog.exec.return_value = 1  # QDialog.DialogCode.Accepted
-    mock_dialog.build_result.return_value = {"ok": True, "mode": "new"}
+    chosen = LoadSession(session_json="/sessions/seaside walk.json")
+    mock_dialog.build_result.return_value = chosen
     built_state = object()
 
     with patch("clipper.session_launch.ensure_runtime_dirs") as ensure_dirs, \
          patch("clipper.session_launch.LAST_SESSION_FILE", MagicMock(exists=MagicMock(return_value=False))), \
          patch("clipper.session_launch.LauncherDialog", return_value=mock_dialog), \
          patch("clipper.session_launch.detect_nau_session_prefill", return_value=None), \
-         patch("clipper.session_launch.build_state_from_launch_info", return_value=built_state) as build_state:
+         patch("clipper.session_launch.build_state", return_value=built_state) as open_it:
         result = launch_state()
 
     assert result is built_state
     ensure_dirs.assert_called_once_with()
-    build_state.assert_called_once_with({"ok": True, "mode": "new"})
+    open_it.assert_called_once_with(chosen)
 
 
 def test_app_main_returns_zero_when_launch_state_returns_none():

@@ -11,6 +11,7 @@ from .clip_range import ClipRange
 from .create_session import ffprobe_video_metadata, create_session
 from .frame_window import FrameWindow
 from .gui.launcher_dialog import LauncherDialog
+from .launch_choice import ClipWholeVideo, LaunchChoice, LoadSession, NewSession
 from .loop_cursor import LoopCursor
 from .paths import LAST_SESSION_FILE, SESSIONS_DIR, ensure_runtime_dirs
 from .state import VideoState
@@ -56,21 +57,19 @@ def build_clip_whole_state(video_file: str) -> VideoState:
     )
 
 
-def build_state_from_launch_info(info: dict) -> VideoState:
-    if info["mode"] == "load":
-        session_path = Path(info["session_json"])
-        state = _load_state_from_session_file(session_path)
-        LAST_SESSION_FILE.write_text(state.session_path, encoding="utf-8")
-        return state
-
-    session_path = create_session(
-        info["video_file"],
-        parse_timestamp(info["timestamp"]),
-        session_name=info["session_name"],
-        seconds=info["seconds"],
-        loop_mode=info.get("loop_mode", "base-tip-base"),
-        vr=info.get("vr", False),
-    )
+def build_state(choice: LoadSession | NewSession) -> VideoState:
+    """Open what the launcher was asked for, and remember it for next time."""
+    if isinstance(choice, LoadSession):
+        session_path = Path(choice.session_json)
+    else:
+        session_path = create_session(
+            choice.video_file,
+            parse_timestamp(choice.timestamp),
+            session_name=choice.session_name,
+            seconds=choice.seconds,
+            loop_mode=choice.loop_mode,
+            vr=choice.vr,
+        )
     state = _load_state_from_session_file(session_path)
     LAST_SESSION_FILE.write_text(state.session_path, encoding="utf-8")
     return state
@@ -91,21 +90,27 @@ def _run_clip_whole_export(video_file: str) -> None:
 
 
 def launch_state() -> VideoState | None:
+    """The session the user chose, or None if there is no editor to open.
+
+    None covers both of the two ways that happens -- the launcher was
+    cancelled, or a whole video was exported without an editor.  Cancel used to
+    raise `SystemExit(0)` out of a function annotated `-> VideoState | None`,
+    so it had three outcomes and its type said two, and `app.main` carried an
+    `except SystemExit: raise` for it that never did anything (SystemExit is
+    not an Exception, so it was never being caught).
+    """
     ensure_runtime_dirs()
     last_session = LAST_SESSION_FILE.read_text(encoding="utf-8").strip() if LAST_SESSION_FILE.exists() else ""
     dialog = LauncherDialog(last_session=last_session)
 
     prefill = detect_nau_session_prefill()
     if prefill:
-        dialog.session_name_edit.setText(prefill.session_name)
-        dialog.video_file_edit.setText(prefill.video_file)
-        dialog.timestamp_edit.setText(prefill.timestamp)
-        dialog.new_radio.setChecked(True)
+        dialog.prefill(prefill.session_name, prefill.video_file, prefill.timestamp)
 
     if dialog.exec() != QDialog.DialogCode.Accepted:
-        raise SystemExit(0)
-    info = dialog.build_result()
-    if info["mode"] == "clip_whole":
-        _run_clip_whole_export(info["video_file"])
         return None
-    return build_state_from_launch_info(info)
+    choice: LaunchChoice = dialog.build_result()
+    if isinstance(choice, ClipWholeVideo):
+        _run_clip_whole_export(choice.video_file)
+        return None
+    return build_state(choice)
