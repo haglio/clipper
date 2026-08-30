@@ -7,9 +7,7 @@ Clipper's own launcher uses it for new sessions, and external tools
 from __future__ import annotations
 
 import argparse
-import json
 import logging
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -17,7 +15,9 @@ from pathlib import Path
 from app_support.subprocess_utils import hidden_subprocess_kwargs
 
 from .paths import LAST_SESSION_FILE, SESSIONS_DIR
-from .utils import sanitize_name
+from .session_persistence import session_payload
+from .utils import safe_atomic_write_json, sanitize_name
+from .wrap_modes import WRAP_OVER_LOADED
 
 logger = logging.getLogger(__name__)
 
@@ -89,23 +89,22 @@ def build_session_payload(
     duration_frames = max(1, int(round(seconds * fps)))
     end_idx = min(total_frames - 1, start_idx + duration_frames - 1)
 
-    return {
-        "version": 1,
-        "session_name": session_name,
-        "video_path": video_path,
-        "fps": fps,
-        "total_frames": total_frames,
-        "loaded_start": start_idx,
-        "loaded_end": end_idx,
-        "active_start": start_idx,
-        "active_end": end_idx,
-        "current": start_idx,
-        "seconds_per_step": base_step / fps,
-        "loop_mode": loop_mode,
-        "wrap_mode": "blue",
-        "speed": 1.0,
-        "vr": vr,
-    }
+    return session_payload(
+        session_name=session_name,
+        video_path=video_path,
+        fps=fps,
+        total_frames=total_frames,
+        loaded_start=start_idx,
+        loaded_end=end_idx,
+        active_start=start_idx,
+        active_end=end_idx,
+        current=start_idx,
+        seconds_per_step=base_step / fps,
+        loop_mode=loop_mode,
+        wrap_mode=WRAP_OVER_LOADED,
+        speed=1.0,
+        vr=vr,
+    )
 
 
 def create_session(
@@ -153,19 +152,9 @@ def create_session(
         vr=vr,
     )
 
-    tmp = session_path.with_suffix(session_path.suffix + ".tmp")
-    try:
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2)
-            f.write("\n")
-        os.replace(tmp, session_path)
-    except Exception:
-        try:
-            if tmp.exists():
-                tmp.unlink()
-        except Exception:
-            pass
-        raise
+    ok, detail = safe_atomic_write_json(session_path, payload)
+    if not ok:
+        raise RuntimeError(f"Could not write {session_path}: {detail}")
 
     logger.info("Created session: %s", session_path)
     _update_last_session(session_path)
