@@ -43,6 +43,7 @@ from clipper.editing import (
 from clipper.loaded_bounds import contract_left, contract_right, extend_left, extend_right
 from clipper.navigation import move_current_left, move_current_right, toggle_wrap_mode
 from clipper.playback import change_speed, toggle_loop_pause
+from clipper.wrap_modes import WRAP_OVER_LOADED, wrap_bounds
 
 from .button_bar import ButtonBar
 from .exit_dialog import ExitDialog
@@ -359,12 +360,10 @@ class ClipperMainWindow(QMainWindow):
         tc.mark_out_btn.show()
 
         # -- Wrap button: center on wrap range, color by mode --
-        if state.wrap_mode == "blue":
-            wrap_lo, wrap_hi = state.loaded_start, state.loaded_end
-            wrap_color = TIMELINE_LOADED
-        else:
-            wrap_lo, wrap_hi = state.active_start, state.active_end
-            wrap_color = TIMELINE_ACTIVE
+        wrap_lo, wrap_hi = wrap_bounds(state)
+        wrap_color = (
+            TIMELINE_LOADED if state.wrap_mode == WRAP_OVER_LOADED else TIMELINE_ACTIVE
+        )
 
         off = _tl_offset(self._wrap_row)
         wx1 = off + tl.x_for_index(wrap_lo)

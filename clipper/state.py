@@ -14,6 +14,7 @@ from .frame_window import FrameWindow
 from .loop_cursor import LoopCursor
 from .loop_modes import LOOP_MODE_BASE_TIP_BASE
 from .suggestions import Suggestions
+from .wrap_modes import wrap_bounds
 from .session_persistence import (
     autosave_session as persist_session_state,
     current_payload as build_current_payload,
@@ -138,9 +139,7 @@ class VideoState:
         return self.dirty and self.protect_existing_save_data
 
     def clamp_current(self) -> None:
-        low = self.loaded_start if self.wrap_mode == "blue" else self.active_start
-        high = self.loaded_end if self.wrap_mode == "blue" else self.active_end
-        self.window.hold_within(low, high)
+        self.window.hold_within(*wrap_bounds(self))
 
     def reset_loop_anchor(self) -> None:
         self.loop.restart_at(time.monotonic())
