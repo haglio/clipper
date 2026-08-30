@@ -1,10 +1,16 @@
+"""The similarity walk behind the suggested in and out points."""
+
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+from .frame_store import signature_for_index, structural_similarity_score
+
+if TYPE_CHECKING:
+    from .state import VideoState
 
 
 @dataclass(frozen=True)
@@ -36,12 +42,10 @@ def smooth_1d(values: np.ndarray, radius: int) -> np.ndarray:
 
 
 def candidate_similarity_curve(
-    state: Any,
+    state: VideoState,
     ref_idx: int,
     *,
     direction: int,
-    signature_for_index: Callable[[Any, int], np.ndarray],
-    structural_similarity_score: Callable[[np.ndarray, np.ndarray], float],
 ) -> tuple[list[int], np.ndarray] | None:
     min_gap = 10
     # Both directions run outwards from the reference, so index 0 is always its
@@ -69,20 +73,12 @@ def candidate_similarity_curve(
 
 
 def find_similarity_dip(
-    state: Any,
+    state: VideoState,
     ref_idx: int,
     *,
     direction: int,
-    signature_for_index: Callable[[Any, int], np.ndarray],
-    structural_similarity_score: Callable[[np.ndarray, np.ndarray], float],
 ) -> SimilarityDip | None:
-    curve = candidate_similarity_curve(
-        state,
-        ref_idx,
-        direction=direction,
-        signature_for_index=signature_for_index,
-        structural_similarity_score=structural_similarity_score,
-    )
+    curve = candidate_similarity_curve(state, ref_idx, direction=direction)
     if curve is None:
         return None
     candidates, smoothed = curve
@@ -108,20 +104,12 @@ def find_similarity_dip(
 
 
 def best_duplicate_match_index(
-    state: Any,
+    state: VideoState,
     ref_idx: int,
     *,
     direction: int,
-    signature_for_index: Callable[[Any, int], np.ndarray],
-    structural_similarity_score: Callable[[np.ndarray, np.ndarray], float],
 ) -> int | None:
-    dip = find_similarity_dip(
-        state,
-        ref_idx,
-        direction=direction,
-        signature_for_index=signature_for_index,
-        structural_similarity_score=structural_similarity_score,
-    )
+    dip = find_similarity_dip(state, ref_idx, direction=direction)
     if dip is None:
         return None
     smoothed, dip_idx, run = dip.smoothed, dip.dip_idx, dip.run
@@ -156,32 +144,21 @@ def best_duplicate_match_index(
 
 
 def best_turning_point_index(
-    state: Any,
+    state: VideoState,
     ref_idx: int,
     *,
     direction: int,
-    signature_for_index: Callable[[Any, int], np.ndarray],
-    structural_similarity_score: Callable[[np.ndarray, np.ndarray], float],
 ) -> int | None:
-    dip = find_similarity_dip(
-        state,
-        ref_idx,
-        direction=direction,
-        signature_for_index=signature_for_index,
-        structural_similarity_score=structural_similarity_score,
-    )
+    dip = find_similarity_dip(state, ref_idx, direction=direction)
     if dip is None:
         return None
     return dip.candidates[dip.dip_idx]
 
 
 def pair_transition_score(
-    state: Any,
+    state: VideoState,
     active_start: int,
     active_end: int,
-    *,
-    signature_for_index: Callable[[Any, int], np.ndarray],
-    structural_similarity_score: Callable[[np.ndarray, np.ndarray], float],
 ) -> float:
     scores: list[float] = []
     if active_end + 1 <= state.loaded_end:

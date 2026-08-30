@@ -9,7 +9,6 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from clipper.frame_store import signature_for_index, structural_similarity_score
 from clipper.suggestion_search import (
     best_duplicate_match_index,
     best_turning_point_index,
@@ -19,21 +18,8 @@ from clipper.suggestion_search import (
 )
 
 
-def _signature(state, idx):
-    """A stand-in for frame_store.signature_for_index: one number per frame."""
-    return np.full((4, 4), idx / 100.0, dtype=np.float32)
-
-
-def _score(a, b):
-    return 1.0 - float(abs(a.mean() - b.mean()))
-
-
 def _curve(state, ref_idx, direction):
-    return candidate_similarity_curve(
-        state, ref_idx, direction=direction,
-        signature_for_index=_signature,
-        structural_similarity_score=_score,
-    )
+    return candidate_similarity_curve(state, ref_idx, direction=direction)
 
 
 class TestSmooth1d:
@@ -152,20 +138,12 @@ class TestFindingTheRepeatBehindAFrame:
         return state
 
     def test_the_backward_search_finds_the_nearest_repeat(self, looping_clip):
-        match = best_duplicate_match_index(
-            looping_clip, self.REF, direction=-1,
-            signature_for_index=signature_for_index,
-            structural_similarity_score=structural_similarity_score,
-        )
+        match = best_duplicate_match_index(looping_clip, self.REF, direction=-1)
 
         assert match == self.REF - self.PERIOD
 
     def test_the_backward_turning_point_is_near_the_reference_not_the_far_edge(self, looping_clip):
-        turning = best_turning_point_index(
-            looping_clip, self.REF, direction=-1,
-            signature_for_index=signature_for_index,
-            structural_similarity_score=structural_similarity_score,
-        )
+        turning = best_turning_point_index(looping_clip, self.REF, direction=-1)
 
         assert turning is not None
         assert self.REF - self.PERIOD < turning < self.REF
@@ -187,17 +165,11 @@ class TestTheDipItself:
         state.frames = {i: np.roll(texture, i % 60, axis=1) for i in range(201)}
         state.frame_signatures = {}
 
-        dip = find_similarity_dip(
-            state, 180, direction=-1,
-            signature_for_index=signature_for_index,
-            structural_similarity_score=structural_similarity_score,
-        )
+        dip = find_similarity_dip(state, 180, direction=-1)
 
         assert dip is not None
         assert dip.candidates[dip.dip_idx] == best_turning_point_index(
-            state, 180, direction=-1,
-            signature_for_index=signature_for_index,
-            structural_similarity_score=structural_similarity_score,
+            state, 180, direction=-1
         )
         assert dip.baseline > dip.smoothed[dip.dip_idx]
         assert len(dip.slope) == len(dip.smoothed) - 1
