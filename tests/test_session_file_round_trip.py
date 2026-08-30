@@ -99,6 +99,26 @@ def load_session(session_file):
     return load
 
 
+def test_the_two_writers_of_this_format_agree_on_it(make_state):
+    """One builder makes the file, another rewrites it on every edit.
+
+    They were two hand-written dict literals with no test comparing them, and
+    a third copy had already drifted -- `state_factory`'s, which omitted `vr`,
+    the key that decides which directory the clip is exported to.  An added key
+    or a moved one now has to be made in both, or this fails.
+    """
+    from clipper.create_session import build_session_payload
+    from clipper.session_persistence import current_payload
+
+    created = build_session_payload(
+        "D:/media/example/beta rehearsal.mp4", 2.0, 30.0, 480,
+        session_name="beta rehearsal", seconds=5.0, loop_mode="base-tip", vr=True,
+    )
+    saved = current_payload(make_state())
+
+    assert list(created) == list(saved) == list(json.loads(GOLDEN_SESSION))
+
+
 def test_a_session_file_survives_a_load_and_a_save_byte_for_byte(session_file, load_session):
     state = load_session()
 
