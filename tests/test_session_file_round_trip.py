@@ -86,15 +86,14 @@ def session_file(tmp_path: Path) -> Path:
 @pytest.fixture()
 def load_session(session_file):
     """Open the golden session through the launcher's own load path."""
-    from clipper.session_launch import build_state_from_launch_info
+    from clipper.launch_choice import LoadSession
+    from clipper.session_launch import build_state
 
     def load():
         golden = json.loads(GOLDEN_SESSION)
         capture = _StubCapture(golden["fps"], golden["total_frames"])
         with patch("clipper.state_factory.cv2.VideoCapture", return_value=capture):
-            return build_state_from_launch_info(
-                {"mode": "load", "session_json": str(session_file)}
-            )
+            return build_state(LoadSession(session_json=str(session_file)))
 
     return load
 

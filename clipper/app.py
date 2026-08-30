@@ -75,8 +75,6 @@ def main() -> int:
 
         clipper_app = ClipperApp(state)
         return clipper_app.run()
-    except SystemExit:
-        raise
     except Exception as exc:
         logger.exception("Clipper crashed")
         try:
