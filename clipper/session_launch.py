@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import QDialog
 from .create_session import _ffprobe_video_metadata, create_session
 from .frame_window import FrameWindow
 from .gui.launcher_dialog import LauncherDialog
+from .loop_cursor import LoopCursor
 from .paths import LAST_SESSION_FILE, SESSIONS_DIR, ensure_runtime_dirs
 from .state import VideoState
 from .state_factory import make_video_state
@@ -52,7 +53,7 @@ def build_clip_whole_state(video_file: str) -> VideoState:
         active_start=0,
         active_end=end_idx,
         frames={},
-        loop_anchor=time.monotonic(),
+        loop=LoopCursor(anchor=time.monotonic()),
         session_name=session_name,
         session_path=str(SESSIONS_DIR / f"{session_name}.json"),
         original_session_payload={},

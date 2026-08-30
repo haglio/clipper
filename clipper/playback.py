@@ -14,27 +14,7 @@ if TYPE_CHECKING:
 
 
 def current_loop_frame_index(state: VideoState) -> int:
-    sequence = loop_preview_indices(state)
-    count = len(sequence)
-    if count == 1:
-        state.paused_loop_pos = 0
-        state.paused_loop_idx = sequence[0]
-        return sequence[0]
-    if state.loop_paused:
-        paused_pos = state.paused_loop_pos
-        if paused_pos is None:
-            paused_frame = state.paused_loop_idx if state.paused_loop_idx is not None else sequence[0]
-            paused_pos = sequence.index(paused_frame) if paused_frame in sequence else 0
-        paused_pos = max(0, min(count - 1, paused_pos))
-        state.paused_loop_pos = paused_pos
-        state.paused_loop_idx = sequence[paused_pos]
-        return sequence[paused_pos]
-    elapsed = time.monotonic() - state.loop_anchor
-    offset = int(elapsed * state.fps * state.speed) % count
-    idx = sequence[offset]
-    state.paused_loop_pos = offset
-    state.paused_loop_idx = idx
-    return idx
+    return state.loop.frame_in(loop_preview_indices(state), state.fps, time.monotonic())
 
 
 def loop_preview_indices(state: VideoState) -> list[int]:
@@ -53,30 +33,13 @@ def loop_preview_indices(state: VideoState) -> list[int]:
 
 
 def change_speed(state: VideoState, delta: float) -> None:
-    old_speed = state.speed
-    _ = current_loop_frame_index(state)
-    new_speed = max(0.25, min(2.0, round((state.speed + delta) * 4) / 4))
-    if new_speed == old_speed:
-        return
-    offset = state.paused_loop_pos if state.paused_loop_pos is not None else 0
-    state.speed = new_speed
-    state.loop_anchor = time.monotonic() - (offset / max(1e-9, state.fps * state.speed))
-    if not state.loop_paused:
-        state.paused_loop_idx = None
-        state.paused_loop_pos = None
-    state.mark_dirty()
+    moved = state.loop.change_speed(
+        delta, loop_preview_indices(state), state.fps, time.monotonic()
+    )
+    if moved:
+        state.mark_dirty()
 
 
 def toggle_loop_pause(state: VideoState) -> None:
-    current_idx = current_loop_frame_index(state)
-    current_pos = state.paused_loop_pos if state.paused_loop_pos is not None else 0
-    if state.loop_paused:
-        state.loop_paused = False
-        state.paused_loop_idx = None
-        state.paused_loop_pos = None
-        state.loop_anchor = time.monotonic() - (current_pos / max(1e-9, state.fps * state.speed))
-    else:
-        state.loop_paused = True
-        state.paused_loop_idx = current_idx
-        state.paused_loop_pos = current_pos
+    state.loop.toggle_pause(loop_preview_indices(state), state.fps, time.monotonic())
     state.render_rev += 1
