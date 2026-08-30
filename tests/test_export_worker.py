@@ -8,7 +8,6 @@ import pytest
 
 from clipper.gui.export_worker import ExportWorker
 from clipper.paths import AUDIO_DIR, CLIPS_DIR, RAW_CLIPS_DIR, VR_CLIPS_DIR
-from clipper.state import ExportJob
 
 
 @pytest.fixture()
@@ -21,22 +20,22 @@ def state(make_state):
 
 
 class _Step:
-    """A stand-in for an export step: records its call, drives the job it is
-    handed the way the real step does, and answers with whatever it is told to.
+    """A stand-in for an export step: records its call, reports progress the
+    way the real step does, and answers with whatever it is told to.
     """
 
-    def __init__(self, *, stage: str, progress_field: str, ok: bool = True, detail: str = ""):
-        self.stage = stage
-        self.progress_field = progress_field
+    def __init__(self, *, stage: str, reports: str, ok: bool = True, detail: str = ""):
+        self.stage_text = stage
+        self.reports = reports
         self.ok = ok
         self.detail = detail
         self.calls: list[tuple] = []
 
     def __call__(self, *args):
         self.calls.append(args)
-        job = args[-1]
-        job.stage = self.stage
-        setattr(job, self.progress_field, 1.0)
+        progress = args[-1]
+        progress.stage(self.stage_text)
+        getattr(progress, self.reports)(1.0)
         return self.ok, self.detail
 
     @property
@@ -48,9 +47,9 @@ class _Step:
 def steps():
     """The three export steps, stubbed at the module they are imported from."""
     stubs = {
-        "raw": _Step(stage="clipping", progress_field="clip_progress", detail="raw.mp4"),
-        "post": _Step(stage="fixing the loop", progress_field="fix_progress", detail="clip.mp4"),
-        "audio": _Step(stage="pulling audio", progress_field="audio_progress", detail="audio.mp3"),
+        "raw": _Step(stage="clipping", reports="clip", detail="raw.mp4"),
+        "post": _Step(stage="fixing the loop", reports="fix", detail="clip.mp4"),
+        "audio": _Step(stage="pulling audio", reports="audio", detail="audio.mp3"),
     }
     with patch("clipper.export_steps.export_raw_clip", stubs["raw"]), \
          patch("clipper.export_steps.run_clip_postprocess", stubs["post"]), \
@@ -83,8 +82,8 @@ class TestSignals:
 
         worker.run()
 
-        # The job resets each field as it is built, so every progress signal
-        # starts at 0.0 and the run drives it to 1.0.
+        # A run starts every bar from zero, so each progress signal carries
+        # 0.0 and then the 1.0 its step reports.
         assert seen["stage_changed"] == [
             "preparing export", "clipping", "fixing the loop", "pulling audio",
         ]
@@ -95,27 +94,29 @@ class TestSignals:
 
 
 class TestRunCallsExportSteps:
-    def test_the_raw_clip_step_gets_the_state_an_output_path_and_the_job(self, state, steps):
-        ExportWorker(state).run()
+    def test_the_raw_clip_step_gets_the_state_an_output_path_and_the_worker(self, state, steps):
+        worker = ExportWorker(state)
+        worker.run()
 
-        clip_state, out_path, job = steps["raw"].calls[0]
+        clip_state, out_path, progress = steps["raw"].calls[0]
         assert clip_state is state
         assert out_path.parent == RAW_CLIPS_DIR
-        assert isinstance(job, ExportJob)
+        assert progress is worker
 
     def test_the_post_process_step_gets_the_raw_input_and_the_clip_output(self, state, steps):
-        ExportWorker(state).run()
+        worker = ExportWorker(state)
+        worker.run()
 
-        post_state, raw_in, clip_out, job = steps["post"].calls[0]
+        post_state, raw_in, clip_out, progress = steps["post"].calls[0]
         assert post_state is state
         assert raw_in == steps["raw"].calls[0][1]
         assert clip_out.parent == CLIPS_DIR
-        assert isinstance(job, ExportJob)
+        assert progress is worker
 
     def test_the_audio_step_writes_beside_the_clip(self, state, steps):
         ExportWorker(state).run()
 
-        _audio_state, audio_out, _job = steps["audio"].calls[0]
+        _audio_state, audio_out, _progress = steps["audio"].calls[0]
         assert audio_out.parent == AUDIO_DIR
         assert audio_out.suffix == ".mp3"
 

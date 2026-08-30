@@ -15,7 +15,28 @@ from clipper.export_steps import (
     run_clip_postprocess,
     validate_video_file,
 )
-from clipper.state import ExportJob
+
+
+class _Recorder:
+    """Stands in for whoever is watching the export."""
+
+    def __init__(self) -> None:
+        self.stages: list[str] = []
+        self.clips: list[float] = []
+        self.fixes: list[float] = []
+        self.audios: list[float] = []
+
+    def stage(self, text: str) -> None:
+        self.stages.append(text)
+
+    def clip(self, fraction: float) -> None:
+        self.clips.append(fraction)
+
+    def fix(self, fraction: float) -> None:
+        self.fixes.append(fraction)
+
+    def audio(self, fraction: float) -> None:
+        self.audios.append(fraction)
 
 
 # ---------------------------------------------------------------------------
@@ -186,15 +207,6 @@ class TestRunFfmpegWithProgress:
         # At some point 0.5 should have been reported
         assert any(abs(v - 0.5) < 0.01 for v in recorded)
 
-    def test_job_proc_removed_after_run(self):
-        proc = self._make_proc_mock(["progress=end"])
-        job = ExportJob()
-
-        with patch("subprocess.Popen", return_value=proc):
-            _run_ffmpeg_with_progress(["ffmpeg"], 5.0, lambda p: None, job=job)
-
-        assert proc not in job.procs
-
     def test_nonzero_exit_includes_error_output(self):
         proc = self._make_proc_mock(
             ["Stream mapping:", "  No audio stream found", "out_time=00:00:00.000000"],
@@ -220,7 +232,7 @@ class TestRunFfmpegWithProgress:
 
 class TestRunClipPostprocess:
     def test_passes_loop_mode_to_script(self, tmp_path: Path, make_state):
-        job = ExportJob()
+        progress = _Recorder()
         state = make_state(loop_mode="tip-base")
         raw_path = tmp_path / "raw.mp4"
         out_path = tmp_path / "out.mp4"
@@ -233,7 +245,7 @@ class TestRunClipPostprocess:
         with patch("clipper.export_steps.CLIP_POSTPROCESS_SCRIPT", tmp_path / "clip_postprocess.py"):
             (tmp_path / "clip_postprocess.py").write_text("# test\n", encoding="utf-8")
             with patch("subprocess.Popen", return_value=proc) as popen:
-                ok, detail = run_clip_postprocess(state, raw_path, out_path, job)
+                ok, detail = run_clip_postprocess(state, raw_path, out_path, progress)
 
         assert ok is True
         assert detail == str(out_path)
@@ -245,7 +257,7 @@ class TestRunClipPostprocess:
 class TestExportFullAudioMp3:
     def test_skips_when_no_audio_stream(self, tmp_path: Path, make_state):
         """Videos without audio should not fail the entire export."""
-        job = ExportJob()
+        progress = _Recorder()
         state = make_state()
         out_path = tmp_path / "out.mp3"
 
@@ -256,14 +268,14 @@ class TestExportFullAudioMp3:
 
         with patch("clipper.export_steps.find_tool", return_value="ffprobe"), \
              patch("subprocess.Popen", return_value=probe_proc):
-            ok, detail = export_full_audio_mp3(state, out_path, job)
+            ok, detail = export_full_audio_mp3(state, out_path, progress)
 
         assert ok is True
         assert "no audio" in detail.lower()
 
     def test_proceeds_when_audio_stream_exists(self, tmp_path: Path, make_state):
         """Normal videos with audio should go through the ffmpeg path."""
-        job = ExportJob()
+        progress = _Recorder()
         state = make_state()
         out_path = tmp_path / "out.mp3"
 
@@ -287,7 +299,7 @@ class TestExportFullAudioMp3:
 
         with patch("clipper.export_steps.find_tool", side_effect=lambda n: n), \
              patch("subprocess.Popen", side_effect=popen_side_effect):
-            ok, detail = export_full_audio_mp3(state, out_path, job)
+            ok, detail = export_full_audio_mp3(state, out_path, progress)
 
         assert ok is True
         assert str(out_path) in detail

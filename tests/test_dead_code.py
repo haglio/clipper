@@ -30,12 +30,6 @@ _QT_OVERRIDES: set[tuple[str, str]] = {
     ("clipper/gui/video_pane.py", "paintEvent"),
 }
 
-# ExportJob mutations — the export steps write these and the Qt signal bridge
-# forwards them to the dialog from __setattr__, which vulture cannot follow.
-_EXPORT_MUTATIONS: set[tuple[str, str]] = {
-    ("clipper/export_steps.py", "stage"),
-}
-
 # Attribute mutations on state objects — used by production code but vulture
 # can't trace setattr on dynamic types.
 _STATE_MUTATIONS: set[tuple[str, str]] = {
@@ -50,9 +44,6 @@ _STATE_MUTATIONS: set[tuple[str, str]] = {
 # used to cover; naming them costs four lines and leaves the rest of the file
 # under the gate.
 _STATE_FIELDS: set[tuple[str, str]] = {
-    # ExportJob.stage — read by _SignalBridge.__setattr__ (gui/export_worker.py:57),
-    # which turns the write into the dialog's stage_changed signal.
-    ("clipper/state.py", "stage"),
     # VideoState.original_session_payload — the payload the session was opened
     # with, kept so a discard-on-exit has something to compare against.
     ("clipper/state.py", "original_session_payload"),
@@ -69,7 +60,6 @@ _STATE_FIELDS: set[tuple[str, str]] = {
 
 WHITELIST: set[tuple[str, str]] = (
     _QT_OVERRIDES
-    | _EXPORT_MUTATIONS
     | _STATE_MUTATIONS
     | _STATE_FIELDS
 )
