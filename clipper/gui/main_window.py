@@ -30,7 +30,7 @@ from clipper.wrap_modes import WRAP_OVER_LOADED, wrap_bounds
 from .button_bar import ButtonBar
 from .exit_dialog import ExitDialog
 from .export_dialog import ExportDialog
-from .export_worker import ExportWorker
+from .export_worker import connect_export
 from .floating_controls import FloatingControlLayout
 from .frame_converter import bgr_to_qimage, scale_to_fit
 from .legend_widget import LegendWidget
@@ -387,14 +387,7 @@ class ClipperMainWindow(QMainWindow):
 
     def start_export(self) -> None:
         dialog = ExportDialog(self)
-        worker = ExportWorker(self._state)
-        worker.stage_changed.connect(dialog.set_stage)
-        worker.clip_progress.connect(dialog.set_clip_progress)
-        worker.fix_progress.connect(dialog.set_fix_progress)
-        worker.audio_progress.connect(dialog.set_audio_progress)
-        worker.export_finished.connect(
-            lambda ok, msg: (dialog.set_done(ok), dialog.set_error("" if ok else msg))
-        )
+        worker = connect_export(self._state, dialog)
         self._export_worker = worker
         dialog.show()
         worker.start()

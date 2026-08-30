@@ -237,3 +237,41 @@ class TestSkipPostprocess:
         ExportWorker(state).run()
 
         assert steps["audio"].called
+
+
+class TestConnectExport:
+    """One wiring, shared by the window and the whole-video path that has none.
+
+    The nine lines were written out twice, lambda included; a signal wired in
+    one copy and forgotten in the other would have shown as a progress bar that
+    never moved on one route only.
+    """
+
+    def test_every_signal_the_worker_emits_reaches_the_dialog(self, state, steps):
+        from clipper.gui.export_dialog import ExportDialog
+        from clipper.gui.export_worker import connect_export
+
+        dialog = ExportDialog()
+        worker = connect_export(state, dialog)
+
+        worker.run()  # in this thread, so the queued signals are direct
+
+        assert dialog.stage_label.text() == "Export complete."
+        assert dialog.clip_bar.value() == dialog.clip_bar.maximum()
+        assert dialog.fix_bar.value() == dialog.fix_bar.maximum()
+        assert dialog.audio_bar.value() == dialog.audio_bar.maximum()
+        assert dialog.close_btn.isEnabled()
+        assert dialog.error_label.text() == ""
+
+    def test_a_failure_puts_its_reason_on_the_dialog(self, state, steps):
+        from clipper.gui.export_dialog import ExportDialog
+        from clipper.gui.export_worker import connect_export
+
+        steps["raw"].ok = False
+        steps["raw"].detail = "no room on the disk"
+        dialog = ExportDialog()
+
+        connect_export(state, dialog).run()
+
+        assert dialog.stage_label.text() == "Export failed."
+        assert dialog.error_label.text() == "no room on the disk"

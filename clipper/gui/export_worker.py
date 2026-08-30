@@ -10,6 +10,29 @@ if TYPE_CHECKING:
     from clipper.state import VideoState
 
 
+def connect_export(state: VideoState, dialog) -> ExportWorker:
+    """A worker for `state` that reports its progress into `dialog`.
+
+    These nine lines were written out twice -- once in the main window and once
+    in the whole-video path that has no window -- including the identical
+    two-call lambda.
+
+    It does not start the worker.  The caller does, because the caller is also
+    what keeps it alive: a QThread whose last Python reference goes out of
+    scope while it is running is collected mid-export, so the returned object
+    has to be held somewhere either way.
+    """
+    worker = ExportWorker(state)
+    worker.stage_changed.connect(dialog.set_stage)
+    worker.clip_progress.connect(dialog.set_clip_progress)
+    worker.fix_progress.connect(dialog.set_fix_progress)
+    worker.audio_progress.connect(dialog.set_audio_progress)
+    worker.export_finished.connect(
+        lambda ok, msg: (dialog.set_done(ok), dialog.set_error("" if ok else msg))
+    )
+    return worker
+
+
 class ExportWorker(QThread):
     """Runs the export pipeline in a background thread, emitting progress signals."""
 
