@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 import time
@@ -13,7 +14,11 @@ from app_support.subprocess_utils import hidden_subprocess_kwargs
 from .export_progress import ExportProgress
 from .paths import CLIP_POSTPROCESS_SCRIPT
 from .state import VideoState
-from .utils import find_tool
+
+
+def find_tool(name: str) -> str | None:
+    """Where `name` is on PATH, if it is anywhere.  Only this module asks."""
+    return shutil.which(name)
 
 
 def _parse_ffmpeg_clock(s: str) -> float:
