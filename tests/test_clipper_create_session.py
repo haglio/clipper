@@ -139,6 +139,24 @@ def test_create_session_writes_json(tmp_path):
     assert payload["fps"] == 30.0
 
 
+def test_a_write_that_fails_says_which_file_it_was(tmp_path):
+    """The CLI turns this into an `ERROR:` line and a non-zero exit.
+
+    It used to hand-roll the tmp-file-then-replace that `safe_atomic_write_json`
+    already does, and re-raise whatever the filesystem raised; now it goes
+    through the one writer and names the path, so the caller is told which
+    session did not get written.
+    """
+    with _mock_ffprobe(), patch(
+        "clipper.create_session.safe_atomic_write_json",
+        return_value=(False, "no space left on device"),
+    ):
+        with pytest.raises(RuntimeError, match="no space left on device") as failure:
+            create_session("D:/media/example/beta rehearsal.mp4", 10.0, sessions_dir=tmp_path)
+
+    assert "beta rehearsal.json" in str(failure.value)
+
+
 def test_create_session_skips_existing(tmp_path):
     existing = tmp_path / "TestVideo.json"
     existing.write_text('{"existing": true}', encoding="utf-8")
