@@ -488,7 +488,7 @@ class TestFloatingControlsStandAlone:
     """The layout is a collaborator, not a method: it takes widgets and five
     indices and knows nothing about a session."""
 
-    def test_it_places_the_wrap_button_over_the_range_it_is_given(self, qapp):
+    def test_it_places_the_wrap_button_over_the_range_it_is_given(self):
         from PyQt6.QtWidgets import QWidget
 
         from shared_ui.colors import TIMELINE_LOADED
