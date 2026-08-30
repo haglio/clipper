@@ -122,8 +122,7 @@ class TestOnTick:
         assert timeline.wrap_mode == "yellow"
 
     def test_it_passes_the_suggestions_through(self, live_app):
-        live_app._state.suggested_in = 22
-        live_app._state.suggested_out = 38
+        live_app._state.suggestions.offer(22, 38)
 
         live_app._on_tick()
 

@@ -172,8 +172,7 @@ def _no_prep(state):
 
 
 def _with_suggestions(state):
-    state.suggested_in = 25
-    state.suggested_out = 35
+    state.suggestions.offer(25, 35)
 
 
 # (label, Qt key, event text, prepare, what to read afterwards, what it must be)

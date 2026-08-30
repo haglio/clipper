@@ -45,10 +45,7 @@ def _pair_transition_score(state: VideoState, active_start: int, active_end: int
 
 
 def update_loop_suggestions(state: VideoState) -> None:
-    initial_start = state.initial_active_start if state.initial_active_start is not None else state.active_start
-    initial_end = state.initial_active_end if state.initial_active_end is not None else state.active_end
-    start_changed = state.active_start != initial_start
-    end_changed = state.active_end != initial_end
+    start_changed, end_changed = state.suggestions.moved(state.active_start, state.active_end)
     use_turning_point = state.loop_mode in {LOOP_MODE_BASE_TIP, LOOP_MODE_TIP_BASE}
 
     suggested_in: int | None = None
@@ -99,7 +96,5 @@ def update_loop_suggestions(state: VideoState) -> None:
                     best_pair = (candidate_start, candidate_end)
         suggested_in, suggested_out = best_pair
 
-    if state.suggested_in != suggested_in or state.suggested_out != suggested_out:
-        state.suggested_in = suggested_in
-        state.suggested_out = suggested_out
+    if state.suggestions.offer(suggested_in, suggested_out):
         state.bump_render()
