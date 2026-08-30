@@ -13,7 +13,7 @@ from .frame_window import FrameWindow
 from .loop_cursor import LoopCursor
 from .loop_modes import LOOP_MODE_BASE_TIP_BASE
 from .suggestions import Suggestions
-from .wrap_modes import wrap_bounds
+from .wrap_modes import WRAP_OVER_LOADED, wrap_bounds
 from .session_persistence import (
     autosave_session as persist_session_state,
     current_payload as build_current_payload,
@@ -34,7 +34,7 @@ class VideoState:
     session_path: str
     original_session_payload: dict[str, Any]
     loop_mode: str = LOOP_MODE_BASE_TIP_BASE
-    wrap_mode: str = "blue"
+    wrap_mode: str = WRAP_OVER_LOADED
     skip_postprocess: bool = False
     vr: bool = False
     session_warning: str = ""

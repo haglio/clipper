@@ -14,6 +14,7 @@ from .loop_modes import LOOP_MODE_BASE_TIP_BASE, LOOP_MODES
 from .paths import SESSIONS_DIR, sanitize_name
 from .state import VideoState
 from .suggestions import Suggestions
+from .wrap_modes import WRAP_OVER_LOADED
 
 
 def _normalized_loop_mode(loop_mode: str) -> str:
@@ -54,7 +55,7 @@ def load_video_state(payload: dict[str, Any], session_name: str) -> VideoState:
     active_end = int(payload["active_end"])
     current = int(payload.get("current", active_start))
     loop_mode = _normalized_loop_mode(str(payload.get("loop_mode", LOOP_MODE_BASE_TIP_BASE)))
-    wrap_mode = payload.get("wrap_mode", "blue")
+    wrap_mode = payload.get("wrap_mode", WRAP_OVER_LOADED)
     speed = _normalized_speed(float(payload.get("speed", 1.0)))
     vr = bool(payload.get("vr", False))
     session_name = payload.get("session_name", session_name)
