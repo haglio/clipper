@@ -16,28 +16,7 @@ from shared_ui.colors import (
 )
 from shared_ui.fonts import FONT_UI, SIZE_SMALL, SIZE_TINY
 
-LegendEntry = tuple[tuple[str, ...], str, str]
-
-HOTKEY_LEGEND_ROWS: tuple[tuple[LegendEntry, ...], ...] = (
-    (
-        (("-", "+"), " or ", "speed"),
-        (("space",), "", "play or pause preview"),
-        (("enter",), "", "export"),
-    ),
-    (
-        (("a", "s"), " or ", "adjust left bound"),
-        (("<", ">"), " or ", "shift in-out"),
-        (("left", "right"), " or ", "move cursor"),
-        (("i", "["), "/", "mark in"),
-        (("o", "]"), "/", "mark out"),
-        (("d", "f"), " or ", "adjust right bound"),
-    ),
-    (
-        (("(", ")"), " or ", "accept in or out suggestion"),
-        (("w",), "", "toggle cursor wrap mode"),
-        (("l",), "", "cycle loop type"),
-    ),
-)
+from .shortcuts import LegendEntry, legend_rows
 
 
 class LegendWidget(QWidget):
@@ -45,7 +24,7 @@ class LegendWidget(QWidget):
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.legend_rows: tuple[tuple[LegendEntry, ...], ...] = HOTKEY_LEGEND_ROWS
+        self.legend_rows: tuple[tuple[LegendEntry, ...], ...] = legend_rows()
         self.setMinimumHeight(80)
 
     def _row_width(self, p: QPainter, row, key_font, label_font, join_font) -> int:
