@@ -67,7 +67,7 @@ class FrameWindow:
         claims it whether or not every frame arrived.  On a file the decoder
         gives up on early that leaves the window spanning frames nothing
         produced, and `safe_frame` raises for them.  Kept because it is the
-        behaviour the app has; see the item-40 changelog note.
+        behavior the app has; see the item-40 changelog note.
         """
         self.loaded_end = end
 

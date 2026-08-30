@@ -108,7 +108,7 @@ class TestTheContractWithNau:
         """``genau/nau/status.py`` beside the primary checkout, if it is there.
 
         Resolved through the primary rather than from here, because everything
-        runs in a worktree and a worktree's neighbours are other worktrees.
+        runs in a worktree and a worktree's neighbors are other worktrees.
         """
         from clipper.paths import PROJECT_DIR
 

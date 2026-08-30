@@ -17,17 +17,17 @@ class TestWrapBounds:
 
         assert wrap_bounds(state) == (20, 40)
 
-    def test_the_two_modes_are_the_colours_the_session_file_carries(self):
+    def test_the_two_modes_are_the_colors_the_session_file_carries(self):
         """The session format is unversioned and evolver reads it, so the value
-        stays the colour it has always been; only the name says what it means."""
+        stays the color it has always been; only the name says what it means."""
         assert (WRAP_OVER_LOADED, WRAP_OVER_ACTIVE) == ("blue", "yellow")
 
 
-def test_nothing_else_spells_the_wrap_mode_out_as_a_colour():
+def test_nothing_else_spells_the_wrap_mode_out_as_a_color():
     """The two constants are the only place `"blue"` and `"yellow"` are written.
 
     They were the last thing this module was extracted to collect: the loader's
-    default and the dataclass's still spelled the colour while the creator next
+    default and the dataclass's still spelled the color while the creator next
     to them used the constant, so `grep WRAP_OVER_LOADED` did not find every
     place the default wrap mode is decided.
     """

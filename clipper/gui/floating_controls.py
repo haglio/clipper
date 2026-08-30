@@ -3,7 +3,7 @@
 They are placed by hand in pixels rather than by a layout, because each one
 tracks a position on the timeline rather than a slot in a row.  That is one of
 the six things `ClipperMainWindow` was doing; here it knows nothing about a
-`VideoState` beyond the five indices and the colour it is handed.
+`VideoState` beyond the five indices and the color it is handed.
 """
 
 from __future__ import annotations
@@ -48,13 +48,13 @@ class FloatingControlLayout:
     def _place_shift(self, active_start: int, active_end: int) -> None:
         """Straddling the midpoint of the active range."""
         tl, tc = self._timeline, self._controls
-        centre = self._offset_in(self._shift_row) + (
+        center = self._offset_in(self._shift_row) + (
             tl.x_for_index(active_start) + tl.x_for_index(active_end)
         ) // 2
         width = tc.shift_left_btn.width()
         y = (self._shift_row.height() - tc.shift_left_btn.height()) // 2
-        tc.shift_left_btn.move(centre - GAP // 2 - width, y)
-        tc.shift_right_btn.move(centre + GAP // 2, y)
+        tc.shift_left_btn.move(center - GAP // 2 - width, y)
+        tc.shift_right_btn.move(center + GAP // 2, y)
         tc.shift_left_btn.show()
         tc.shift_right_btn.show()
 
@@ -82,8 +82,8 @@ class FloatingControlLayout:
         tc.mark_in_btn.show()
         tc.mark_out_btn.show()
 
-    def _place_wrap(self, wrap_from: int, wrap_to: int, colour: QColor) -> None:
-        """Centred on the range the cursor wraps within, painted to match it."""
+    def _place_wrap(self, wrap_from: int, wrap_to: int, color: QColor) -> None:
+        """Centerd on the range the cursor wraps within, painted to match it."""
         tl, tc = self._timeline, self._controls
         offset = self._offset_in(self._wrap_row)
         x1 = offset + tl.x_for_index(wrap_from)
@@ -91,7 +91,7 @@ class FloatingControlLayout:
         y = (self._wrap_row.height() - tc.wrap_btn.height()) // 2
         tc.wrap_btn.move((x1 + x2) // 2 - tc.wrap_btn.width() // 2, y)
         tc.wrap_btn.setStyleSheet(
-            f"background: {colour.name()}; border: 1px solid {BORDER_SUBTLE.name()};"
+            f"background: {color.name()}; border: 1px solid {BORDER_SUBTLE.name()};"
         )
         tc.wrap_btn.show()
         self._wrap_row.set_brace(x1, x2)

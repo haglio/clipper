@@ -194,7 +194,7 @@ class TestBuildClipWholeState:
         assert state.session_name == "take 1_ second pass"
 
 
-def test_a_cancelled_launcher_gives_no_state_to_open():
+def test_a_canceled_launcher_gives_no_state_to_open():
     """Cancel used to raise `SystemExit(0)` out of a `-> VideoState | None`."""
     mock_dialog = MagicMock()
     mock_dialog.exec.return_value = 0  # QDialog.DialogCode.Rejected

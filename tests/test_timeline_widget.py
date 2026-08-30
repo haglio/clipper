@@ -134,7 +134,7 @@ class TestPainting:
         return rendered(widget)
 
     def _band(self, image, x):
-        """The colour mid-height, clear of the tick dots along both edges."""
+        """The color mid-height, clear of the tick dots along both edges."""
         return image.pixelColor(x, 12).name()
 
     def test_the_loaded_range_is_drawn_outside_the_active_one(self, painted):

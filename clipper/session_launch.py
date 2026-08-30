@@ -94,7 +94,7 @@ def launch_state() -> VideoState | None:
     """The session the user chose, or None if there is no editor to open.
 
     None covers both of the two ways that happens -- the launcher was
-    cancelled, or a whole video was exported without an editor.  Cancel used to
+    canceled, or a whole video was exported without an editor.  Cancel used to
     raise `SystemExit(0)` out of a function annotated `-> VideoState | None`,
     so it had three outcomes and its type said two, and `app.main` carried an
     `except SystemExit: raise` for it that never did anything (SystemExit is
