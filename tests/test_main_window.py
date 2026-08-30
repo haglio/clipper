@@ -482,3 +482,36 @@ class TestWrapBrace:
         row.set_brace(300, 300)
 
         assert _brace_ink(row, rendered) == []
+
+
+class TestFloatingControlsStandAlone:
+    """The layout is a collaborator, not a method: it takes widgets and five
+    indices and knows nothing about a session."""
+
+    def test_it_places_the_wrap_button_over_the_range_it_is_given(self, qapp):
+        from PyQt6.QtWidgets import QWidget
+
+        from shared_ui.colors import TIMELINE_LOADED
+        from clipper.gui.floating_controls import FloatingControlLayout
+        from clipper.gui.main_window import _WrapRow
+        from clipper.gui.timeline_controls import TimelineControls
+        from clipper.gui.timeline_widget import TimelineWidget
+
+        host = QWidget()
+        host.resize(600, 200)
+        timeline = TimelineWidget(host)
+        timeline.resize(600, 24)
+        timeline.set_loaded_range(0, 100)
+        controls = TimelineControls(host)
+        shift_row, mark_row = QWidget(host), QWidget(host)
+        wrap_row = _WrapRow(host)
+        for row in (shift_row, mark_row, wrap_row):
+            row.resize(600, 32)
+        layout = FloatingControlLayout(timeline, controls, shift_row, mark_row, wrap_row)
+
+        layout.place(active_start=20, active_end=80, cursor=50,
+                     wrap_from=0, wrap_to=100, wrap_color=TIMELINE_LOADED)
+
+        centre = controls.wrap_btn.x() + controls.wrap_btn.width() // 2
+        assert abs(centre - timeline.width() // 2) <= 2
+        assert TIMELINE_LOADED.name() in controls.wrap_btn.styleSheet()
