@@ -162,7 +162,7 @@ class TestExportWiring:
         mock_worker = MagicMock()
         mock_dialog = MagicMock()
 
-        with patch("clipper.gui.main_window.ExportWorker", return_value=mock_worker) as MockWorker, \
+        with patch("clipper.gui.export_worker.ExportWorker", return_value=mock_worker) as MockWorker, \
              patch("clipper.gui.main_window.ExportDialog", return_value=mock_dialog) as MockDialog:
             window.start_export()
 
@@ -279,7 +279,7 @@ class TestKeyDispatch:
         state = make_state(**_DISPATCH_STATE)
         window = ClipperMainWindow(state)
 
-        with patch("clipper.gui.main_window.ExportWorker") as worker_cls, \
+        with patch("clipper.gui.export_worker.ExportWorker") as worker_cls, \
              patch("clipper.gui.main_window.ExportDialog") as dialog_cls:
             _press(window, key)
 
