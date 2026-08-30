@@ -10,8 +10,9 @@ import cv2
 
 from app_support.subprocess_utils import hidden_subprocess_kwargs
 
+from .export_progress import ExportProgress
 from .paths import CLIP_POSTPROCESS_SCRIPT
-from .state import ExportJob, VideoState
+from .state import VideoState
 from .utils import find_tool
 
 
@@ -27,7 +28,6 @@ def _run_ffmpeg_with_progress(
     cmd: Sequence[str],
     total_duration: float,
     set_progress: Callable[[float], None],
-    job: ExportJob | None = None,
 ) -> tuple[bool, str]:
     try:
         proc = subprocess.Popen(
@@ -38,8 +38,6 @@ def _run_ffmpeg_with_progress(
             bufsize=1,
             **hidden_subprocess_kwargs(),
         )
-        if job is not None:
-            job.procs.append(proc)
     except Exception as exc:
         return False, str(exc)
     progress = 0.0
@@ -64,11 +62,6 @@ def _run_ffmpeg_with_progress(
                 set_progress(progress)
         rc = proc.wait()
     finally:
-        if job is not None and proc in job.procs:
-            try:
-                job.procs.remove(proc)
-            except ValueError:
-                pass
         if proc.stdout is not None:
             proc.stdout.close()
     if rc != 0:
@@ -96,7 +89,7 @@ def validate_video_file(path: Path) -> tuple[bool, str]:
     return True, ""
 
 
-def export_raw_clip(state: VideoState, out_path: Path, job: ExportJob) -> tuple[bool, str]:
+def export_raw_clip(state: VideoState, out_path: Path, progress: ExportProgress) -> tuple[bool, str]:
     ffmpeg = find_tool("ffmpeg")
     if not ffmpeg:
         return False, "ffmpeg not found on PATH"
@@ -114,8 +107,8 @@ def export_raw_clip(state: VideoState, out_path: Path, job: ExportJob) -> tuple[
         "-ss", f"{seek_sec:.6f}", "-i", state.path, "-map", "0:v:0", "-vf", vf, "-r", f"{state.fps:.12g}", "-an",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(out_path),
     ]
-    job.stage = "exporting raw silent clip"
-    ok, detail = _run_ffmpeg_with_progress(cmd, clip_duration, lambda p: setattr(job, "clip_progress", p), job)
+    progress.stage("exporting raw silent clip")
+    ok, detail = _run_ffmpeg_with_progress(cmd, clip_duration, progress.clip)
     if not ok:
         return False, detail
     ok2, detail2 = validate_video_file(out_path)
@@ -124,39 +117,39 @@ def export_raw_clip(state: VideoState, out_path: Path, job: ExportJob) -> tuple[
     return True, str(out_path)
 
 
-def run_clip_postprocess(state: VideoState, raw_path: Path, out_path: Path, job: ExportJob) -> tuple[bool, str]:
-    job.stage = f"running {CLIP_POSTPROCESS_SCRIPT.name}"
+def run_clip_postprocess(state: VideoState, raw_path: Path, out_path: Path, progress: ExportProgress) -> tuple[bool, str]:
+    progress.stage(f"running {CLIP_POSTPROCESS_SCRIPT.name}")
     if not CLIP_POSTPROCESS_SCRIPT.exists():
         return False, f"{CLIP_POSTPROCESS_SCRIPT.name} not found at {CLIP_POSTPROCESS_SCRIPT}"
     cmd = [sys.executable, str(CLIP_POSTPROCESS_SCRIPT), str(raw_path), "-o", str(out_path), "--loop-mode", state.loop_mode]
     try:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, **hidden_subprocess_kwargs())
-        job.procs.append(proc)
     except Exception as exc:
         return False, str(exc)
     lines = []
+    # The script says nothing until it is finished, so this bar is invented:
+    # a hundredth per tick, stopping short of full so it cannot claim to be
+    # done.  It is unrelated to the work (`all/design/029`); reporting it
+    # truthfully means the pipeline emitting progress of its own.
+    fraction = 0.0
     while True:
         line = proc.stdout.readline() if proc.stdout else ""
         if line:
             lines.append(line.rstrip())
         if proc.poll() is not None:
             break
-        job.fix_progress = min(0.95, job.fix_progress + 0.01)
+        fraction = min(0.95, fraction + 0.01)
+        progress.fix(fraction)
         time.sleep(0.1)
     if proc.stdout:
         rest = proc.stdout.read()
         if rest:
             lines.append(rest)
         proc.stdout.close()
-    if proc in job.procs:
-        try:
-            job.procs.remove(proc)
-        except ValueError:
-            pass
     rc = proc.wait()
     if rc != 0:
         return False, f"{CLIP_POSTPROCESS_SCRIPT.name} failed:\n" + "\n".join(lines[-20:])
-    job.fix_progress = 1.0
+    progress.fix(1.0)
     return True, str(out_path)
 
 
@@ -177,20 +170,20 @@ def _has_audio_stream(video_path: str) -> bool:
         return True  # assume yes on probe failure; let ffmpeg decide
 
 
-def export_full_audio_mp3(state: VideoState, out_path: Path, job: ExportJob) -> tuple[bool, str]:
+def export_full_audio_mp3(state: VideoState, out_path: Path, progress: ExportProgress) -> tuple[bool, str]:
     ffmpeg = find_tool("ffmpeg")
     if not ffmpeg:
         return False, "ffmpeg not found on PATH"
     if not _has_audio_stream(state.path):
-        job.audio_progress = 1.0
+        progress.audio(1.0)
         return True, "No audio stream in source video"
     full_duration = max(1.0 / state.fps, state.total_frames / state.fps)
     cmd = [
         ffmpeg, "-y", "-hide_banner", "-loglevel", "error", "-progress", "pipe:1", "-nostats", "-stats_period", "0.1",
         "-i", state.path, "-vn", "-map", "0:a:0?", "-c:a", "libmp3lame", "-q:a", "2", str(out_path),
     ]
-    job.stage = "extracting full audio to mp3"
-    ok, detail = _run_ffmpeg_with_progress(cmd, full_duration, lambda p: setattr(job, "audio_progress", p), job)
+    progress.stage("extracting full audio to mp3")
+    ok, detail = _run_ffmpeg_with_progress(cmd, full_duration, progress.audio)
     if not ok:
         return False, detail
     if not out_path.exists() or out_path.stat().st_size == 0:

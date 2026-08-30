@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import subprocess
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -19,15 +18,6 @@ from .session_persistence import (
     autosave_session as persist_session_state,
     current_payload as build_current_payload,
 )
-
-
-@dataclass
-class ExportJob:
-    stage: str = ""
-    clip_progress: float = 0.0
-    fix_progress: float = 0.0
-    audio_progress: float = 0.0
-    procs: list[subprocess.Popen[str]] = field(default_factory=list)
 
 
 @dataclass

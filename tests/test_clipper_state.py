@@ -32,10 +32,7 @@ from clipper.playback import (
     loop_preview_indices,
     toggle_loop_pause,
 )
-from clipper.state import (
-    ExportJob,
-    VideoState,
-)
+from clipper.state import VideoState
 
 
 # ---------------------------------------------------------------------------
@@ -45,30 +42,6 @@ from clipper.state import (
 def _pattern_frame(seed: int) -> np.ndarray:
     rng = np.random.default_rng(seed)
     return rng.integers(0, 256, size=(40, 40, 3), dtype=np.uint8)
-
-
-# ---------------------------------------------------------------------------
-# ExportJob defaults
-# ---------------------------------------------------------------------------
-
-class TestExportJob:
-    def test_a_fresh_job_has_not_started(self):
-        """Seven one-line tests for seven fields; the whole default instead.
-
-        Eleven more fields used to be asserted here.  Nothing read any of them,
-        so the assertions were the only thing keeping them alive.
-        """
-        job = ExportJob()
-
-        assert job.stage == ""
-        assert (job.clip_progress, job.fix_progress, job.audio_progress) == (0.0, 0.0, 0.0)
-
-    def test_each_job_gets_its_own_process_list(self):
-        first, second = ExportJob(), ExportJob()
-
-        first.procs.append("a process")
-
-        assert second.procs == []
 
 
 # ---------------------------------------------------------------------------
