@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .frame_store import signature_for_index, structural_similarity_score
 from .loop_modes import LOOP_MODE_BASE_TIP, LOOP_MODE_TIP_BASE
 from .suggestion_search import (
     best_duplicate_match_index,
@@ -14,36 +13,6 @@ if TYPE_CHECKING:
     from .state import VideoState
 
 
-def _best_duplicate_match_index(state: VideoState, ref_idx: int, *, direction: int) -> int | None:
-    return best_duplicate_match_index(
-        state,
-        ref_idx,
-        direction=direction,
-        signature_for_index=signature_for_index,
-        structural_similarity_score=structural_similarity_score,
-    )
-
-
-def _best_turning_point_index(state: VideoState, ref_idx: int, *, direction: int) -> int | None:
-    return best_turning_point_index(
-        state,
-        ref_idx,
-        direction=direction,
-        signature_for_index=signature_for_index,
-        structural_similarity_score=structural_similarity_score,
-    )
-
-
-def _pair_transition_score(state: VideoState, active_start: int, active_end: int) -> float:
-    return pair_transition_score(
-        state,
-        active_start,
-        active_end,
-        signature_for_index=signature_for_index,
-        structural_similarity_score=structural_similarity_score,
-    )
-
-
 def update_loop_suggestions(state: VideoState) -> None:
     start_changed, end_changed = state.suggestions.moved(state.active_start, state.active_end)
     use_turning_point = state.loop_mode in {LOOP_MODE_BASE_TIP, LOOP_MODE_TIP_BASE}
@@ -53,11 +22,11 @@ def update_loop_suggestions(state: VideoState) -> None:
 
     if start_changed:
         if use_turning_point:
-            candidate = _best_turning_point_index(state, state.active_start, direction=+1)
+            candidate = best_turning_point_index(state, state.active_start, direction=+1)
             if candidate is not None and state.active_start < candidate <= state.loaded_end:
                 suggested_out = candidate
         else:
-            match_idx = _best_duplicate_match_index(state, state.active_start, direction=+1)
+            match_idx = best_duplicate_match_index(state, state.active_start, direction=+1)
             if match_idx is not None:
                 candidate = match_idx - 1
                 if state.active_start < candidate <= state.loaded_end:
@@ -65,11 +34,11 @@ def update_loop_suggestions(state: VideoState) -> None:
 
     if end_changed:
         if use_turning_point:
-            candidate = _best_turning_point_index(state, state.active_end, direction=-1)
+            candidate = best_turning_point_index(state, state.active_end, direction=-1)
             if candidate is not None and state.loaded_start <= candidate < state.active_end:
                 suggested_in = candidate
         else:
-            match_idx = _best_duplicate_match_index(state, state.active_end, direction=-1)
+            match_idx = best_duplicate_match_index(state, state.active_end, direction=-1)
             if match_idx is not None:
                 candidate = match_idx + 1
                 if state.loaded_start <= candidate < state.active_end:
@@ -79,7 +48,7 @@ def update_loop_suggestions(state: VideoState) -> None:
         anchor_in = state.clip.anchor_in if state.clip.anchor_in is not None else state.active_start
         anchor_out = state.clip.anchor_out if state.clip.anchor_out is not None else state.active_end
         best_pair = (state.active_start, state.active_end)
-        best_score = _pair_transition_score(state, *best_pair)
+        best_score = pair_transition_score(state, *best_pair)
         for start_shift in range(-2, 3):
             candidate_start = anchor_in + start_shift
             if candidate_start < state.loaded_start or candidate_start > state.loaded_end:
@@ -90,7 +59,7 @@ def update_loop_suggestions(state: VideoState) -> None:
                     continue
                 if candidate_start >= candidate_end:
                     continue
-                score = _pair_transition_score(state, candidate_start, candidate_end)
+                score = pair_transition_score(state, candidate_start, candidate_end)
                 if score > best_score + 1e-6:
                     best_score = score
                     best_pair = (candidate_start, candidate_end)

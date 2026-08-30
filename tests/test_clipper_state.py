@@ -730,10 +730,10 @@ class TestLoopSuggestions:
             loop_mode=loop_mode,
         )
 
-        with patch("clipper.loop_suggestions._best_turning_point_index",
+        with patch("clipper.loop_suggestions.best_turning_point_index",
                    side_effect=turning_points) as turning, \
-             patch("clipper.loop_suggestions._best_duplicate_match_index") as duplicate, \
-             patch("clipper.loop_suggestions._pair_transition_score") as pair_score:
+             patch("clipper.loop_suggestions.best_duplicate_match_index") as duplicate, \
+             patch("clipper.loop_suggestions.pair_transition_score") as pair_score:
             update_loop_suggestions(s)
 
         assert (s.suggested_in, s.suggested_out) == expected
