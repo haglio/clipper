@@ -49,7 +49,7 @@ def qapp():
 # as the *project root* directory (a namespace package) instead of the real
 # clipper package installed via editable pip.  That causes clipper.state to
 # resolve to the runtime ``state/`` log directory rather than state.py,
-# breaking every import of VideoState / ExportJob.
+# breaking every import of VideoState.
 #
 # Fix: force-import clipper from the editable-install finder before pytest
 # collection triggers a namespace-package resolution.  Once the correct
