@@ -32,7 +32,6 @@ from clipper.playback import (
     loop_preview_indices,
     toggle_loop_pause,
 )
-from clipper.state_factory import make_video_state
 from clipper.state import (
     ExportJob,
     VideoState,
@@ -207,20 +206,6 @@ class TestMoveCurrent:
         move_current_right(s)
         assert s.current == 10
         assert s.render_rev == 1
-
-
-class TestMakeVideoState:
-    def test_new_session_keeps_requested_loop_mode(self):
-        cap = MagicMock()
-        cap.isOpened.return_value = True
-        cap.get.side_effect = [30.0, 120.0]
-        frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(30)}
-
-        with patch("clipper.state_factory.cv2.VideoCapture", return_value=cap):
-            with patch("clipper.state_factory.load_range", return_value=frames):
-                state = make_video_state("/fake/video.mp4", "demo", 0.0, 1.0, loop_mode="tip-base")
-
-        assert state.loop_mode == "tip-base"
 
 
 class TestLoopPause:

@@ -25,14 +25,20 @@ def _normalized_speed(speed: float) -> float:
     return max(0.25, min(2.0, round(speed * 4) / 4))
 
 
-def make_video_state(
-    video_path: str,
-    session_name: str,
-    start_time_s: float,
-    seconds: float,
-    loop_mode: str = LOOP_MODE_BASE_TIP_BASE,
-    payload_override: dict[str, Any] | None = None,
-) -> VideoState:
+def load_video_state(payload: dict[str, Any], session_name: str) -> VideoState:
+    """Open the video a saved session names, and rebuild the state from it.
+
+    `session_name` is the caller's fallback -- the session file's own stem --
+    for a payload that does not carry one.
+
+    This was `make_video_state`, six parameters branching on whether a payload
+    was supplied.  Nothing outside the tests reached the other branch: a new
+    session is `create_session` writing the file and this reading it back, so
+    the only production caller has always had a payload.  That branch was also
+    the fourth copy of the version-1 payload literal, and the drifted one -- it
+    omitted `vr`, so the two representations of "a new session" disagreed.
+    """
+    video_path = payload["video_path"]
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video: {video_path}")
@@ -42,50 +48,17 @@ def make_video_state(
         raise RuntimeError("Invalid FPS metadata")
     if total_frames <= 0:
         raise RuntimeError("Invalid frame count metadata")
-    base_step = max(1, int(round(fps)))
 
-    if payload_override is None:
-        loop_mode = _normalized_loop_mode(loop_mode)
-        start_idx = max(0, min(total_frames - 1, int(round(start_time_s * fps))))
-        duration_frames = max(1, int(round(seconds * fps)))
-        end_idx = min(total_frames - 1, start_idx + duration_frames - 1)
-        loaded_start = start_idx
-        loaded_end = end_idx
-        active_start = start_idx
-        active_end = end_idx
-        current = start_idx
-        wrap_mode = "blue"
-        speed = 1.0
-        vr = False
-        original_payload = {
-            "version": 1,
-            "session_name": session_name,
-            "video_path": video_path,
-            "fps": fps,
-            "total_frames": total_frames,
-            "loaded_start": loaded_start,
-            "loaded_end": loaded_end,
-            "active_start": active_start,
-            "active_end": active_end,
-            "current": current,
-            "seconds_per_step": base_step / fps,
-            "loop_mode": loop_mode,
-            "wrap_mode": wrap_mode,
-            "speed": speed,
-        }
-    else:
-        original_payload = dict(payload_override)
-        loaded_start = int(payload_override["loaded_start"])
-        loaded_end = int(payload_override["loaded_end"])
-        active_start = int(payload_override["active_start"])
-        active_end = int(payload_override["active_end"])
-        current = int(payload_override.get("current", active_start))
-        loop_mode = _normalized_loop_mode(str(payload_override.get("loop_mode", LOOP_MODE_BASE_TIP_BASE)))
-        wrap_mode = payload_override.get("wrap_mode", "blue")
-        speed = _normalized_speed(float(payload_override.get("speed", 1.0)))
-        vr = bool(payload_override.get("vr", False))
-        session_name = payload_override.get("session_name", session_name)
-        video_path = payload_override["video_path"]
+    loaded_start = int(payload["loaded_start"])
+    loaded_end = int(payload["loaded_end"])
+    active_start = int(payload["active_start"])
+    active_end = int(payload["active_end"])
+    current = int(payload.get("current", active_start))
+    loop_mode = _normalized_loop_mode(str(payload.get("loop_mode", LOOP_MODE_BASE_TIP_BASE)))
+    wrap_mode = payload.get("wrap_mode", "blue")
+    speed = _normalized_speed(float(payload.get("speed", 1.0)))
+    vr = bool(payload.get("vr", False))
+    session_name = payload.get("session_name", session_name)
 
     frames = load_range(cap, loaded_start, loaded_end)
     if not frames:
@@ -99,7 +72,7 @@ def make_video_state(
             loaded_start=loaded_start,
             loaded_end=max(frames.keys()),
             current=current,
-            base_step=base_step,
+            base_step=max(1, int(round(fps))),
         ),
         clip=ClipRange(
             start=active_start,
@@ -112,7 +85,7 @@ def make_video_state(
         suggestions=Suggestions(initial_start=active_start, initial_end=active_end),
         session_name=session_name,
         session_path=str(SESSIONS_DIR / f"{sanitize_name(session_name)}.json"),
-        original_session_payload=original_payload,
+        original_session_payload=dict(payload),
         loop_mode=loop_mode,
         wrap_mode=wrap_mode,
         vr=vr,

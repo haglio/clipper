@@ -14,7 +14,7 @@ from .gui.launcher_dialog import LauncherDialog
 from .loop_cursor import LoopCursor
 from .paths import LAST_SESSION_FILE, SESSIONS_DIR, ensure_runtime_dirs
 from .state import VideoState
-from .state_factory import make_video_state
+from .state_factory import load_video_state
 from .suggestions import Suggestions
 from .utils import parse_timestamp, read_json, sanitize_name
 from .nau_prefill import detect_nau_session_prefill
@@ -22,15 +22,8 @@ from .nau_prefill import detect_nau_session_prefill
 
 def _load_state_from_session_file(session_path: Path) -> VideoState:
     payload = read_json(session_path)
-    state = make_video_state(
-        payload["video_path"],
-        payload.get("session_name", session_path.stem),
-        0.0,
-        5.0,
-        payload_override=payload,
-    )
+    state = load_video_state(payload, session_path.stem)
     state.session_path = str(session_path)
-    state.original_session_payload = dict(payload)
     state.protect_existing_save_data = True
     return state
 
