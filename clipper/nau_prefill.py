@@ -24,7 +24,8 @@ from dataclasses import dataclass
 from pathlib import Path, PureWindowsPath
 
 from .content import load_content
-from .utils import format_seconds, sanitize_name
+from .paths import sanitize_name
+from .timecode import format_seconds
 
 @dataclass(frozen=True)
 class SessionPrefill:
