@@ -5,6 +5,7 @@ from typing import Any
 
 import cv2
 
+from .clip_range import ClipRange
 from .frame_store import load_range
 from .frame_window import FrameWindow
 from .loop_cursor import LoopCursor
@@ -99,8 +100,12 @@ def make_video_state(
             current=current,
             base_step=base_step,
         ),
-        active_start=active_start,
-        active_end=active_end,
+        clip=ClipRange(
+            start=active_start,
+            end=active_end,
+            anchor_in=active_start,
+            anchor_out=active_end,
+        ),
         frames=frames,
         loop=LoopCursor(anchor=time.monotonic(), speed=speed),
         session_name=session_name,
@@ -111,8 +116,6 @@ def make_video_state(
         vr=vr,
         initial_active_start=active_start,
         initial_active_end=active_end,
-        suggestion_anchor_in=active_start,
-        suggestion_anchor_out=active_end,
     )
     state.clamp_current()
     state.last_saved_payload = state.current_payload()
