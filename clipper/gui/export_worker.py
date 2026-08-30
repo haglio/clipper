@@ -46,6 +46,20 @@ class ExportWorker(QThread):
         super().__init__(parent)
         self._state = state
 
+    # -- The progress an export reports (clipper.export_progress.ExportProgress)
+
+    def stage(self, text: str) -> None:
+        self.stage_changed.emit(text)
+
+    def clip(self, fraction: float) -> None:
+        self.clip_progress.emit(fraction)
+
+    def fix(self, fraction: float) -> None:
+        self.fix_progress.emit(fraction)
+
+    def audio(self, fraction: float) -> None:
+        self.audio_progress.emit(fraction)
+
     def run(self) -> None:
         from clipper.export_steps import (
             export_full_audio_mp3,
@@ -53,34 +67,12 @@ class ExportWorker(QThread):
             run_clip_postprocess,
         )
         from clipper.paths import AUDIO_DIR, CLIPS_DIR, RAW_CLIPS_DIR, VR_CLIPS_DIR
-        from clipper.state import ExportJob
         from clipper.utils import sanitize_name
 
-        worker = self
-
-        class _SignalBridge(ExportJob):
-            """ExportJob subclass that forwards progress updates to Qt signals."""
-
-            def __init__(self) -> None:
-                object.__setattr__(self, "_w", worker)
-                super().__init__(stage="preparing export")
-
-            def __setattr__(self, name: str, value: object) -> None:
-                super().__setattr__(name, value)
-                try:
-                    w = object.__getattribute__(self, "_w")
-                except AttributeError:
-                    return
-                if name == "clip_progress":
-                    w.clip_progress.emit(value)
-                elif name == "fix_progress":
-                    w.fix_progress.emit(value)
-                elif name == "audio_progress":
-                    w.audio_progress.emit(value)
-                elif name == "stage":
-                    w.stage_changed.emit(str(value))
-
-        job = _SignalBridge()
+        self.stage("preparing export")
+        self.clip(0.0)
+        self.fix(0.0)
+        self.audio(0.0)
 
         session_base = sanitize_name(self._state.session_name)
         raw_path = RAW_CLIPS_DIR / f"{session_base}.mp4"
@@ -90,22 +82,22 @@ class ExportWorker(QThread):
 
         try:
             if self._state.skip_postprocess:
-                ok, detail = export_raw_clip(self._state, clip_path, job)
+                ok, detail = export_raw_clip(self._state, clip_path, self)
             else:
-                ok, detail = export_raw_clip(self._state, raw_path, job)
+                ok, detail = export_raw_clip(self._state, raw_path, self)
             if not ok:
                 self.export_finished.emit(False, detail)
                 return
 
             if self._state.skip_postprocess:
-                job.fix_progress = 1.0
+                self.fix(1.0)
             else:
-                ok, detail = run_clip_postprocess(self._state, raw_path, clip_path, job)
+                ok, detail = run_clip_postprocess(self._state, raw_path, clip_path, self)
                 if not ok:
                     self.export_finished.emit(False, detail)
                     return
 
-            ok, detail = export_full_audio_mp3(self._state, audio_path, job)
+            ok, detail = export_full_audio_mp3(self._state, audio_path, self)
             if not ok:
                 self.export_finished.emit(False, detail)
                 return
