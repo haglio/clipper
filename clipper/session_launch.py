@@ -8,6 +8,7 @@ import cv2
 from PyQt6.QtWidgets import QDialog
 
 from .create_session import _ffprobe_video_metadata, create_session
+from .frame_window import FrameWindow
 from .gui.launcher_dialog import LauncherDialog
 from .paths import LAST_SESSION_FILE, SESSIONS_DIR, ensure_runtime_dirs
 from .state import VideoState
@@ -41,13 +42,15 @@ def build_clip_whole_state(video_file: str) -> VideoState:
         cap=cap,
         path=video_file,
         fps=fps,
-        total_frames=total_frames,
-        loaded_start=0,
-        loaded_end=end_idx,
+        window=FrameWindow(
+            total_frames=total_frames,
+            loaded_start=0,
+            loaded_end=end_idx,
+            current=0,
+            base_step=max(1, int(round(fps))),
+        ),
         active_start=0,
         active_end=end_idx,
-        current=0,
-        base_step=max(1, int(round(fps))),
         frames={},
         loop_anchor=time.monotonic(),
         session_name=session_name,

@@ -464,5 +464,5 @@ class ClipperMainWindow(QMainWindow):
         fn(self._state, *args)
 
     def _on_timeline_click(self, idx: int) -> None:
-        self._state.current = idx
+        self._state.window.jump_to(idx)
         self._state.render_rev += 1

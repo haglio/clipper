@@ -284,10 +284,7 @@ class TestChangeSpeed:
 
 class TestContractLeft:
     def test_shrinks_loaded_start_by_base_step(self, make_state):
-        s = make_state(loaded_start=0, active_start=20, base_step=5)
-        # Need enough gap between loaded_start and active_start
-        s.loaded_start = 10
-        s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(10, 100)}
+        s = make_state(loaded_start=10, active_start=20, base_step=5)
         contract_left(s)
         assert s.loaded_start == 15
 
@@ -311,10 +308,6 @@ class TestContractLeft:
 
     def test_current_clamped_upward(self, make_state):
         s = make_state(loaded_start=0, active_start=20, base_step=5, current=3)
-        s.loaded_start = 0
-        s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(0, 100)}
-        # Make gap > base_step
-        s.active_start = 20
         contract_left(s)
         assert s.current >= s.loaded_start
 
@@ -595,8 +588,8 @@ class TestShiftActiveRange:
         s = make_state(loaded_start=0, loaded_end=24, active_start=10, active_end=20, current=12, total_frames=40)
 
         def fake_ensure_loaded(state: VideoState, want_start: int, want_end: int) -> None:
-            state.loaded_start = min(state.loaded_start, want_start)
-            state.loaded_end = max(state.loaded_end, want_end)
+            state.window.widen_left_to(want_start)
+            state.window.widen_right_to(want_end)
 
         with patch("clipper.editing.ensure_loaded", side_effect=fake_ensure_loaded):
             with patch("clipper.editing.update_loop_suggestions"):
@@ -609,8 +602,8 @@ class TestShiftActiveRange:
         s = make_state(loaded_start=12, loaded_end=40, active_start=20, active_end=30, current=25, total_frames=60)
 
         def fake_ensure_loaded(state: VideoState, want_start: int, want_end: int) -> None:
-            state.loaded_start = min(state.loaded_start, want_start)
-            state.loaded_end = max(state.loaded_end, want_end)
+            state.window.widen_left_to(want_start)
+            state.window.widen_right_to(want_end)
 
         with patch("clipper.editing.ensure_loaded", side_effect=fake_ensure_loaded):
             with patch("clipper.editing.update_loop_suggestions"):

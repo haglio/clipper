@@ -25,17 +25,18 @@ def load_range(cap: cv2.VideoCapture, start_idx: int, end_idx: int) -> dict[int,
 
 
 def ensure_loaded(state: VideoState, want_start: int, want_end: int) -> None:
+    window = state.window
     want_start = max(0, want_start)
-    want_end = min(state.total_frames - 1, want_end)
+    want_end = min(window.total_frames - 1, want_end)
     changed = False
-    if want_start < state.loaded_start:
-        state.frames.update(load_range(state.cap, want_start, state.loaded_start - 1))
-        state.loaded_start = want_start
+    if want_start < window.loaded_start:
+        state.frames.update(load_range(state.cap, want_start, window.loaded_start - 1))
+        window.widen_left_to(want_start)
         changed = True
-    if want_end > state.loaded_end:
-        new_frames = load_range(state.cap, state.loaded_end + 1, want_end)
+    if want_end > window.loaded_end:
+        new_frames = load_range(state.cap, window.loaded_end + 1, want_end)
         state.frames.update(new_frames)
-        state.loaded_end = max(state.loaded_end, max(new_frames.keys(), default=state.loaded_end))
+        window.widen_right_to(max(new_frames.keys(), default=window.loaded_end))
         changed = True
     if changed:
         state.render_rev += 1
