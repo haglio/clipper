@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
 )
 
 from clipper.content import load_content
+from clipper.launch_choice import ClipWholeVideo, LaunchChoice, LoadSession, NewSession
 from clipper.loop_modes import LOOP_MODES
 
 # The library root is private; it comes from the content overlay.
@@ -98,34 +99,30 @@ class LauncherDialog(QDialog):
         layout.addWidget(self.vr_checkbox)
         layout.addLayout(btn_row)
 
-    def build_result(self) -> dict:
-        """What the caller launches from: ``ok``, a ``mode``, and that mode's fields.
+    def prefill(self, session_name: str, video_file: str, timestamp: str) -> None:
+        """Fill the new-session form in from what is already playing.
 
-        ``clip_whole`` carries a video_file; ``load`` a session_json; ``new`` the
-        seven fields the form collects.
+        A method, so the caller stops naming four of this dialog's widgets.
         """
+        self.session_name_edit.setText(session_name)
+        self.video_file_edit.setText(video_file)
+        self.timestamp_edit.setText(timestamp)
+        self.new_radio.setChecked(True)
+
+    def build_result(self) -> LaunchChoice:
+        """What the caller launches from -- one of the three shapes it can be."""
         if self._clip_whole_file:
-            return {
-                "ok": True,
-                "mode": "clip_whole",
-                "video_file": self._clip_whole_file,
-            }
+            return ClipWholeVideo(video_file=self._clip_whole_file)
         if self.load_radio.isChecked():
-            return {
-                "ok": True,
-                "mode": "load",
-                "session_json": self.session_json_edit.text().strip(),
-            }
-        return {
-            "ok": True,
-            "mode": "new",
-            "session_name": self.session_name_edit.text().strip(),
-            "video_file": self.video_file_edit.text().strip(),
-            "timestamp": self.timestamp_edit.text().strip(),
-            "seconds": float(self.seconds_edit.text().strip() or "5"),
-            "loop_mode": self.loop_mode_combo.currentText(),
-            "vr": self.vr_checkbox.isChecked(),
-        }
+            return LoadSession(session_json=self.session_json_edit.text().strip())
+        return NewSession(
+            video_file=self.video_file_edit.text().strip(),
+            session_name=self.session_name_edit.text().strip(),
+            timestamp=self.timestamp_edit.text().strip(),
+            seconds=float(self.seconds_edit.text().strip() or "5"),
+            loop_mode=self.loop_mode_combo.currentText(),
+            vr=self.vr_checkbox.isChecked(),
+        )
 
     def _browse_session(self) -> None:
         from clipper.paths import SESSIONS_DIR

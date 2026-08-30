@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import QFileDialog
 from clipper.content import load_content
 from clipper.gui import launcher_dialog
 from clipper.gui.launcher_dialog import VR_VIDEO_DIR, LauncherDialog
+from clipper.launch_choice import ClipWholeVideo, LoadSession, NewSession
 
 
 @pytest.fixture()
@@ -32,61 +33,74 @@ class TestClipWholeButton:
     def test_picking_a_whole_video_returns_it_in_clip_whole_mode(self, dialog):
         _choose_file(dialog, r"D:\example-suite\videos\videos\seaside walk.mp4")
 
-        assert dialog.build_result() == {
-            "ok": True,
-            "mode": "clip_whole",
-            "video_file": r"D:\example-suite\videos\videos\seaside walk.mp4",
-        }
+        assert dialog.build_result() == ClipWholeVideo(
+            video_file=r"D:\example-suite\videos\videos\seaside walk.mp4"
+        )
 
     def test_a_chosen_whole_video_wins_over_the_selected_radio(self, dialog):
         dialog.new_radio.setChecked(True)
 
         _choose_file(dialog, r"D:\example-suite\videos\videos\seaside walk.mp4")
 
-        assert dialog.build_result()["mode"] == "clip_whole"
+        assert isinstance(dialog.build_result(), ClipWholeVideo)
 
     def test_cancelling_the_chooser_leaves_the_dialog_in_its_normal_mode(self, dialog):
         dialog.load_radio.setChecked(True)
 
         _choose_file(dialog, "")
 
-        assert dialog.build_result()["mode"] == "load"
+        assert isinstance(dialog.build_result(), LoadSession)
 
 
 class TestResult:
-    def test_build_result_load_mode(self, dialog):
+    def test_the_load_radio_asks_for_the_session_file_named_beside_it(self, dialog):
         dialog.load_radio.setChecked(True)
         dialog.session_json_edit.setText("/path/to/session.json")
-        result = dialog.build_result()
-        assert result["mode"] == "load"
-        assert result["session_json"] == "/path/to/session.json"
-        assert result["ok"] is True
 
-    def test_build_result_new_mode(self, dialog):
+        assert dialog.build_result() == LoadSession(session_json="/path/to/session.json")
+
+    def test_the_new_radio_asks_for_the_form_the_user_filled_in(self, dialog):
         dialog.new_radio.setChecked(True)
         dialog.session_name_edit.setText("my_clip")
         dialog.video_file_edit.setText("/path/to/video.mp4")
         dialog.timestamp_edit.setText("00:01:30")
         dialog.seconds_edit.setText("5")
-        result = dialog.build_result()
-        assert result["mode"] == "new"
-        assert result["session_name"] == "my_clip"
-        assert result["video_file"] == "/path/to/video.mp4"
-        assert result["timestamp"] == "00:01:30"
-        assert result["seconds"] == 5.0
-        assert result["ok"] is True
+
+        assert dialog.build_result() == NewSession(
+            video_file="/path/to/video.mp4",
+            session_name="my_clip",
+            timestamp="00:01:30",
+            seconds=5.0,
+            loop_mode=dialog.loop_mode_combo.currentText(),
+            vr=False,
+        )
 
     def test_build_result_new_mode_vr_default_false(self, dialog):
         dialog.new_radio.setChecked(True)
         dialog.video_file_edit.setText("/path/to/video.mp4")
-        result = dialog.build_result()
-        assert result["vr"] is False
+
+        assert dialog.build_result().vr is False
 
     def test_build_result_new_mode_vr_checked(self, dialog):
         dialog.new_radio.setChecked(True)
         dialog.vr_checkbox.setChecked(True)
-        result = dialog.build_result()
-        assert result["vr"] is True
+
+        assert dialog.build_result().vr is True
+
+    def test_prefilling_fills_the_new_session_form_and_selects_it(self, dialog):
+        dialog.load_radio.setChecked(True)
+
+        dialog.prefill("beta rehearsal", "D:/media/example/beta rehearsal.mp4",
+                       "00:01:35.250")
+
+        assert dialog.build_result() == NewSession(
+            video_file="D:/media/example/beta rehearsal.mp4",
+            session_name="beta rehearsal",
+            timestamp="00:01:35.250",
+            seconds=5.0,
+            loop_mode=dialog.loop_mode_combo.currentText(),
+            vr=False,
+        )
 
 
 class TestVrAutoDetect:
