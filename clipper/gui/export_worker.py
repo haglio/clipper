@@ -67,7 +67,7 @@ class ExportWorker(QThread):
             run_clip_postprocess,
         )
         from clipper.paths import AUDIO_DIR, CLIPS_DIR, RAW_CLIPS_DIR, VR_CLIPS_DIR
-        from clipper.utils import sanitize_name
+        from clipper.paths import sanitize_name
 
         self.stage("preparing export")
         self.clip(0.0)

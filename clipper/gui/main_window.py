@@ -24,7 +24,7 @@ from shared_ui.fonts import FONT_UI, SIZE_HEADING, make_font
 
 from clipper.frame_store import safe_frame
 from clipper.playback import current_loop_frame_index, loop_preview_indices
-from clipper.utils import format_seconds
+from clipper.timecode import format_seconds
 from clipper.wrap_modes import WRAP_OVER_LOADED, wrap_bounds
 
 from .button_bar import ButtonBar

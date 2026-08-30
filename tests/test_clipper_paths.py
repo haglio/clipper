@@ -10,7 +10,12 @@ from pathlib import Path
 import pytest
 
 from clipper import paths
-from clipper.paths import ensure_runtime_dirs, library_is_configured
+from clipper.paths import (
+    FORBIDDEN_NAME_CHARS,
+    ensure_runtime_dirs,
+    library_is_configured,
+    sanitize_name,
+)
 
 
 # The five directories the app writes into. Named here rather than read out of
@@ -142,3 +147,27 @@ class TestAMachineWithNoLibraryYet:
         made = [name for name in ("CLIPS_DIR", "VR_CLIPS_DIR", "AUDIO_DIR")
                 if runtime_dirs[name].is_dir()]
         assert made == []
+
+
+class TestSanitizeName:
+    def test_clean_name_unchanged(self):
+        assert sanitize_name("clean name") == "clean name"
+
+    def test_strips_leading_trailing_spaces(self):
+        assert sanitize_name("  hello  ") == "hello"
+
+    @pytest.mark.parametrize("forbidden", list(FORBIDDEN_NAME_CHARS))
+    def test_every_character_a_filename_cannot_hold_becomes_an_underscore(self, forbidden):
+        """Walks the module's own list, so adding a character adds a case."""
+        assert sanitize_name(f"take{forbidden}one") == "take_one"
+
+    def test_the_list_is_the_nine_windows_refuses(self):
+        """One literal, so removing a character from the list is red too."""
+        assert sanitize_name('a<b>c:d"e/f\\g|h?i*j') == "a_b_c_d_e_f_g_h_i_j"
+
+    def test_strips_trailing_dots(self):
+        result = sanitize_name("filename.")
+        assert not result.endswith(".")
+
+    def test_a_name_of_only_spaces_becomes_the_empty_string(self):
+        assert sanitize_name("   ") == ""

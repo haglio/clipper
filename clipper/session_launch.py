@@ -13,12 +13,13 @@ from .frame_window import FrameWindow
 from .gui.launcher_dialog import LauncherDialog
 from .launch_choice import ClipWholeVideo, LaunchChoice, LoadSession, NewSession
 from .loop_cursor import LoopCursor
-from .paths import LAST_SESSION_FILE, SESSIONS_DIR, ensure_runtime_dirs
+from .nau_prefill import detect_nau_session_prefill
+from .paths import LAST_SESSION_FILE, SESSIONS_DIR, ensure_runtime_dirs, sanitize_name
+from .session_persistence import read_json
 from .state import VideoState
 from .state_factory import load_video_state
 from .suggestions import Suggestions
-from .utils import parse_timestamp, read_json, sanitize_name
-from .nau_prefill import detect_nau_session_prefill
+from .timecode import parse_timestamp
 
 
 def _load_state_from_session_file(session_path: Path) -> VideoState:

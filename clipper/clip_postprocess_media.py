@@ -8,7 +8,7 @@ from fractions import Fraction
 import cv2
 
 
-def run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
+def _run_checked(cmd: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
 
 
@@ -20,7 +20,7 @@ def ffprobe_video(path: str) -> dict[str, float | int | None]:
         "-of", "json",
         path,
     ]
-    data = json.loads(run(cmd).stdout)
+    data = json.loads(_run_checked(cmd).stdout)
     if not data.get("streams"):
         raise RuntimeError("No video stream found.")
     stream = data["streams"][0]

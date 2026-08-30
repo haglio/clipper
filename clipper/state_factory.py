@@ -11,10 +11,9 @@ from .frame_window import FrameWindow
 from .loop_cursor import LoopCursor
 from .loop_suggestions import update_loop_suggestions
 from .loop_modes import LOOP_MODE_BASE_TIP_BASE, LOOP_MODES
-from .paths import SESSIONS_DIR
+from .paths import SESSIONS_DIR, sanitize_name
 from .state import VideoState
 from .suggestions import Suggestions
-from .utils import sanitize_name
 
 
 def _normalized_loop_mode(loop_mode: str) -> str:
