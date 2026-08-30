@@ -35,7 +35,7 @@ class TestSmooth1d:
 
         assert list(values) == [1.0, 5.0, 1.0]
 
-    def test_it_averages_each_point_with_its_neighbours(self):
+    def test_it_averages_each_point_with_its_neighbors(self):
         values = np.array([0.0, 0.0, 3.0, 0.0, 0.0])
 
         smoothed = smooth_1d(values, 1)
@@ -115,7 +115,7 @@ class TestTheTwoDirectionsAreMirrorImages:
 class TestFindingTheRepeatBehindAFrame:
     """The end-to-end effect of the window's order, on a clip that does loop.
 
-    One texture rolled a pixel at a time with a 60-frame period: neighbouring
+    One texture rolled a pixel at a time with a 60-frame period: neighboring
     frames look alike, similarity falls away smoothly, and it comes back exactly
     at the repeat. Searching backward from frame 180 the nearest repeat is 120.
     With the backward window running from the far end, the search answered 60 --
@@ -152,7 +152,7 @@ class TestFindingTheRepeatBehindAFrame:
 class TestTheDipItself:
     """`find_similarity_dip` hands its two callers six values.
 
-    They travelled as a positional tuple, unpacked by position at both sites --
+    They traveled as a positional tuple, unpacked by position at both sites --
     one of which discarded four of them under underscore names.  Reordering or
     adding a field would have miscomputed both callers silently, which matters
     here because the order is exactly what backlog bug 14 got wrong.

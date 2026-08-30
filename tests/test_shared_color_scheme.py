@@ -89,9 +89,9 @@ def _button_backgrounds(sheet: str) -> dict[str, QColor]:
     """The background each QPushButton state gets, out of an applied sheet."""
     found = {}
     for rule in _PUSHBUTTON_RULE.finditer(sheet):
-        colour = _BACKGROUND.search(rule.group("body"))
-        if colour:
-            found[rule.group("state") or ""] = QColor(colour.group(1))
+        color = _BACKGROUND.search(rule.group("body"))
+        if color:
+            found[rule.group("state") or ""] = QColor(color.group(1))
     return found
 
 

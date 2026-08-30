@@ -75,7 +75,7 @@ class TestPainting:
 
         assert _drawn_box(image, BG_SECONDARY.name()) is None
 
-    def test_it_draws_the_frame_centred_at_its_own_size(self, pane, rendered, small_frame):
+    def test_it_draws_the_frame_centered_at_its_own_size(self, pane, rendered, small_frame):
         pane.resize(400, 300)
 
         pane.set_frame(bgr_to_qimage(small_frame))

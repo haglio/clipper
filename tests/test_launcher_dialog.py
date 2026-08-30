@@ -44,7 +44,7 @@ class TestClipWholeButton:
 
         assert isinstance(dialog.build_result(), ClipWholeVideo)
 
-    def test_cancelling_the_chooser_leaves_the_dialog_in_its_normal_mode(self, dialog):
+    def test_canceling_the_chooser_leaves_the_dialog_in_its_normal_mode(self, dialog):
         dialog.load_radio.setChecked(True)
 
         _choose_file(dialog, "")
@@ -124,7 +124,7 @@ class TestVrAutoDetect:
         ("D:/example-suite/videos/videos/VR/seaside walk.mp4", True),
         (r"D:\example-suite\videos\videos\VR\second pass\seaside walk.mp4", True),
         (r"D:\example-suite\videos\videos\flat\seaside walk.mp4", False),
-        (r"D:\example-suite\videos\videos\VR-favourites\seaside walk.mp4", False),
+        (r"D:\example-suite\videos\videos\VR-favorites\seaside walk.mp4", False),
         (r"D:\example-suite\videos\VR\seaside walk.mp4", False),
         (r"E:\example-suite\videos\videos\VR\seaside walk.mp4", False),
         ("", False),

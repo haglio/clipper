@@ -512,6 +512,6 @@ class TestFloatingControlsStandAlone:
         layout.place(active_start=20, active_end=80, cursor=50,
                      wrap_from=0, wrap_to=100, wrap_color=TIMELINE_LOADED)
 
-        centre = controls.wrap_btn.x() + controls.wrap_btn.width() // 2
-        assert abs(centre - timeline.width() // 2) <= 2
+        center = controls.wrap_btn.x() + controls.wrap_btn.width() // 2
+        assert abs(center - timeline.width() // 2) <= 2
         assert TIMELINE_LOADED.name() in controls.wrap_btn.styleSheet()

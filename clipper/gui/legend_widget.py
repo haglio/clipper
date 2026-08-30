@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 # Keycap metrics.  Every one of these used to appear twice, once in the pass
 # that measures a row and once in the pass that draws it, so changing the size
-# of a keycap meant changing it in both or the row silently mis-centred.
+# of a keycap meant changing it in both or the row silently mis-centered.
 KEYCAP_PADDING = 12
 KEYCAP_MIN_WIDTH = 24
 KEYCAP_HEIGHT = 22
@@ -80,7 +80,7 @@ class LegendWidget(QWidget):
     # -- Painting --------------------------------------------------------------
 
     def _draw_keycap(self, p: QPainter, x: int, top: int, key: str, font: QFont) -> int:
-        """Draw one keycap with its glyph centred; returns how far x moves."""
+        """Draw one keycap with its glyph centered; returns how far x moves."""
         width = self._keycap_width(p, key, font)
         cap = QRectF(x, top, width, KEYCAP_HEIGHT)
 
