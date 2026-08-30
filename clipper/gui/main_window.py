@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QPoint, Qt
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeyEvent, QPainter, QPen
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -17,7 +17,6 @@ from PyQt6.QtWidgets import (
 
 from shared_ui.colors import (
     BORDER_DEFAULT,
-    BORDER_SUBTLE,
     TIMELINE_ACTIVE,
     TIMELINE_LOADED,
 )
@@ -32,6 +31,7 @@ from .button_bar import ButtonBar
 from .exit_dialog import ExitDialog
 from .export_dialog import ExportDialog
 from .export_worker import ExportWorker
+from .floating_controls import FloatingControlLayout
 from .frame_converter import bgr_to_qimage, scale_to_fit
 from .legend_widget import LegendWidget
 from .main_window_style import (
@@ -260,6 +260,10 @@ class ClipperMainWindow(QMainWindow):
         main_layout.addWidget(self.warning_label)
         main_layout.addWidget(self.legend)
 
+        self._floating = FloatingControlLayout(
+            self.timeline, tc, self._shift_row, self._mark_row, self._wrap_row
+        )
+
         central.setStyleSheet(CHROME_STYLE)
         size_controls(bb, tc)
         refuse_focus(self)
@@ -274,71 +278,19 @@ class ClipperMainWindow(QMainWindow):
     def update_button_positions(self) -> None:
         """Reposition shift/mark/wrap buttons relative to the timeline."""
         state = self._state
-        tl = self.timeline
-        tc = self.timeline_controls
-
-        if tl.width() <= 0:
-            return
-
-        def _tl_offset(target: QWidget) -> int:
-            """X offset of the timeline's origin in target's coordinate system."""
-            return target.mapFromGlobal(tl.mapToGlobal(QPoint(0, 0))).x()
-
-        # -- Shift buttons: center on active range midpoint --
-        in_x = tl.x_for_index(state.active_start)
-        out_x = tl.x_for_index(state.active_end)
-
-        off = _tl_offset(self._shift_row)
-        shift_center = off + (in_x + out_x) // 2
-        btn_w = tc.shift_left_btn.width()
-        gap = 4
-        y = (self._shift_row.height() - tc.shift_left_btn.height()) // 2
-        tc.shift_left_btn.move(shift_center - gap // 2 - btn_w, y)
-        tc.shift_right_btn.move(shift_center + gap // 2, y)
-        tc.shift_left_btn.show()
-        tc.shift_right_btn.show()
-
-        # -- Mark buttons: follow cursor with three-case logic --
-        off = _tl_offset(self._mark_row)
-        cur_x = off + tl.x_for_index(state.current)
-        mbw = tc.mark_in_btn.width()
-        mgap = 4
-        my = (self._mark_row.height() - tc.mark_in_btn.height()) // 2
-
-        if state.current < state.active_start:
-            left_x = off + tl.x_for_index(state.active_start)
-            tc.mark_in_btn.move(cur_x - mbw // 2, my)
-            tc.mark_out_btn.move(left_x - mbw // 2, my)
-        elif state.current > state.active_end:
-            right_x = off + tl.x_for_index(state.active_end)
-            tc.mark_in_btn.move(right_x - mbw // 2, my)
-            tc.mark_out_btn.move(cur_x - mbw // 2, my)
-        else:
-            tc.mark_in_btn.move(cur_x - mgap // 2 - mbw, my)
-            tc.mark_out_btn.move(cur_x + mgap // 2, my)
-        tc.mark_in_btn.setEnabled(state.current < state.active_end)
-        tc.mark_out_btn.setEnabled(state.current > state.active_start)
-        tc.mark_in_btn.show()
-        tc.mark_out_btn.show()
-
-        # -- Wrap button: center on wrap range, color by mode --
-        wrap_lo, wrap_hi = wrap_bounds(state)
-        wrap_color = (
-            TIMELINE_LOADED if state.wrap_mode == WRAP_OVER_LOADED else TIMELINE_ACTIVE
+        wrap_from, wrap_to = wrap_bounds(state)
+        self._floating.place(
+            active_start=state.active_start,
+            active_end=state.active_end,
+            cursor=state.current,
+            wrap_from=wrap_from,
+            wrap_to=wrap_to,
+            wrap_color=(
+                TIMELINE_LOADED
+                if state.wrap_mode == WRAP_OVER_LOADED
+                else TIMELINE_ACTIVE
+            ),
         )
-
-        off = _tl_offset(self._wrap_row)
-        wx1 = off + tl.x_for_index(wrap_lo)
-        wx2 = off + tl.x_for_index(wrap_hi)
-        wrap_center = (wx1 + wx2) // 2
-        wy = (self._wrap_row.height() - tc.wrap_btn.height()) // 2
-        tc.wrap_btn.move(wrap_center - tc.wrap_btn.width() // 2, wy)
-        tc.wrap_btn.setStyleSheet(
-            f"background: {wrap_color.name()}; border: 1px solid {BORDER_SUBTLE.name()};"
-        )
-        tc.wrap_btn.show()
-
-        self._wrap_row.set_brace(wx1, wx2)
 
     # -- Drawing the state ------------------------------------------------------
 
