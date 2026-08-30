@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 
 from .frame_window import FrameWindow
+from .loop_cursor import LoopCursor
 from .loop_modes import LOOP_MODE_BASE_TIP_BASE
 from .session_persistence import (
     autosave_session as persist_session_state,
@@ -35,23 +36,19 @@ class VideoState:
     active_start: int
     active_end: int
     frames: dict[int, np.ndarray]
-    loop_anchor: float
+    loop: LoopCursor
     session_name: str
     session_path: str
     original_session_payload: dict[str, Any]
     loop_mode: str = LOOP_MODE_BASE_TIP_BASE
     wrap_mode: str = "blue"
     skip_postprocess: bool = False
-    speed: float = 1.0
     vr: bool = False
     session_warning: str = ""
     dirty: bool = False
     protect_existing_save_data: bool = False
     last_saved_payload: dict[str, Any] | None = None
     render_rev: int = 0
-    loop_paused: bool = False
-    paused_loop_idx: int | None = None
-    paused_loop_pos: int | None = None
     initial_active_start: int | None = None
     initial_active_end: int | None = None
     suggested_in: int | None = None
@@ -99,6 +96,23 @@ class VideoState:
     def loaded_count(self) -> int:
         return self.window.count
 
+    # The loop cursor's, likewise.  `speed` is a session-JSON key; the other
+    # two are what the tick reads to draw the transport.  The anchor and the
+    # paused frame are not here: nothing outside the cursor reads either, and a
+    # reader that only a test has is how the last four dead surfaces got in.
+
+    @property
+    def speed(self) -> float:
+        return self.loop.speed
+
+    @property
+    def loop_paused(self) -> bool:
+        return self.loop.paused
+
+    @property
+    def paused_loop_pos(self) -> int | None:
+        return self.loop.paused_pos
+
     @property
     def should_prompt_on_exit(self) -> bool:
         return self.dirty and self.protect_existing_save_data
@@ -109,7 +123,7 @@ class VideoState:
         self.window.hold_within(low, high)
 
     def reset_loop_anchor(self) -> None:
-        self.loop_anchor = time.monotonic()
+        self.loop.restart_at(time.monotonic())
 
     def mark_dirty(self) -> None:
         self.dirty = True

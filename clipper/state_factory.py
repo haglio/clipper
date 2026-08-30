@@ -7,6 +7,7 @@ import cv2
 
 from .frame_store import load_range
 from .frame_window import FrameWindow
+from .loop_cursor import LoopCursor
 from .loop_suggestions import update_loop_suggestions
 from .loop_modes import LOOP_MODE_BASE_TIP_BASE, LOOP_MODES
 from .paths import SESSIONS_DIR
@@ -101,13 +102,12 @@ def make_video_state(
         active_start=active_start,
         active_end=active_end,
         frames=frames,
-        loop_anchor=time.monotonic(),
+        loop=LoopCursor(anchor=time.monotonic(), speed=speed),
         session_name=session_name,
         session_path=str(SESSIONS_DIR / f"{sanitize_name(session_name)}.json"),
         original_session_payload=original_payload,
         loop_mode=loop_mode,
         wrap_mode=wrap_mode,
-        speed=speed,
         vr=vr,
         initial_active_start=active_start,
         initial_active_end=active_end,
