@@ -202,3 +202,22 @@ class TestRun:
 
         assert ticked_within(live_app.playback_timer.tick, 2000) is True
         assert live_app.window.timeline.cursor_pos == 33
+
+
+def test_a_frame_the_decoder_will_not_give_up_does_not_take_the_window_with_it(live_app, rendered):
+    """`safe_frame` raises RuntimeError, which the tick used not to catch.
+
+    The docstring on `_draw_frames` already said a frame that will not decode
+    costs its pane and nothing else, but the catch listed only KeyError and
+    IndexError -- and the one exception `safe_frame` actually raises is
+    RuntimeError. A truncated video reaches it through `extend_right`, and an
+    exception out of a Qt slot aborts the process rather than being reported.
+    """
+    with patch("clipper.gui.main_window.safe_frame",
+               side_effect=RuntimeError("Could not load frame 211")):
+        live_app._on_tick()
+
+    assert _is_blank(live_app.window.left_pane, rendered)
+    assert _is_blank(live_app.window.right_pane, rendered)
+    assert live_app.window.timeline.cursor_pos == 33
+    assert live_app.window.speed_label.text() == "speed: 1.00x (playing)"
