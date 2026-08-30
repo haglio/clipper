@@ -171,11 +171,18 @@ class TestOnTick:
 
         assert live_app.window.timeline_controls.loop_mode_btn.text() == "tip-base"
 
-    def test_a_frame_that_cannot_be_decoded_does_not_stop_the_rest(self, live_app):
-        """The panes go without, but the timeline and labels still update."""
-        with patch("clipper.frame_store.safe_frame", side_effect=KeyError("gone")):
+    def test_a_frame_that_cannot_be_decoded_does_not_stop_the_rest(self, live_app, rendered):
+        """The panes go without, but the timeline and labels still update.
+
+        Patched where the window binds it, not where it is defined: the window
+        imports the name at module level, so patching `clipper.frame_store`
+        would leave this test drawing real frames and asserting nothing.
+        """
+        with patch("clipper.gui.main_window.safe_frame", side_effect=KeyError("gone")):
             live_app._on_tick()
 
+        assert _is_blank(live_app.window.left_pane, rendered)
+        assert _is_blank(live_app.window.right_pane, rendered)
         assert live_app.window.timeline.cursor_pos == 33
         assert live_app.window.speed_label.text() == "speed: 1.00x (playing)"
 
