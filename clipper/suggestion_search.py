@@ -1,9 +1,29 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+
+
+@dataclass(frozen=True)
+class SimilarityDip:
+    """Where the similarity curve falls away, and what the walk needs after it.
+
+    These six travelled as a positional tuple, unpacked by position at both
+    call sites -- one of which discarded four of them under underscore names.
+    Which end of `candidates` is nearest the reference is the thing backlog
+    bug 14 got wrong, so connascence of position across this boundary is not a
+    theoretical worry.
+    """
+
+    candidates: list[int]
+    smoothed: np.ndarray
+    dip_idx: int
+    baseline: float
+    slope: np.ndarray
+    run: int
 
 
 def smooth_1d(values: np.ndarray, radius: int) -> np.ndarray:
@@ -55,7 +75,7 @@ def find_similarity_dip(
     direction: int,
     signature_for_index: Callable[[Any, int], np.ndarray],
     structural_similarity_score: Callable[[np.ndarray, np.ndarray], float],
-) -> tuple[list[int], np.ndarray, int, float, np.ndarray, int] | None:
+) -> SimilarityDip | None:
     curve = candidate_similarity_curve(
         state,
         ref_idx,
@@ -84,7 +104,7 @@ def find_similarity_dip(
 
     if dip_idx is None:
         return None
-    return candidates, smoothed, dip_idx, baseline, slope, run
+    return SimilarityDip(candidates, smoothed, dip_idx, baseline, slope, run)
 
 
 def best_duplicate_match_index(
@@ -104,16 +124,16 @@ def best_duplicate_match_index(
     )
     if dip is None:
         return None
-    candidates, smoothed, dip_idx, baseline, slope, run = dip
+    smoothed, dip_idx, run = dip.smoothed, dip.dip_idx, dip.run
 
     peak_idx: int | None = None
-    min_rebound = max(0.004, (baseline - smoothed[dip_idx]) * 0.10)
+    min_rebound = max(0.004, (dip.baseline - smoothed[dip_idx]) * 0.10)
     for i in range(dip_idx + run + 1, len(smoothed) - run - 1):
         rebound = smoothed[i] - smoothed[dip_idx]
         if rebound < min_rebound:
             continue
-        pre = float(np.mean(slope[i - run:i]))
-        post = float(np.mean(slope[i:i + run]))
+        pre = float(np.mean(dip.slope[i - run:i]))
+        post = float(np.mean(dip.slope[i:i + run]))
         if pre > 0.0002 and post < -0.0002:
             peak_idx = i
             break
@@ -127,11 +147,12 @@ def best_duplicate_match_index(
     lo = dip_idx + 1 + int(viable[0])
     ref_signature = signature_for_index(state, ref_idx)
     raw_scores = np.asarray(
-        [structural_similarity_score(ref_signature, signature_for_index(state, idx)) for idx in candidates],
+        [structural_similarity_score(ref_signature, signature_for_index(state, idx))
+         for idx in dip.candidates],
         dtype=np.float64,
     )
     refined = lo + int(np.argmax(raw_scores[lo:]))
-    return candidates[refined]
+    return dip.candidates[refined]
 
 
 def best_turning_point_index(
@@ -151,8 +172,7 @@ def best_turning_point_index(
     )
     if dip is None:
         return None
-    candidates, _smoothed, dip_idx, _baseline, _slope, _run = dip
-    return candidates[dip_idx]
+    return dip.candidates[dip.dip_idx]
 
 
 def pair_transition_score(
