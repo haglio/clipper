@@ -117,7 +117,7 @@ def test_build_session_payload_vr_true():
 
 def _mock_ffprobe(fps: float = 30.0, total_frames: int = 900):
     return patch(
-        "clipper.create_session._ffprobe_video_metadata",
+        "clipper.create_session.ffprobe_video_metadata",
         return_value=(fps, total_frames),
     )
 
@@ -229,7 +229,7 @@ def test_create_session_updates_last_session_even_when_existing(tmp_path):
 
 def test_create_session_ffprobe_failure(tmp_path):
     with patch(
-        "clipper.create_session._ffprobe_video_metadata",
+        "clipper.create_session.ffprobe_video_metadata",
         side_effect=RuntimeError("ffprobe failed"),
     ):
         with pytest.raises(RuntimeError, match="ffprobe failed"):
@@ -270,7 +270,7 @@ def test_cli_writes_the_window_it_was_asked_for(tmp_path):
 
 def test_cli_failure(capsys):
     with patch(
-        "clipper.create_session._ffprobe_video_metadata",
+        "clipper.create_session.ffprobe_video_metadata",
         side_effect=RuntimeError("no video"),
     ):
         code = main(["--video", "bad.mp4", "--time", "0"])

@@ -25,8 +25,14 @@ DEFAULT_SECONDS = 5.0
 DEFAULT_LOOP_MODE = "base-tip-base"
 
 
-def _ffprobe_video_metadata(video_path: str) -> tuple[float, int]:
-    """Return (fps, total_frames) via ffprobe.  Raises on failure."""
+def ffprobe_video_metadata(video_path: str) -> tuple[float, int]:
+    """Return (fps, total_frames) via ffprobe.  Raises on failure.
+
+    Public because `session_launch` imports it: a name another module reaches
+    for is part of this one's surface whether the underscore says so or not,
+    and the underscore was the strongest available signal that this module's
+    published surface was missing a member.
+    """
     kwargs = hidden_subprocess_kwargs()
 
     def _probe(show_entries: str) -> str:
@@ -130,7 +136,7 @@ def create_session(
         sessions_dir = SESSIONS_DIR
     sessions_dir.mkdir(parents=True, exist_ok=True)
 
-    fps, total_frames = _ffprobe_video_metadata(video_path)
+    fps, total_frames = ffprobe_video_metadata(video_path)
 
     if not session_name:
         session_name = sanitize_name(Path(video_path).stem)
