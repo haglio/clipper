@@ -260,6 +260,7 @@ def make_state():
     __init__.py and pytest prepends the directory to sys.path, so renaming
     test_clipper_state.py broke two unrelated files.
     """
+    from clipper.clip_range import ClipRange
     from clipper.frame_window import FrameWindow
     from clipper.loop_cursor import LoopCursor
     from clipper.state import VideoState
@@ -302,8 +303,12 @@ def make_state():
                 current=current,
                 base_step=base_step,
             ),
-            active_start=active_start,
-            active_end=active_end,
+            clip=ClipRange(
+                start=active_start,
+                end=active_end,
+                anchor_in=active_start,
+                anchor_out=active_end,
+            ),
             frames={
                 i: np.zeros((2, 2, 3), dtype=np.uint8)
                 for i in range(loaded_start, loaded_end + 1)

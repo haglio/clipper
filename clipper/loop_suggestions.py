@@ -79,8 +79,8 @@ def update_loop_suggestions(state: VideoState) -> None:
                     suggested_in = candidate
 
     if start_changed and end_changed and not use_turning_point:
-        anchor_in = state.suggestion_anchor_in if state.suggestion_anchor_in is not None else state.active_start
-        anchor_out = state.suggestion_anchor_out if state.suggestion_anchor_out is not None else state.active_end
+        anchor_in = state.clip.anchor_in if state.clip.anchor_in is not None else state.active_start
+        anchor_out = state.clip.anchor_out if state.clip.anchor_out is not None else state.active_end
         best_pair = (state.active_start, state.active_end)
         best_score = _pair_transition_score(state, *best_pair)
         for start_shift in range(-2, 3):
