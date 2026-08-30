@@ -261,6 +261,7 @@ def make_state():
     test_clipper_state.py broke two unrelated files.
     """
     from clipper.frame_window import FrameWindow
+    from clipper.loop_cursor import LoopCursor
     from clipper.state import VideoState
 
     def factory(
@@ -281,6 +282,10 @@ def make_state():
         session_path: str = "/fake/sessions/test_session.json",
         initial_active_start: int | None = None,
         initial_active_end: int | None = None,
+        loop_anchor: float | None = None,
+        loop_paused: bool = False,
+        paused_loop_idx: int | None = None,
+        paused_loop_pos: int | None = None,
     ) -> VideoState:
         if loaded_end is None:
             loaded_end = total_frames - 1
@@ -303,12 +308,17 @@ def make_state():
                 i: np.zeros((2, 2, 3), dtype=np.uint8)
                 for i in range(loaded_start, loaded_end + 1)
             },
-            loop_anchor=time.monotonic(),
+            loop=LoopCursor(
+                anchor=time.monotonic() if loop_anchor is None else loop_anchor,
+                speed=speed,
+                paused=loop_paused,
+                paused_idx=paused_loop_idx,
+                paused_pos=paused_loop_pos,
+            ),
             session_name=session_name,
             session_path=session_path,
             original_session_payload={},
             loop_mode=loop_mode,
-            speed=speed,
             wrap_mode=wrap_mode,
             initial_active_start=(
                 active_start if initial_active_start is None else initial_active_start

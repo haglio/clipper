@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import QApplication
 from shared_ui.colors import BG_SECONDARY
 
 from clipper.gui.app import ClipperApp
+from clipper.playback import change_speed, toggle_loop_pause
 
 
 @pytest.fixture()
@@ -146,7 +147,7 @@ class TestOnTick:
         assert live_app.window.cursor_label.text() == "cursor: 23/50 @ 00:00:01.320"
 
     def test_it_writes_the_loop_length_and_the_speed(self, live_app):
-        live_app._state.speed = 1.5
+        change_speed(live_app._state, 0.5)
 
         live_app._on_tick()
 
@@ -154,7 +155,7 @@ class TestOnTick:
         assert live_app.window.speed_label.text() == "speed: 1.50x (playing)"
 
     def test_a_paused_loop_says_so(self, live_app):
-        live_app._state.loop_paused = True
+        toggle_loop_pause(live_app._state)
 
         live_app._on_tick()
 

@@ -225,9 +225,9 @@ class TestMakeVideoState:
 
 class TestLoopPause:
     def test_current_loop_frame_stays_fixed_while_paused(self, make_state):
-        s = make_state(active_start=10, active_end=19, fps=10.0, speed=1.0)
-        s.loop_anchor = 100.0
-        with patch("clipper.playback.time.monotonic", side_effect=[100.45, 100.8]):
+        s = make_state(active_start=10, active_end=19, fps=10.0, speed=1.0,
+                       loop_anchor=100.0)
+        with patch("clipper.playback.time.monotonic", side_effect=[100.45, 100.8, 100.9]):
             toggle_loop_pause(s)
             first = current_loop_frame_index(s)
             second = current_loop_frame_index(s)
@@ -236,8 +236,8 @@ class TestLoopPause:
         assert second == 14
 
     def test_toggle_pause_resume_keeps_same_frame_continuity(self, make_state):
-        s = make_state(active_start=10, active_end=19, fps=10.0, speed=1.0)
-        s.loop_anchor = 100.0
+        s = make_state(active_start=10, active_end=19, fps=10.0, speed=1.0,
+                       loop_anchor=100.0)
         with patch("clipper.playback.time.monotonic", side_effect=[100.45, 100.45, 100.65]):
             toggle_loop_pause(s)
             toggle_loop_pause(s)
@@ -268,13 +268,12 @@ class TestChangeSpeed:
         assert s.speed == pytest.approx(0.25)
 
     def test_change_speed_while_paused_keeps_paused_state(self, make_state):
-        s = make_state(active_start=10, active_end=19, fps=10.0, speed=1.0)
-        s.loop_paused = True
-        s.paused_loop_idx = 14
+        s = make_state(active_start=10, active_end=19, fps=10.0, speed=1.0,
+                       loop_paused=True, paused_loop_idx=14)
         with patch("clipper.playback.time.monotonic", return_value=100.0):
             change_speed(s, 0.25)
         assert s.loop_paused is True
-        assert s.paused_loop_idx == 14
+        assert s.loop.paused_idx == 14
         assert s.speed == pytest.approx(1.25)
 
 
@@ -527,45 +526,41 @@ class TestSetMarkOut:
 
 class TestAcceptSuggestedMarks:
     def test_accept_suggested_in_updates_active_start(self, make_state):
-        s = make_state(active_start=10, active_end=30)
+        s = make_state(active_start=10, active_end=30, loop_anchor=0.0)
         s.suggested_in = 12
-        s.loop_anchor = 0.0
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
             accept_suggested_in(s)
         assert s.active_start == 12
         assert s.suggestion_anchor_in == 12
-        assert s.loop_anchor > 0.0
+        assert s.loop.anchor > 0.0
         refresh_suggestions.assert_called_once_with(s)
 
     def test_accept_suggested_out_updates_active_end(self, make_state):
-        s = make_state(active_start=10, active_end=30)
+        s = make_state(active_start=10, active_end=30, loop_anchor=0.0)
         s.suggested_out = 28
-        s.loop_anchor = 0.0
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
             accept_suggested_out(s)
         assert s.active_end == 28
         assert s.suggestion_anchor_out == 28
-        assert s.loop_anchor > 0.0
+        assert s.loop.anchor > 0.0
         refresh_suggestions.assert_called_once_with(s)
 
     def test_accept_suggested_in_ignores_invalid_candidate(self, make_state):
-        s = make_state(active_start=10, active_end=30)
+        s = make_state(active_start=10, active_end=30, loop_anchor=0.0)
         s.suggested_in = 30
-        s.loop_anchor = 0.0
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
             accept_suggested_in(s)
         assert s.active_start == 10
-        assert s.loop_anchor == 0.0
+        assert s.loop.anchor == 0.0
         refresh_suggestions.assert_not_called()
 
     def test_accept_suggested_out_ignores_invalid_candidate(self, make_state):
-        s = make_state(active_start=10, active_end=30)
+        s = make_state(active_start=10, active_end=30, loop_anchor=0.0)
         s.suggested_out = 10
-        s.loop_anchor = 0.0
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
             accept_suggested_out(s)
         assert s.active_end == 30
-        assert s.loop_anchor == 0.0
+        assert s.loop.anchor == 0.0
         refresh_suggestions.assert_not_called()
 
 
@@ -635,12 +630,11 @@ class TestShiftActiveRange:
         assert s.current == 40
 
     def test_shift_does_nothing_if_it_would_leave_video_bounds(self, make_state):
-        s = make_state(active_start=2, active_end=12, current=5)
+        s = make_state(active_start=2, active_end=12, current=5, loop_anchor=0.0)
         original = (s.active_start, s.active_end, s.current)
-        s.loop_anchor = 0.0
         shift_active_range(s, -1)
         assert (s.active_start, s.active_end, s.current) == original
-        assert s.loop_anchor == 0.0
+        assert s.loop.anchor == 0.0
 
 
 class TestLoopSuggestions:
