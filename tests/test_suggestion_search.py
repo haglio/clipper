@@ -14,6 +14,7 @@ from clipper.suggestion_search import (
     best_duplicate_match_index,
     best_turning_point_index,
     candidate_similarity_curve,
+    find_similarity_dip,
     smooth_1d,
 )
 
@@ -168,3 +169,36 @@ class TestFindingTheRepeatBehindAFrame:
 
         assert turning is not None
         assert self.REF - self.PERIOD < turning < self.REF
+
+
+class TestTheDipItself:
+    """`find_similarity_dip` hands its two callers six values.
+
+    They travelled as a positional tuple, unpacked by position at both sites --
+    one of which discarded four of them under underscore names.  Reordering or
+    adding a field would have miscomputed both callers silently, which matters
+    here because the order is exactly what backlog bug 14 got wrong.
+    """
+
+    def test_it_names_what_it_found(self, make_state):
+        rng = np.random.default_rng(11)
+        texture = rng.integers(0, 256, (64, 64, 3), dtype=np.uint8)
+        state = make_state(total_frames=201, loaded_start=0, loaded_end=200, fps=30.0)
+        state.frames = {i: np.roll(texture, i % 60, axis=1) for i in range(201)}
+        state.frame_signatures = {}
+
+        dip = find_similarity_dip(
+            state, 180, direction=-1,
+            signature_for_index=signature_for_index,
+            structural_similarity_score=structural_similarity_score,
+        )
+
+        assert dip is not None
+        assert dip.candidates[dip.dip_idx] == best_turning_point_index(
+            state, 180, direction=-1,
+            signature_for_index=signature_for_index,
+            structural_similarity_score=structural_similarity_score,
+        )
+        assert dip.baseline > dip.smoothed[dip.dip_idx]
+        assert len(dip.slope) == len(dip.smoothed) - 1
+        assert dip.run >= 2
