@@ -10,6 +10,7 @@ from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.main_window import ClipperMainWindow, _WrapRow
+from clipper.gui.shortcuts import SHORTCUTS
 
 
 @pytest.fixture()
@@ -145,7 +146,7 @@ class TestExportWiring:
 
         with patch("clipper.gui.main_window.ExportWorker", return_value=mock_worker) as MockWorker, \
              patch("clipper.gui.main_window.ExportDialog", return_value=mock_dialog) as MockDialog:
-            window._on_export()
+            window.start_export()
 
         MockDialog.assert_called_once_with(window)
         MockWorker.assert_called_once_with(mock_state)
@@ -176,34 +177,10 @@ def _with_suggestions(state):
 
 
 # (label, Qt key, event text, prepare, what to read afterwards, what it must be)
-# -- every branch of keyPressEvent, read off a real VideoState.  Six of these
-# used to be `patch(...); assert_called_once_with(state)`, which pins the
+# -- every key the shortcut table binds, read off a real VideoState.  Six of
+# these used to be `patch(...); assert_called_once_with(state)`, which pins the
 # import name rather than the edit: swapping the handlers behind s/d and w/l,
 # and flipping the sign of both change_speed steps, shipped green.
-def _dispatched_tokens() -> set[str]:
-    """Every literal ``keyPressEvent`` branches on, read off its syntax tree."""
-    import ast
-    import inspect
-    import textwrap
-
-    from clipper.gui import main_window
-
-    tree = ast.parse(
-        textwrap.dedent(inspect.getsource(main_window.ClipperMainWindow.keyPressEvent))
-    )
-    tokens: set[str] = set()
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Compare):
-            continue
-        for operand in node.comparators:
-            for leaf in ast.walk(operand):
-                if isinstance(leaf, ast.Constant) and isinstance(leaf.value, str):
-                    tokens.add(leaf.value)
-                elif isinstance(leaf, ast.Attribute) and leaf.attr.startswith("Key_"):
-                    tokens.add(leaf.attr)
-    return tokens
-
-
 _KEY_BINDINGS = [
     ("left", Qt.Key.Key_Left, "", _no_prep, lambda s: s.current, 29),
     ("right", Qt.Key.Key_Right, "", _no_prep, lambda s: s.current, 31),
@@ -249,16 +226,22 @@ class TestKeyDispatch:
 
         assert observe(state) == expected
 
-    def test_every_binding_the_window_dispatches_has_a_row(self):
-        """A binding added to keyPressEvent without a case here fails this.
+    def test_every_key_the_table_binds_has_a_case(self):
+        """A key added to the shortcut table without a case here fails this.
 
         Fourteen of the twenty went unpinned for exactly as long as nothing
-        counted them.
+        counted them.  This used to read the literals out of `keyPressEvent`'s
+        syntax tree; now that the dispatch is a lookup there is a table to
+        count instead, which also covers the keys reached by code rather than
+        by text.
         """
-        covered = {"Key_Return", "Key_Enter", "q"}  # the three cases below
-        covered |= {text or key.name for _, key, text, *_ in _KEY_BINDINGS}
+        exercised = {text or key for _, key, text, *_ in _KEY_BINDINGS}
+        exercised |= {Qt.Key.Key_Return, Qt.Key.Key_Enter, "q"}  # the cases below
 
-        assert _dispatched_tokens() == covered
+        bound = {key for s in SHORTCUTS for key in s.keys}
+        bound |= {code for s in SHORTCUTS for code in s.qt_keys}
+
+        assert bound == exercised
 
     def test_an_unbound_key_changes_nothing(self, make_state):
         state = make_state(**_DISPATCH_STATE)

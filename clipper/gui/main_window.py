@@ -32,17 +32,6 @@ from shared_ui.colors import (
 )
 from shared_ui.fonts import FONT_UI, SIZE_HEADING, SIZE_SMALL, make_font
 
-from clipper.editing import (
-    accept_suggested_in,
-    accept_suggested_out,
-    cycle_loop_mode,
-    set_mark_in,
-    set_mark_out,
-    shift_active_range,
-)
-from clipper.loaded_bounds import contract_left, contract_right, extend_left, extend_right
-from clipper.navigation import move_current_left, move_current_right, toggle_wrap_mode
-from clipper.playback import change_speed, toggle_loop_pause
 from clipper.wrap_modes import WRAP_OVER_LOADED, wrap_bounds
 
 from .button_bar import ButtonBar
@@ -50,6 +39,7 @@ from .exit_dialog import ExitDialog
 from .export_dialog import ExportDialog
 from .export_worker import ExportWorker
 from .legend_widget import LegendWidget
+from .shortcuts import BY_NAME, shortcut_for
 from .timeline_controls import TimelineControls
 from .timeline_widget import TimelineWidget
 from .video_pane import VideoPane
@@ -160,21 +150,25 @@ class ClipperMainWindow(QMainWindow):
 
         # -- Wire signals ---------------------------------------------------------
 
-        self.button_bar.speed_down_clicked.connect(lambda: self._dispatch(change_speed, -0.25))
-        self.button_bar.speed_up_clicked.connect(lambda: self._dispatch(change_speed, 0.25))
-        self.button_bar.play_pause_clicked.connect(lambda: self._dispatch_simple(toggle_loop_pause))
-        self.button_bar.export_clicked.connect(self._on_export)
-
-        self.timeline_controls.extend_left_clicked.connect(lambda: self._dispatch_simple(extend_left))
-        self.timeline_controls.contract_left_clicked.connect(lambda: self._dispatch_simple(contract_left))
-        self.timeline_controls.extend_right_clicked.connect(lambda: self._dispatch_simple(extend_right))
-        self.timeline_controls.contract_right_clicked.connect(lambda: self._dispatch_simple(contract_right))
-        self.timeline_controls.shift_left_clicked.connect(lambda: self._dispatch(shift_active_range, -1))
-        self.timeline_controls.shift_right_clicked.connect(lambda: self._dispatch(shift_active_range, 1))
-        self.timeline_controls.mark_in_clicked.connect(lambda: self._dispatch_simple(set_mark_in))
-        self.timeline_controls.mark_out_clicked.connect(lambda: self._dispatch_simple(set_mark_out))
-        self.timeline_controls.wrap_clicked.connect(lambda: self._dispatch_simple(toggle_wrap_mode))
-        self.timeline_controls.loop_mode_clicked.connect(lambda: self._dispatch_simple(cycle_loop_mode))
+        # Each button runs the shortcut of the same name, so a button and its
+        # key cannot come to mean different things.
+        for signal, name in (
+            (self.button_bar.speed_down_clicked, "speed_down"),
+            (self.button_bar.speed_up_clicked, "speed_up"),
+            (self.button_bar.play_pause_clicked, "play_pause"),
+            (self.button_bar.export_clicked, "export"),
+            (self.timeline_controls.extend_left_clicked, "extend_left"),
+            (self.timeline_controls.contract_left_clicked, "contract_left"),
+            (self.timeline_controls.extend_right_clicked, "extend_right"),
+            (self.timeline_controls.contract_right_clicked, "contract_right"),
+            (self.timeline_controls.shift_left_clicked, "shift_left"),
+            (self.timeline_controls.shift_right_clicked, "shift_right"),
+            (self.timeline_controls.mark_in_clicked, "mark_in"),
+            (self.timeline_controls.mark_out_clicked, "mark_out"),
+            (self.timeline_controls.wrap_clicked, "toggle_wrap"),
+            (self.timeline_controls.loop_mode_clicked, "cycle_loop_mode"),
+        ):
+            signal.connect(self._runs(name))
 
         self.timeline.cursor_jumped.connect(self._on_timeline_click)
 
@@ -307,6 +301,11 @@ class ClipperMainWindow(QMainWindow):
         for btn in self.findChildren(QPushButton):
             btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
+    @property
+    def state(self) -> VideoState:
+        """The session the window is editing -- what the shortcuts act on."""
+        return self._state
+
     # -- Dynamic button positioning -------------------------------------------
 
     def update_button_positions(self) -> None:
@@ -394,53 +393,15 @@ class ClipperMainWindow(QMainWindow):
     # -- Key dispatch ----------------------------------------------------------
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        key = event.key()
-        text = event.text().lower()
-
-        if key == Qt.Key.Key_Left:
-            move_current_left(self._state)
-        elif key == Qt.Key.Key_Right:
-            move_current_right(self._state)
-        elif key == Qt.Key.Key_Space:
-            toggle_loop_pause(self._state)
-        elif text == "a":
-            extend_left(self._state)
-        elif text == "s":
-            contract_left(self._state)
-        elif text == "d":
-            contract_right(self._state)
-        elif text == "f":
-            extend_right(self._state)
-        elif text in ("i", "["):
-            set_mark_in(self._state)
-        elif text in ("o", "]"):
-            set_mark_out(self._state)
-        elif text == "9" or text == "(":
-            accept_suggested_in(self._state)
-        elif text == "0" or text == ")":
-            accept_suggested_out(self._state)
-        elif text in (",", "<"):
-            shift_active_range(self._state, -1)
-        elif text in (".", ">"):
-            shift_active_range(self._state, 1)
-        elif text == "w":
-            toggle_wrap_mode(self._state)
-        elif text == "l":
-            cycle_loop_mode(self._state)
-        elif text in ("-", "_"):
-            change_speed(self._state, -0.25)
-        elif text in ("+", "="):
-            change_speed(self._state, 0.25)
-        elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            self._on_export()
-        elif text == "q":
-            self.close()
-        else:
+        shortcut = shortcut_for(event.key(), event.text().lower())
+        if shortcut is None:
             super().keyPressEvent(event)
+            return
+        shortcut.action(self)
 
     # -- Export ----------------------------------------------------------------
 
-    def _on_export(self) -> None:
+    def start_export(self) -> None:
         dialog = ExportDialog(self)
         worker = ExportWorker(self._state)
         worker.stage_changed.connect(dialog.set_stage)
@@ -456,11 +417,10 @@ class ClipperMainWindow(QMainWindow):
 
     # -- Helpers ---------------------------------------------------------------
 
-    def _dispatch_simple(self, fn) -> None:
-        fn(self._state)
-
-    def _dispatch(self, fn, *args) -> None:
-        fn(self._state, *args)
+    def _runs(self, name: str):
+        """A slot that runs the named shortcut against this window."""
+        shortcut = BY_NAME[name]
+        return lambda: shortcut.action(self)
 
     def _on_timeline_click(self, idx: int) -> None:
         self._state.window.jump_to(idx)
