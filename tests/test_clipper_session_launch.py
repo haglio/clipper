@@ -205,7 +205,7 @@ def test_launch_state_raises_system_exit_when_launcher_is_cancelled():
     with patch("clipper.session_launch.ensure_runtime_dirs"), \
          patch("clipper.session_launch.LAST_SESSION_FILE", MagicMock(exists=MagicMock(return_value=False))), \
          patch("clipper.session_launch.LauncherDialog", return_value=mock_dialog), \
-         patch("clipper.session_launch.detect_vlc_session_prefill", return_value=None):
+         patch("clipper.session_launch.detect_nau_session_prefill", return_value=None):
         with pytest.raises(SystemExit) as excinfo:
             launch_state()
 
@@ -224,7 +224,7 @@ def test_launch_state_runs_clip_whole_and_returns_none():
     with patch("clipper.session_launch.ensure_runtime_dirs"), \
          patch("clipper.session_launch.LAST_SESSION_FILE", MagicMock(exists=MagicMock(return_value=False))), \
          patch("clipper.session_launch.LauncherDialog", return_value=mock_dialog), \
-         patch("clipper.session_launch.detect_vlc_session_prefill", return_value=None), \
+         patch("clipper.session_launch.detect_nau_session_prefill", return_value=None), \
          patch("clipper.session_launch._run_clip_whole_export") as mock_export:
         result = launch_state()
 
@@ -241,7 +241,7 @@ def test_launch_state_builds_state_from_launcher_info():
     with patch("clipper.session_launch.ensure_runtime_dirs") as ensure_dirs, \
          patch("clipper.session_launch.LAST_SESSION_FILE", MagicMock(exists=MagicMock(return_value=False))), \
          patch("clipper.session_launch.LauncherDialog", return_value=mock_dialog), \
-         patch("clipper.session_launch.detect_vlc_session_prefill", return_value=None), \
+         patch("clipper.session_launch.detect_nau_session_prefill", return_value=None), \
          patch("clipper.session_launch.build_state_from_launch_info", return_value=built_state) as build_state:
         result = launch_state()
 

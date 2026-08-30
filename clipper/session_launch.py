@@ -13,7 +13,7 @@ from .paths import LAST_SESSION_FILE, SESSIONS_DIR, ensure_runtime_dirs
 from .state import VideoState
 from .state_factory import make_video_state
 from .utils import parse_timestamp, read_json, sanitize_name
-from .vlc_prefill import detect_vlc_session_prefill
+from .nau_prefill import detect_nau_session_prefill
 
 
 def _load_state_from_session_file(session_path: Path) -> VideoState:
@@ -103,11 +103,11 @@ def launch_state() -> VideoState | None:
     last_session = LAST_SESSION_FILE.read_text(encoding="utf-8").strip() if LAST_SESSION_FILE.exists() else ""
     dialog = LauncherDialog(last_session=last_session)
 
-    vlc_prefill = detect_vlc_session_prefill()
-    if vlc_prefill:
-        dialog.session_name_edit.setText(vlc_prefill.session_name)
-        dialog.video_file_edit.setText(vlc_prefill.video_file)
-        dialog.timestamp_edit.setText(vlc_prefill.timestamp)
+    prefill = detect_nau_session_prefill()
+    if prefill:
+        dialog.session_name_edit.setText(prefill.session_name)
+        dialog.video_file_edit.setText(prefill.video_file)
+        dialog.timestamp_edit.setText(prefill.timestamp)
         dialog.new_radio.setChecked(True)
 
     if dialog.exec() != QDialog.DialogCode.Accepted:
