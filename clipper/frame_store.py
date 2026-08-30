@@ -39,7 +39,7 @@ def ensure_loaded(state: VideoState, want_start: int, want_end: int) -> None:
         window.widen_right_to(max(new_frames.keys(), default=window.loaded_end))
         changed = True
     if changed:
-        state.render_rev += 1
+        state.bump_render()
 
 
 def prune_loaded_caches(state: VideoState) -> None:

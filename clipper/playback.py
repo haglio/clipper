@@ -42,4 +42,4 @@ def change_speed(state: VideoState, delta: float) -> None:
 
 def toggle_loop_pause(state: VideoState) -> None:
     state.loop.toggle_pause(loop_preview_indices(state), state.fps, time.monotonic())
-    state.render_rev += 1
+    state.bump_render()

@@ -102,4 +102,4 @@ def update_loop_suggestions(state: VideoState) -> None:
     if state.suggested_in != suggested_in or state.suggested_out != suggested_out:
         state.suggested_in = suggested_in
         state.suggested_out = suggested_out
-        state.render_rev += 1
+        state.bump_render()
