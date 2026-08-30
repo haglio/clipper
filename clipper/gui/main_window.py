@@ -50,6 +50,11 @@ from .video_pane import VideoPane
 if TYPE_CHECKING:
     from clipper.state import VideoState
 
+# What asking for a frame can raise: a missing key or index from the cache, and
+# `safe_frame`'s own RuntimeError when the frame is inside the loaded window but
+# the decoder never produced it.
+_UNDECODABLE = (KeyError, IndexError, RuntimeError)
+
 class _WrapRow(QWidget):
     """Container that draws wrap-range brace lines and hosts the wrap button."""
 
@@ -315,17 +320,19 @@ class ClipperMainWindow(QMainWindow):
 
         Returns the loop frame's index, which the timeline and the loop label
         both want.  A frame that will not decode costs its pane and nothing
-        else.
+        else -- including the RuntimeError `safe_frame` raises when the window
+        spans a frame the decoder never produced, which this used to let out of
+        a Qt slot and so out of the process.
         """
         loop_idx = state.active_start
         try:
             loop_idx = current_loop_frame_index(state)
             self._fill(self.right_pane, safe_frame(state, loop_idx))
-        except (KeyError, IndexError):
+        except _UNDECODABLE:
             pass
         try:
             self._fill(self.left_pane, safe_frame(state, state.current))
-        except (KeyError, IndexError):
+        except _UNDECODABLE:
             pass
         return loop_idx
 
