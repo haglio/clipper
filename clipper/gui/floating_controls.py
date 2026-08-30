@@ -83,7 +83,7 @@ class FloatingControlLayout:
         tc.mark_out_btn.show()
 
     def _place_wrap(self, wrap_from: int, wrap_to: int, color: QColor) -> None:
-        """Centerd on the range the cursor wraps within, painted to match it."""
+        """Centered on the range the cursor wraps within, painted to match it."""
         tl, tc = self._timeline, self._controls
         offset = self._offset_in(self._wrap_row)
         x1 = offset + tl.x_for_index(wrap_from)
