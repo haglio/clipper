@@ -8,7 +8,7 @@ import cv2
 from PyQt6.QtWidgets import QDialog
 
 from .clip_range import ClipRange
-from .create_session import _ffprobe_video_metadata, create_session
+from .create_session import ffprobe_video_metadata, create_session
 from .frame_window import FrameWindow
 from .gui.launcher_dialog import LauncherDialog
 from .loop_cursor import LoopCursor
@@ -30,7 +30,7 @@ def _load_state_from_session_file(session_path: Path) -> VideoState:
 
 def build_clip_whole_state(video_file: str) -> VideoState:
     """Build a lightweight VideoState for whole-video export (no frame loading)."""
-    fps, total_frames = _ffprobe_video_metadata(video_file)
+    fps, total_frames = ffprobe_video_metadata(video_file)
     session_name = sanitize_name(Path(video_file).stem)
     end_idx = total_frames - 2  # drop duplicate last frame
     cap = cv2.VideoCapture(video_file)

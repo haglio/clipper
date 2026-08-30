@@ -36,7 +36,7 @@ def library(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(create_session_module, "LAST_SESSION_FILE", pointer)
     monkeypatch.setattr(session_launch, "LAST_SESSION_FILE", pointer)
     monkeypatch.setattr(
-        create_session_module, "_ffprobe_video_metadata", lambda path: (30.0, 900)
+        create_session_module, "ffprobe_video_metadata", lambda path: (30.0, 900)
     )
 
     capture = MagicMock()
@@ -171,7 +171,7 @@ class TestBuildClipWholeState:
 
     @pytest.fixture()
     def whole(self):
-        with patch("clipper.session_launch._ffprobe_video_metadata", return_value=(30.0, 300)), \
+        with patch("clipper.session_launch.ffprobe_video_metadata", return_value=(30.0, 300)), \
              patch("clipper.session_launch.cv2") as mock_cv2:
             mock_cv2.VideoCapture.return_value = MagicMock()
             yield build_clip_whole_state("/library/seaside walk.mp4")
@@ -190,7 +190,7 @@ class TestBuildClipWholeState:
         assert whole.session_name == "seaside walk"
 
     def test_a_video_whose_name_cannot_be_a_filename_is_sanitized(self):
-        with patch("clipper.session_launch._ffprobe_video_metadata", return_value=(30.0, 300)), \
+        with patch("clipper.session_launch.ffprobe_video_metadata", return_value=(30.0, 300)), \
              patch("clipper.session_launch.cv2") as mock_cv2:
             mock_cv2.VideoCapture.return_value = MagicMock()
             state = build_clip_whole_state("/library/take 1: second pass.mp4")
