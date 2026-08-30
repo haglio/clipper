@@ -63,6 +63,24 @@ class TestConstruction:
     def test_window_title(self, window):
         assert window.windowTitle() == "Clipper"
 
+    def test_the_compact_controls_all_come_out_the_same_size(self, window):
+        """The bound, shift and mark buttons are one family metric, so a row of
+        them lines up; the three that carry a word are wider than that."""
+        tc, bb = window.timeline_controls, window.button_bar
+        compact = {
+            (btn.width(), btn.height())
+            for btn in (tc.shift_left_btn, tc.shift_right_btn,
+                        tc.extend_left_btn, tc.contract_left_btn,
+                        tc.contract_right_btn, tc.extend_right_btn,
+                        tc.mark_in_btn, tc.mark_out_btn,
+                        bb.speed_down_btn, bb.speed_up_btn)
+        }
+
+        assert len(compact) == 1, compact
+        narrow = compact.pop()[0]
+        for wider in (bb.play_pause_btn, bb.export_btn, tc.wrap_btn):
+            assert wider.width() > narrow
+
     def test_all_buttons_have_no_focus_policy(self, window):
         """Buttons must not steal focus — arrow/space/enter must reach keyPressEvent."""
         from PyQt6.QtWidgets import QPushButton
