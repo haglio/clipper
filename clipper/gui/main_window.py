@@ -11,26 +11,17 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 from shared_ui.colors import (
-    RED,
-    BG_BUTTON,
-    BG_BUTTON_ACTIVE,
-    BG_KEYCAP,
-    BG_PRIMARY,
-    BG_TERTIARY,
     BORDER_DEFAULT,
     BORDER_SUBTLE,
-    TEXT_PRIMARY,
-    TEXT_SECONDARY,
     TIMELINE_ACTIVE,
     TIMELINE_LOADED,
 )
-from shared_ui.fonts import FONT_UI, SIZE_HEADING, SIZE_SMALL, make_font
+from shared_ui.fonts import FONT_UI, SIZE_HEADING, make_font
 
 from clipper.wrap_modes import WRAP_OVER_LOADED, wrap_bounds
 
@@ -39,6 +30,14 @@ from .exit_dialog import ExitDialog
 from .export_dialog import ExportDialog
 from .export_worker import ExportWorker
 from .legend_widget import LegendWidget
+from .main_window_style import (
+    LABEL_STYLE,
+    WARNING_STYLE,
+    CHROME_STYLE,
+    refuse_focus,
+    size_controls,
+    small_font,
+)
 from .shortcuts import BY_NAME, shortcut_for
 from .timeline_controls import TimelineControls
 from .timeline_widget import TimelineWidget
@@ -46,27 +45,6 @@ from .video_pane import VideoPane
 
 if TYPE_CHECKING:
     from clipper.state import VideoState
-
-_LABEL_STYLE = f"color: {TEXT_SECONDARY.name()}; background: transparent;"
-_UI_FONT_SM = make_font(FONT_UI, SIZE_SMALL)
-_BTN_STYLE = f"""
-    QPushButton {{
-        font-family: "{FONT_UI}";
-        font-size: {SIZE_SMALL}pt;
-        color: {TEXT_PRIMARY.name()};
-        background: {BG_BUTTON.name()};
-        border: 1px solid {BORDER_SUBTLE.name()};
-        padding: 3px 8px;
-        min-height: 22px;
-    }}
-    QPushButton:hover {{ background: {BG_KEYCAP.name()}; }}
-    QPushButton:pressed {{ background: {BG_TERTIARY.name()}; }}
-    /* One rule across the family: a control that is ON sits on a lighter ground
-       than one at rest, so a toggled button reads the same whichever app it is
-       in. */
-    QPushButton:checked {{ background: {BG_BUTTON_ACTIVE.name()}; }}
-"""
-
 
 class _WrapRow(QWidget):
     """Container that draws wrap-range brace lines and hosts the wrap button."""
@@ -126,26 +104,24 @@ class ClipperMainWindow(QMainWindow):
             f"file: {os.path.basename(state.path)}    fps: {state.fps:.3f}"
         )
         self.file_info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.file_info_label.setFont(_UI_FONT_SM)
-        self.file_info_label.setStyleSheet(_LABEL_STYLE)
+        self.file_info_label.setFont(small_font())
+        self.file_info_label.setStyleSheet(LABEL_STYLE)
 
         self.cursor_label = QLabel()
-        self.cursor_label.setFont(_UI_FONT_SM)
-        self.cursor_label.setStyleSheet(_LABEL_STYLE)
+        self.cursor_label.setFont(small_font())
+        self.cursor_label.setStyleSheet(LABEL_STYLE)
 
         self.loop_label = QLabel()
-        self.loop_label.setFont(_UI_FONT_SM)
-        self.loop_label.setStyleSheet(_LABEL_STYLE)
+        self.loop_label.setFont(small_font())
+        self.loop_label.setStyleSheet(LABEL_STYLE)
 
         self.speed_label = QLabel()
-        self.speed_label.setFont(_UI_FONT_SM)
-        self.speed_label.setStyleSheet(_LABEL_STYLE)
+        self.speed_label.setFont(small_font())
+        self.speed_label.setStyleSheet(LABEL_STYLE)
 
         self.warning_label = QLabel()
-        self.warning_label.setFont(_UI_FONT_SM)
-        self.warning_label.setStyleSheet(
-            f"color: {RED.name()}; background: transparent;"
-        )
+        self.warning_label.setFont(small_font())
+        self.warning_label.setStyleSheet(WARNING_STYLE)
         self.warning_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # -- Wire signals ---------------------------------------------------------
@@ -180,13 +156,13 @@ class ClipperMainWindow(QMainWindow):
         # Pane headers
         left_header = QLabel("frame at cursor")
         left_header.setFont(make_font(FONT_UI, SIZE_HEADING))
-        left_header.setStyleSheet(_LABEL_STYLE)
+        left_header.setStyleSheet(LABEL_STYLE)
         left_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         left_header.setContentsMargins(0, 6, 0, 6)
 
         right_header = QLabel("loop preview")
         right_header.setFont(make_font(FONT_UI, SIZE_HEADING))
-        right_header.setStyleSheet(_LABEL_STYLE)
+        right_header.setStyleSheet(LABEL_STYLE)
         right_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         right_header.setContentsMargins(0, 6, 0, 6)
 
@@ -280,26 +256,9 @@ class ClipperMainWindow(QMainWindow):
         main_layout.addWidget(self.warning_label)
         main_layout.addWidget(self.legend)
 
-        # Apply button styling
-        central.setStyleSheet(
-            f"background-color: {BG_PRIMARY.name()}; color: {TEXT_PRIMARY.name()};"
-            + _BTN_STYLE
-        )
-
-        # Compact square buttons for the small controls
-        for btn in (tc.shift_left_btn, tc.shift_right_btn,
-                    tc.extend_left_btn, tc.contract_left_btn,
-                    tc.contract_right_btn, tc.extend_right_btn,
-                    tc.mark_in_btn, tc.mark_out_btn,
-                    bb.speed_down_btn, bb.speed_up_btn):
-            btn.setFixedSize(32, 28)
-        bb.play_pause_btn.setFixedSize(40, 28)
-        bb.export_btn.setFixedSize(72, 28)
-        tc.wrap_btn.setFixedSize(64, 28)
-
-        # Every key must reach keyPressEvent, so no button takes focus.
-        for btn in self.findChildren(QPushButton):
-            btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        central.setStyleSheet(CHROME_STYLE)
+        size_controls(bb, tc)
+        refuse_focus(self)
 
     @property
     def state(self) -> VideoState:
