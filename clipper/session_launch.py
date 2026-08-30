@@ -86,19 +86,12 @@ def build_state_from_launch_info(info: dict) -> VideoState:
 def _run_clip_whole_export(video_file: str) -> None:
     """Run the export pipeline for a whole video (no editor UI)."""
     from .gui.export_dialog import ExportDialog
-    from .gui.export_worker import ExportWorker
+    from .gui.export_worker import connect_export
 
     state = build_clip_whole_state(video_file)
     dialog = ExportDialog()
     dialog.setWindowTitle("Exporting whole video")
-    worker = ExportWorker(state)
-    worker.stage_changed.connect(dialog.set_stage)
-    worker.clip_progress.connect(dialog.set_clip_progress)
-    worker.fix_progress.connect(dialog.set_fix_progress)
-    worker.audio_progress.connect(dialog.set_audio_progress)
-    worker.export_finished.connect(
-        lambda ok, msg: (dialog.set_done(ok), dialog.set_error("" if ok else msg))
-    )
+    worker = connect_export(state, dialog)
     worker.start()
     dialog.exec()
     state.cap.release()
