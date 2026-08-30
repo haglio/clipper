@@ -7,6 +7,7 @@ import cv2
 
 from PyQt6.QtWidgets import QDialog
 
+from .clip_range import ClipRange
 from .create_session import _ffprobe_video_metadata, create_session
 from .frame_window import FrameWindow
 from .gui.launcher_dialog import LauncherDialog
@@ -50,8 +51,7 @@ def build_clip_whole_state(video_file: str) -> VideoState:
             current=0,
             base_step=max(1, int(round(fps))),
         ),
-        active_start=0,
-        active_end=end_idx,
+        clip=ClipRange(start=0, end=end_idx),
         frames={},
         loop=LoopCursor(anchor=time.monotonic()),
         session_name=session_name,

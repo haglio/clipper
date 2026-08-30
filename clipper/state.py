@@ -9,6 +9,7 @@ from typing import Any
 import cv2
 import numpy as np
 
+from .clip_range import ClipRange
 from .frame_window import FrameWindow
 from .loop_cursor import LoopCursor
 from .loop_modes import LOOP_MODE_BASE_TIP_BASE
@@ -33,8 +34,7 @@ class VideoState:
     path: str
     fps: float
     window: FrameWindow
-    active_start: int
-    active_end: int
+    clip: ClipRange
     frames: dict[int, np.ndarray]
     loop: LoopCursor
     session_name: str
@@ -53,8 +53,6 @@ class VideoState:
     initial_active_end: int | None = None
     suggested_in: int | None = None
     suggested_out: int | None = None
-    suggestion_anchor_in: int | None = None
-    suggestion_anchor_out: int | None = None
     frame_signatures: dict[int, np.ndarray] = field(default_factory=dict)
     # The disk write mark_dirty triggers, held as a collaborator so a caller
     # that only wants the flag can supply one that writes nothing.  Editing
@@ -95,6 +93,18 @@ class VideoState:
     @property
     def loaded_count(self) -> int:
         return self.window.count
+
+    # The clip's two ends are session-JSON keys as well.  Its two anchors are
+    # not, and nothing outside `loop_suggestions` reads them, so they stay on
+    # the range rather than getting a reader here that only a test would use.
+
+    @property
+    def active_start(self) -> int:
+        return self.clip.start
+
+    @property
+    def active_end(self) -> int:
+        return self.clip.end
 
     # The loop cursor's, likewise.  `speed` is a session-JSON key; the other
     # two are what the tick reads to draw the transport.  The anchor and the

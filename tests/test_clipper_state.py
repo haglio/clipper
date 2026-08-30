@@ -531,7 +531,7 @@ class TestAcceptSuggestedMarks:
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
             accept_suggested_in(s)
         assert s.active_start == 12
-        assert s.suggestion_anchor_in == 12
+        assert s.clip.anchor_in == 12
         assert s.loop.anchor > 0.0
         refresh_suggestions.assert_called_once_with(s)
 
@@ -541,7 +541,7 @@ class TestAcceptSuggestedMarks:
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
             accept_suggested_out(s)
         assert s.active_end == 28
-        assert s.suggestion_anchor_out == 28
+        assert s.clip.anchor_out == 28
         assert s.loop.anchor > 0.0
         refresh_suggestions.assert_called_once_with(s)
 
@@ -709,16 +709,15 @@ class TestLoopSuggestions:
         frames[23] = frames[12].copy()
         s.frames = frames
         s.suggested_out = 20
-        s.suggestion_anchor_in = 10
-        s.suggestion_anchor_out = 20
+        s.clip.anchor_in = 10
+        s.clip.anchor_out = 20
 
         accept_suggested_out(s)
         update_loop_suggestions(s)
 
         first_pair = (s.suggested_in, s.suggested_out)
 
-        s.active_start = first_pair[0]
-        s.active_end = first_pair[1]
+        s.clip.start, s.clip.end = first_pair
         update_loop_suggestions(s)
 
         assert (s.suggested_in, s.suggested_out) == first_pair
