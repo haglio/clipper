@@ -42,7 +42,7 @@ from .main_window_style import (
     size_controls,
     small_font,
 )
-from .shortcuts import BY_NAME, shortcut_for
+from .shortcuts import BY_NAME, legend_rows, shortcut_for
 from .timeline_controls import TimelineControls
 from .timeline_widget import TimelineWidget
 from .video_pane import VideoPane
@@ -96,7 +96,7 @@ class ClipperMainWindow(QMainWindow):
         # Controls (created for signal management; buttons placed individually)
         self.button_bar = ButtonBar()
         self.timeline_controls = TimelineControls()
-        self.legend = LegendWidget()
+        self.legend = LegendWidget(legend_rows())
 
         # -- Labels ---------------------------------------------------------------
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from PyQt6.QtCore import QRectF, Qt
 from PyQt6.QtGui import QFont, QPainter
 from PyQt6.QtWidgets import QWidget
@@ -16,7 +18,8 @@ from shared_ui.colors import (
 )
 from shared_ui.fonts import FONT_UI, SIZE_SMALL, SIZE_TINY
 
-from .shortcuts import LegendEntry, legend_rows
+if TYPE_CHECKING:
+    from .shortcuts import LegendEntry
 
 # Keycap metrics.  Every one of these used to appear twice, once in the pass
 # that measures a row and once in the pass that draws it, so changing the size
@@ -30,11 +33,20 @@ LABEL_GAP = 16
 
 
 class LegendWidget(QWidget):
-    """Displays keyboard shortcut legend as keycap-style rows."""
+    """Paints whatever rows it is given, keycap style.
 
-    def __init__(self, parent: QWidget | None = None):
+    It is handed its rows rather than fetching them.  Reaching for
+    `shortcuts.legend_rows()` here would bind the whole action layer at import
+    -- `shortcuts` names the editing functions, which reach `frame_store`,
+    which imports cv2 -- so a widget whose only job is drawing keycaps would
+    need the video decoder to be importable at all.  It did not before this
+    table existed and it does not now.
+    """
+
+    def __init__(self, rows: tuple[tuple[LegendEntry, ...], ...],
+                 parent: QWidget | None = None):
         super().__init__(parent)
-        self.legend_rows: tuple[tuple[LegendEntry, ...], ...] = legend_rows()
+        self.legend_rows = rows
         self.setMinimumHeight(80)
 
     # -- Metrics ---------------------------------------------------------------

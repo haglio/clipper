@@ -12,7 +12,7 @@ from clipper.gui.shortcuts import legend_rows
 
 @pytest.fixture()
 def legend():
-    widget = LegendWidget()
+    widget = LegendWidget(legend_rows())
     widget.resize(900, 120)
     return widget
 
@@ -84,3 +84,27 @@ class TestPainting:
         two_keys = _keycap_pixels(rendered(legend), 0, legend.height())
 
         assert two_keys > one_key
+
+
+def test_the_legend_does_not_need_the_video_decoder_to_be_imported():
+    """It paints keycaps; it should not drag cv2 in behind them.
+
+    The shortcut table names the editing functions, which reach `frame_store`,
+    which imports cv2 -- so fetching the rows here rather than being handed
+    them would make the decoder a requirement for importing a painter.  Run in
+    a fresh interpreter with cv2 blocked, the way the other import checks in
+    this suite are.
+    """
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    probe = "import sys; sys.modules['cv2'] = None; import clipper.gui.legend_widget"
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+
+    result = subprocess.run([sys.executable, "-c", probe],
+                            cwd=Path(__file__).resolve().parents[1],
+                            env=env, capture_output=True, text=True)
+
+    assert result.returncode == 0, result.stderr
