@@ -84,7 +84,6 @@ class ClipperApp:
         w.timeline.set_cursor_position(state.current)
         w.timeline.set_loop_position(loop_idx)
         w.timeline.set_suggestions(state.suggested_in, state.suggested_out)
-        w.timeline.set_wrap_mode(state.wrap_mode)
 
         # Sync controls
         w.button_bar.set_playing(not state.loop_paused)
