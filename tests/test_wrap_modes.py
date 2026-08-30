@@ -21,3 +21,25 @@ class TestWrapBounds:
         """The session format is unversioned and evolver reads it, so the value
         stays the colour it has always been; only the name says what it means."""
         assert (WRAP_OVER_LOADED, WRAP_OVER_ACTIVE) == ("blue", "yellow")
+
+
+def test_nothing_else_spells_the_wrap_mode_out_as_a_colour():
+    """The two constants are the only place `"blue"` and `"yellow"` are written.
+
+    They were the last thing this module was extracted to collect: the loader's
+    default and the dataclass's still spelled the colour while the creator next
+    to them used the constant, so `grep WRAP_OVER_LOADED` did not find every
+    place the default wrap mode is decided.
+    """
+    from pathlib import Path
+
+    package = Path(__file__).resolve().parents[1] / "clipper"
+    offenders = [
+        f"{path.relative_to(package.parent).as_posix()}:{n}"
+        for path in sorted(package.rglob("*.py"))
+        if path.name != "wrap_modes.py"
+        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+        if '"blue"' in line or '"yellow"' in line
+    ]
+
+    assert offenders == []
