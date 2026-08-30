@@ -260,6 +260,7 @@ def make_state():
     __init__.py and pytest prepends the directory to sys.path, so renaming
     test_clipper_state.py broke two unrelated files.
     """
+    from clipper.frame_window import FrameWindow
     from clipper.state import VideoState
 
     def factory(
@@ -289,13 +290,15 @@ def make_state():
             cap=_FakeCapture(total_frames),
             path=path,
             fps=fps,
-            total_frames=total_frames,
-            loaded_start=loaded_start,
-            loaded_end=loaded_end,
+            window=FrameWindow(
+                total_frames=total_frames,
+                loaded_start=loaded_start,
+                loaded_end=loaded_end,
+                current=current,
+                base_step=base_step,
+            ),
             active_start=active_start,
             active_end=active_end,
-            current=current,
-            base_step=base_step,
             frames={
                 i: np.zeros((2, 2, 3), dtype=np.uint8)
                 for i in range(loaded_start, loaded_end + 1)

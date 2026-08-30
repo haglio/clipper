@@ -6,6 +6,7 @@ from typing import Any
 import cv2
 
 from .frame_store import load_range
+from .frame_window import FrameWindow
 from .loop_suggestions import update_loop_suggestions
 from .loop_modes import LOOP_MODE_BASE_TIP_BASE, LOOP_MODES
 from .paths import SESSIONS_DIR
@@ -90,13 +91,15 @@ def make_video_state(
         cap=cap,
         path=video_path,
         fps=fps,
-        total_frames=total_frames,
-        loaded_start=loaded_start,
-        loaded_end=max(frames.keys()),
+        window=FrameWindow(
+            total_frames=total_frames,
+            loaded_start=loaded_start,
+            loaded_end=max(frames.keys()),
+            current=current,
+            base_step=base_step,
+        ),
         active_start=active_start,
         active_end=active_end,
-        current=current,
-        base_step=base_step,
         frames=frames,
         loop_anchor=time.monotonic(),
         session_name=session_name,

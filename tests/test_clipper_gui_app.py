@@ -109,7 +109,7 @@ class TestOnTick:
 
     def test_it_follows_the_state_when_it_moves(self, live_app):
         live_app._on_tick()
-        live_app._state.current = 47
+        live_app._state.window.jump_to(47)
         live_app._state.active_end = 50
         live_app._state.wrap_mode = "yellow"
 
