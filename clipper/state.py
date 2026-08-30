@@ -9,6 +9,7 @@ from typing import Any
 import cv2
 import numpy as np
 
+from .frame_window import FrameWindow
 from .loop_modes import LOOP_MODE_BASE_TIP_BASE
 from .session_persistence import (
     autosave_session as persist_session_state,
@@ -30,13 +31,9 @@ class VideoState:
     cap: cv2.VideoCapture
     path: str
     fps: float
-    total_frames: int
-    loaded_start: int
-    loaded_end: int
+    window: FrameWindow
     active_start: int
     active_end: int
-    current: int
-    base_step: int
     frames: dict[int, np.ndarray]
     loop_anchor: float
     session_name: str
@@ -72,9 +69,35 @@ class VideoState:
         default=persist_session_state, repr=False
     )
 
+    # The frame window's five fields are session-JSON keys, so they are readable
+    # here under the names the payload builder writes -- but only readable.  A
+    # module that wants one changed asks the window for the change it wants;
+    # that is what stops `loaded_start <= current <= loaded_end` being
+    # re-established by hand at every call site.
+
+    @property
+    def total_frames(self) -> int:
+        return self.window.total_frames
+
+    @property
+    def loaded_start(self) -> int:
+        return self.window.loaded_start
+
+    @property
+    def loaded_end(self) -> int:
+        return self.window.loaded_end
+
+    @property
+    def current(self) -> int:
+        return self.window.current
+
+    @property
+    def base_step(self) -> int:
+        return self.window.base_step
+
     @property
     def loaded_count(self) -> int:
-        return self.loaded_end - self.loaded_start + 1
+        return self.window.count
 
     @property
     def should_prompt_on_exit(self) -> bool:
@@ -83,7 +106,7 @@ class VideoState:
     def clamp_current(self) -> None:
         low = self.loaded_start if self.wrap_mode == "blue" else self.active_start
         high = self.loaded_end if self.wrap_mode == "blue" else self.active_end
-        self.current = max(low, min(high, self.current))
+        self.window.hold_within(low, high)
 
     def reset_loop_anchor(self) -> None:
         self.loop_anchor = time.monotonic()

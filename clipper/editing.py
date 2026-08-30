@@ -72,7 +72,7 @@ def shift_active_range(state: VideoState, direction: int) -> None:
     state.active_end = new_end
     state.suggestion_anchor_in = state.active_start
     state.suggestion_anchor_out = state.active_end
-    state.current += shift
+    state.window.carry_cursor(shift)
     state.clamp_current()
     state.reset_loop_anchor()
     update_loop_suggestions(state)

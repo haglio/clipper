@@ -10,36 +10,26 @@ if TYPE_CHECKING:
 
 
 def contract_left(state: VideoState) -> None:
-    if state.active_start - state.loaded_start >= state.base_step:
-        state.loaded_start += state.base_step
+    if state.window.contract_left(state.active_start):
         prune_loaded_caches(state)
-        state.current = max(state.current, state.loaded_start)
         update_loop_suggestions(state)
         state.mark_dirty()
 
 
 def extend_left(state: VideoState) -> None:
-    new_start = max(0, state.loaded_start - state.base_step)
-    ensure_loaded(state, new_start, state.loaded_end)
-    if new_start != state.loaded_start:
-        state.loaded_start = new_start
+    ensure_loaded(state, state.window.step_out_left(), state.loaded_end)
     update_loop_suggestions(state)
     state.mark_dirty()
 
 
 def contract_right(state: VideoState) -> None:
-    if state.loaded_end - state.active_end >= state.base_step:
-        state.loaded_end -= state.base_step
+    if state.window.contract_right(state.active_end):
         prune_loaded_caches(state)
-        state.current = min(state.current, state.loaded_end)
         update_loop_suggestions(state)
         state.mark_dirty()
 
 
 def extend_right(state: VideoState) -> None:
-    new_end = min(state.total_frames - 1, state.loaded_end + state.base_step)
-    ensure_loaded(state, state.loaded_start, new_end)
-    if new_end != state.loaded_end:
-        state.loaded_end = new_end
+    ensure_loaded(state, state.loaded_start, state.window.step_out_right())
     update_loop_suggestions(state)
     state.mark_dirty()
