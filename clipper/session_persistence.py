@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any
 
 from .paths import LAST_SESSION_FILE
+
+logger = logging.getLogger(__name__)
 
 
 def safe_atomic_write_json(path: Path, payload: dict[str, Any]) -> tuple[bool, str]:
@@ -113,7 +116,11 @@ def autosave_session(state) -> None:
         state.last_saved_payload = payload
         try:
             LAST_SESSION_FILE.write_text(state.session_path, encoding="utf-8")
-        except Exception:
-            pass
+        except OSError:
+            # The session itself reached disk, which is what the warning label
+            # exists to report; losing the pointer only costs the launcher its
+            # offer next time.  Two adjacent failures, two strategies, and the
+            # second used to be silent.
+            logger.warning("Could not update %s", LAST_SESSION_FILE, exc_info=True)
     else:
         state.session_warning = f"Autosave failed: {detail}"
