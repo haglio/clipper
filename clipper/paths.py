@@ -15,8 +15,8 @@ _PLACEHOLDER_SUITE_ROOT = Path(
     json.loads(EXAMPLE_CONTENT.read_text(encoding="utf-8"))["suite_root"]
 )
 
-MODULE_DIR = Path(__file__).resolve().parent
-PROJECT_DIR = MODULE_DIR.parent
+PACKAGE_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = PACKAGE_DIR.parent
 SESSIONS_DIR = PROJECT_DIR / "sessions"
 RAW_CLIPS_DIR = PROJECT_DIR / "raw_clips"
 _GENAU_DIR = _SUITE_ROOT / "videos" / "genau"
@@ -24,7 +24,7 @@ CLIPS_DIR = _GENAU_DIR / "clips"
 VR_CLIPS_DIR = _GENAU_DIR / "vr_clips"
 AUDIO_DIR = _GENAU_DIR / "audio"
 LAST_SESSION_FILE = SESSIONS_DIR / ".last_session.txt"
-CLIP_POSTPROCESS_SCRIPT = MODULE_DIR / "clip_postprocess.py"
+CLIP_POSTPROCESS_SCRIPT = PACKAGE_DIR / "clip_postprocess.py"
 
 
 def library_is_configured() -> bool:
@@ -56,3 +56,21 @@ def ensure_runtime_dirs() -> None:
         return
     for directory in (CLIPS_DIR, VR_CLIPS_DIR, AUDIO_DIR):
         directory.mkdir(parents=True, exist_ok=True)
+
+
+# The characters Windows will not take in a filename.  Named rather than inline
+# so a test can walk the list instead of carrying its own copy of it.
+FORBIDDEN_NAME_CHARS = '<>:"/\\|?*'
+
+
+def sanitize_name(name: str) -> str:
+    """The session name as a filename this app can find again.
+
+    Lives here because every path this module builds out of a session name is
+    built from the sanitized form; keeping the two apart is what let
+    `create_session` write one file and the rest of the app look for another.
+    """
+    name = name.strip()
+    for ch in FORBIDDEN_NAME_CHARS:
+        name = name.replace(ch, "_")
+    return name.strip().rstrip(".")

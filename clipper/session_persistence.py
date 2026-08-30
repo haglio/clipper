@@ -1,9 +1,41 @@
+"""Reading and writing the session file, and the format it is written in."""
+
 from __future__ import annotations
 
+import json
+import os
 from pathlib import Path
+from typing import Any
 
 from .paths import LAST_SESSION_FILE
-from .utils import safe_atomic_write_json
+
+
+def safe_atomic_write_json(path: Path, payload: dict[str, Any]) -> tuple[bool, str]:
+    """Write `payload` to `path` via a temp file, and say whether it landed.
+
+    The autosave warning the user sees is built from nothing but this return
+    value, so a failure reported as a success is a session that silently stops
+    being written.
+    """
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
+            f.write("\n")
+        os.replace(tmp, path)
+        return True, ""
+    except Exception as exc:
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except Exception:
+            pass
+        return False, str(exc)
+
+
+def read_json(path: Path) -> dict[str, Any]:
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 SESSION_FORMAT_VERSION = 1
