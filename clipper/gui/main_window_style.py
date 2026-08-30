@@ -1,4 +1,4 @@
-"""How the main window dresses its widgets: colours, metrics and focus.
+"""How the main window dresses its widgets: colors, metrics and focus.
 
 One of the six things `ClipperMainWindow` was doing in one class.  Nothing here
 knows what a `VideoState` is.

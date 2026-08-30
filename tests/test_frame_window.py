@@ -154,7 +154,7 @@ class TestReachRight:
     `extend_right` asks for a step out and then takes it whether or not every
     frame arrived, so a truncated file leaves the window claiming frames the
     decoder never produced.  That is what the app has always done; it is pinned
-    here rather than tidied away, because tidying it away is a behaviour change
+    here rather than tidied away, because tidying it away is a behavior change
     nobody asked for.
     """
 
