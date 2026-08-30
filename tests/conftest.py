@@ -264,6 +264,7 @@ def make_state():
     from clipper.frame_window import FrameWindow
     from clipper.loop_cursor import LoopCursor
     from clipper.state import VideoState
+    from clipper.suggestions import Suggestions
 
     def factory(
         *,
@@ -320,17 +321,19 @@ def make_state():
                 paused_idx=paused_loop_idx,
                 paused_pos=paused_loop_pos,
             ),
+            suggestions=Suggestions(
+                initial_start=(
+                    active_start if initial_active_start is None else initial_active_start
+                ),
+                initial_end=(
+                    active_end if initial_active_end is None else initial_active_end
+                ),
+            ),
             session_name=session_name,
             session_path=session_path,
             original_session_payload={},
             loop_mode=loop_mode,
             wrap_mode=wrap_mode,
-            initial_active_start=(
-                active_start if initial_active_start is None else initial_active_start
-            ),
-            initial_active_end=(
-                active_end if initial_active_end is None else initial_active_end
-            ),
             persist_session=_FakeAutosave(),
         )
 

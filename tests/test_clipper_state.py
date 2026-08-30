@@ -404,13 +404,13 @@ class TestContractRight:
 
 def _suggest_in(idx: int):
     def prepare(state: VideoState) -> None:
-        state.suggested_in = idx
+        state.suggestions.offer(idx, state.suggested_out)
     return prepare
 
 
 def _suggest_out(idx: int):
     def prepare(state: VideoState) -> None:
-        state.suggested_out = idx
+        state.suggestions.offer(state.suggested_in, idx)
     return prepare
 
 
@@ -527,7 +527,7 @@ class TestSetMarkOut:
 class TestAcceptSuggestedMarks:
     def test_accept_suggested_in_updates_active_start(self, make_state):
         s = make_state(active_start=10, active_end=30, loop_anchor=0.0)
-        s.suggested_in = 12
+        s.suggestions.offer(12, None)
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
             accept_suggested_in(s)
         assert s.active_start == 12
@@ -537,7 +537,7 @@ class TestAcceptSuggestedMarks:
 
     def test_accept_suggested_out_updates_active_end(self, make_state):
         s = make_state(active_start=10, active_end=30, loop_anchor=0.0)
-        s.suggested_out = 28
+        s.suggestions.offer(None, 28)
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
             accept_suggested_out(s)
         assert s.active_end == 28
@@ -547,7 +547,7 @@ class TestAcceptSuggestedMarks:
 
     def test_accept_suggested_in_ignores_invalid_candidate(self, make_state):
         s = make_state(active_start=10, active_end=30, loop_anchor=0.0)
-        s.suggested_in = 30
+        s.suggestions.offer(30, None)
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
             accept_suggested_in(s)
         assert s.active_start == 10
@@ -556,7 +556,7 @@ class TestAcceptSuggestedMarks:
 
     def test_accept_suggested_out_ignores_invalid_candidate(self, make_state):
         s = make_state(active_start=10, active_end=30, loop_anchor=0.0)
-        s.suggested_out = 10
+        s.suggestions.offer(None, 10)
         with patch("clipper.editing.update_loop_suggestions") as refresh_suggestions:
             accept_suggested_out(s)
         assert s.active_end == 30
@@ -708,7 +708,7 @@ class TestLoopSuggestions:
         frames[22] = frames[11].copy()
         frames[23] = frames[12].copy()
         s.frames = frames
-        s.suggested_out = 20
+        s.suggestions.offer(None, 20)
         s.clip.anchor_in = 10
         s.clip.anchor_out = 20
 
