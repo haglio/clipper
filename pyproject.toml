@@ -22,4 +22,10 @@ dev = ["pytest", "vulture"]
 include = ["clipper*"]
 
 [tool.pytest.ini_options]
+# The content guard's enforcement check, taken from app_support rather than
+# kept here as a copy: no tracked file may carry a blocklisted term. A `-p`
+# that cannot be imported is a hard failure with no tests run, which is the
+# answer wanted -- a checkout that has stopped being guarded must not look
+# like a green one.
+addopts = "-p app_support.sanitize.pytest_plugin"
 testpaths = ["tests"]
