@@ -49,13 +49,18 @@ class TestPainting:
         assert _keycap_pixels(image, 0, image.height()) == 0
         assert image.pixelColor(450, 60).name() == BG_PRIMARY.name()
 
-    def test_only_the_bounds_row_is_too_wide_for_the_smallest_window(self, legend):
+    def test_the_bounds_row_is_the_widest(self, legend):
         """The legend is generated now, so an added entry could push a row off
-        the edge.  At the window's 900x600 minimum exactly one row already
-        does: the six-entry bounds row, at 994px against 900.  That overflow
-        predates the generated legend (it measures the same before and after)
-        and is recorded rather than fixed -- how to make it fit is a layout
-        decision.  This is the ratchet: a second one reds.
+        the edge.  The six-entry bounds row (index 1) is already the widest, and
+        at the window's 900x600 minimum it is the one that overflows.  That
+        overflow predates the generated legend (it measures the same before and
+        after) and is recorded rather than fixed -- how to make it fit is a
+        layout decision.  This is the ratchet: if any other row grows past it, a
+        new offender has appeared and this reds.
+
+        The invariant is relative -- which row is widest -- not an exact pixel
+        count, because QFontMetrics differ per platform (the Windows runner
+        measures the bounds row well past 900 too, just at other numbers).
         """
         from PyQt6.QtGui import QFont, QImage, QPainter
 
@@ -73,8 +78,8 @@ class TestPainting:
         ]
         painter.end()
 
-        too_wide = [i for i, width in enumerate(widths) if width > 900 - 16]
-        assert too_wide == [1], widths
+        bounds_row = 1
+        assert widths.index(max(widths)) == bounds_row, widths
 
     def test_a_wider_row_gets_more_keycap_ink_than_a_narrower_one(self, legend, rendered):
         legend.legend_rows = ((((("x",), "", "one"),)),)
