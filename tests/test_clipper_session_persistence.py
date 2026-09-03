@@ -166,7 +166,10 @@ class TestSafeAtomicWriteJson:
         ok, err = safe_atomic_write_json(target, {"x": 1})
 
         assert ok is False
-        assert str(target) in err
+        # The path is named separator-agnostically: on Windows CPython formats
+        # the OSError filename with repr() (doubling backslashes) and it names
+        # the .tmp path, so the full str(target) is not a substring there.
+        assert target.name in err
         assert not target.exists()
 
     def test_reports_a_failed_rename_and_leaves_no_half_written_file(self, tmp_path: Path):
