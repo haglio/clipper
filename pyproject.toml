@@ -22,7 +22,13 @@ dev = ["pytest", "pytest-timeout", "vulture"]
 include = ["clipper*"]
 
 [tool.pytest.ini_options]
-# A ceiling on a hang, not a performance budget. The slowest test on a
+# The content guard's enforcement check, taken from app_support rather than
+# kept here as a copy: no tracked file may carry a blocklisted term. A `-p`
+# that cannot be imported is a hard failure with no tests run, which is the
+# answer wanted -- a checkout that has stopped being guarded must not look
+# like a green one.
+#
+# The timeout is a ceiling on a hang, not a performance budget. The slowest test on a
 # developer machine is the tracked-tree content scan, but it is not the
 # slowest on a runner: it returns early when no blocklist is reachable, and
 # the blocklist is git-ignored, so a fresh checkout has none. What CI does run
@@ -30,5 +36,5 @@ include = ["clipper*"]
 # about a third of a second. --timeout-method=thread is the half that pays for
 # itself: it dumps the hung stack, which turns a stalled required check into a
 # one-line diagnosis. tests/test_timeouts.py holds all three halves of it.
-addopts = "--timeout=60 --timeout-method=thread"
+addopts = "-p app_support.sanitize.pytest_plugin --timeout=60 --timeout-method=thread"
 testpaths = ["tests"]
