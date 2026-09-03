@@ -125,6 +125,15 @@ class TestRuns:
     def extracted(self, tmp_path: Path, monkeypatch) -> Path:
         monkeypatch.setattr(fetch_rife, "DEST", tmp_path)
         monkeypatch.setattr(fetch_rife, "RIFE_EXE", tmp_path / "rife-ncnn-vulkan.exe")
+        # runs() interpolates through clip_postprocess_transforms, which resolves
+        # the binary with its own _find_rife_exe -- not fetch_rife.RIFE_EXE. Point
+        # that seam at the extracted fake too, or the Windows runner finds the real
+        # vendored exe, produces a frame, and runs() answers True where the whole
+        # point is that a present-but-unrunnable file answers False.
+        monkeypatch.setattr(
+            "clipper.clip_postprocess_transforms._find_rife_exe",
+            lambda *_args, **_kwargs: str(fetch_rife.RIFE_EXE),
+        )
         fetch_rife.extract(_release_zip(tmp_path / "release.zip"), tmp_path)
         return tmp_path
 
