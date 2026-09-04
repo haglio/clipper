@@ -15,7 +15,6 @@ from clipper.create_session import (
     main,
 )
 
-
 # ---------------------------------------------------------------------------
 # import isolation — create_session must not pull in cv2
 # ---------------------------------------------------------------------------
@@ -150,9 +149,8 @@ def test_a_write_that_fails_says_which_file_it_was(tmp_path):
     with _mock_ffprobe(), patch(
         "clipper.create_session.safe_atomic_write_json",
         return_value=(False, "no space left on device"),
-    ):
-        with pytest.raises(RuntimeError, match="no space left on device") as failure:
-            create_session("D:/media/example/beta rehearsal.mp4", 10.0, sessions_dir=tmp_path)
+    ), pytest.raises(RuntimeError, match="no space left on device") as failure:
+        create_session("D:/media/example/beta rehearsal.mp4", 10.0, sessions_dir=tmp_path)
 
     assert "beta rehearsal.json" in str(failure.value)
 
@@ -231,9 +229,8 @@ def test_create_session_ffprobe_failure(tmp_path):
     with patch(
         "clipper.create_session.ffprobe_video_metadata",
         side_effect=RuntimeError("ffprobe failed"),
-    ):
-        with pytest.raises(RuntimeError, match="ffprobe failed"):
-            create_session("nonexistent.mp4", 0.0, sessions_dir=tmp_path)
+    ), pytest.raises(RuntimeError, match="ffprobe failed"):
+        create_session("nonexistent.mp4", 0.0, sessions_dir=tmp_path)
 
 
 # ---------------------------------------------------------------------------

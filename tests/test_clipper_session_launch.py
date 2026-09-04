@@ -26,7 +26,7 @@ from clipper.launch_choice import ClipWholeVideo, LoadSession, NewSession
 from clipper.session_launch import build_clip_whole_state, build_state, launch_state
 
 
-@pytest.fixture()
+@pytest.fixture
 def library(tmp_path: Path, monkeypatch):
     """A sessions folder, a stubbed ffprobe and a decoder that answers."""
     sessions = tmp_path / "sessions"
@@ -165,7 +165,7 @@ class TestCreatingANewSession:
 class TestBuildClipWholeState:
     """The lightweight state behind "Clip whole vid...": no frames, no editor."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def whole(self):
         with patch("clipper.session_launch.ffprobe_video_metadata", return_value=(30.0, 300)), \
              patch("clipper.session_launch.cv2") as mock_cv2:

@@ -17,7 +17,6 @@ from clipper.paths import (
     sanitize_name,
 )
 
-
 # The five directories the app writes into. Named here rather than read out of
 # the function, so dropping one from the loop is a red test and not a folder
 # that silently stops being made.
@@ -47,7 +46,7 @@ def _with_a_real_library(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(paths, "_SUITE_ROOT", tmp_path / "library")
 
 
-@pytest.fixture()
+@pytest.fixture
 def runtime_dirs(tmp_path: Path, monkeypatch):
     """Point every directory ``ensure_runtime_dirs`` creates at tmp_path.
 

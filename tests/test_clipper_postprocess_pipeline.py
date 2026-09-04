@@ -142,7 +142,7 @@ def _args(tmp_path: Path, **overrides):
     return SimpleNamespace(**settings)
 
 
-@pytest.fixture()
+@pytest.fixture
 def run_pipeline(frames_of):
     """Drive postprocess_clip with the decode/probe/encode boundary stubbed."""
     def run(args, *, values=(10, 20, 30, 40), size=8, fps=24.0, encoder=None):

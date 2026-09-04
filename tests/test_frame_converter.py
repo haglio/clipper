@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import numpy as np
 from PyQt6.QtGui import QImage
 

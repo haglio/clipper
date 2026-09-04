@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from PyQt6.QtCore import QSize, pyqtSignal
 from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QWidget
-
 from shared_ui.colors import TEXT_PRIMARY
 from shared_ui.icons import glyph_icon
 from shared_ui.spacing import BUTTON_ICON

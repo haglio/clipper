@@ -12,12 +12,14 @@ from .clip_range import ClipRange
 from .frame_window import FrameWindow
 from .loop_cursor import LoopCursor
 from .loop_modes import LOOP_MODE_BASE_TIP_BASE
-from .suggestions import Suggestions
-from .wrap_modes import WRAP_OVER_LOADED, wrap_bounds
 from .session_persistence import (
     autosave_session as persist_session_state,
+)
+from .session_persistence import (
     current_payload as build_current_payload,
 )
+from .suggestions import Suggestions
+from .wrap_modes import WRAP_OVER_LOADED, wrap_bounds
 
 
 @dataclass

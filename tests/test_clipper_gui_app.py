@@ -7,14 +7,13 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 from PyQt6.QtWidgets import QApplication
-
 from shared_ui.colors import BG_SECONDARY
 
 from clipper.gui.app import ClipperApp
 from clipper.playback import change_speed, toggle_loop_pause
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_state():
     state = MagicMock()
     state.session_name = "test_session"
@@ -66,7 +65,7 @@ _TICK_STATE = {
 }
 
 
-@pytest.fixture()
+@pytest.fixture
 def live_app(make_state):
     """A ClipperApp over a real VideoState, with visible frames to draw."""
     state = make_state(**_TICK_STATE)

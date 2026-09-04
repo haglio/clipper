@@ -5,7 +5,6 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter, QPen
 from PyQt6.QtWidgets import QWidget
-
 from shared_ui.colors import (
     BG_PRIMARY,
     BORDER_TICK,

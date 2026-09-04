@@ -5,7 +5,6 @@ import pytest
 
 from clipper.timecode import format_seconds, parse_timestamp
 
-
 _CLOCKS = [
     ("00:00:00", 0.0),
     ("00:00:30", 30.0),

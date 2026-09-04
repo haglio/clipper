@@ -5,7 +5,6 @@ from __future__ import annotations
 from PyQt6.QtCore import QRectF
 from PyQt6.QtGui import QImage, QPainter
 from PyQt6.QtWidgets import QWidget
-
 from shared_ui.colors import BG_SECONDARY, BORDER_SUBTLE
 
 

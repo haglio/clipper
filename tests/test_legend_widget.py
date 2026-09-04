@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import pytest
-
 from shared_ui.colors import BG_KEYCAP, BG_PRIMARY
 
 from clipper.gui.legend_widget import LegendWidget
 from clipper.gui.shortcuts import legend_rows
 
 
-@pytest.fixture()
+@pytest.fixture
 def legend():
     widget = LegendWidget(legend_rows())
     widget.resize(900, 120)
@@ -63,7 +62,6 @@ class TestPainting:
         measures the bounds row well past 900 too, just at other numbers).
         """
         from PyQt6.QtGui import QFont, QImage, QPainter
-
         from shared_ui.fonts import FONT_UI, SIZE_SMALL, SIZE_TINY
 
         legend.resize(900, 80)

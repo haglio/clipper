@@ -13,7 +13,7 @@ from clipper.gui.main_window import ClipperMainWindow, _WrapRow
 from clipper.gui.shortcuts import SHORTCUTS
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_state():
     state = MagicMock()
     state.session_name = "test_session"
@@ -37,7 +37,7 @@ def mock_state():
     return state
 
 
-@pytest.fixture()
+@pytest.fixture
 def window(mock_state):
     w = ClipperMainWindow(mock_state)
     return w
@@ -117,6 +117,7 @@ class TestCloseEvent:
     def test_close_saves_and_accepts_on_save_choice(self, window, mock_state):
         mock_state.should_prompt_on_exit = True
         from PyQt6.QtGui import QCloseEvent
+
         from clipper.gui.exit_dialog import ExitDialog
 
         mock_cls = self._make_exit_dialog_mock(ExitDialog.SAVE)
@@ -131,6 +132,7 @@ class TestCloseEvent:
     def test_close_ignores_on_cancel_choice(self, window, mock_state):
         mock_state.should_prompt_on_exit = True
         from PyQt6.QtGui import QCloseEvent
+
         from clipper.gui.exit_dialog import ExitDialog
 
         mock_cls = self._make_exit_dialog_mock(ExitDialog.CANCEL)
@@ -145,6 +147,7 @@ class TestCloseEvent:
     def test_close_discards_without_saving(self, window, mock_state):
         mock_state.should_prompt_on_exit = True
         from PyQt6.QtGui import QCloseEvent
+
         from clipper.gui.exit_dialog import ExitDialog
 
         mock_cls = self._make_exit_dialog_mock(ExitDialog.DISCARD)
@@ -310,7 +313,7 @@ def _brace_width(window, rendered) -> int:
     return (max(ink) - min(ink)) if ink else 0
 
 
-@pytest.fixture()
+@pytest.fixture
 def shown_window(mock_state):
     """Window that has been shown so geometry is computed."""
     w = ClipperMainWindow(mock_state)
@@ -490,8 +493,8 @@ class TestFloatingControlsStandAlone:
 
     def test_it_places_the_wrap_button_over_the_range_it_is_given(self):
         from PyQt6.QtWidgets import QWidget
-
         from shared_ui.colors import TIMELINE_LOADED
+
         from clipper.gui.floating_controls import FloatingControlLayout
         from clipper.gui.main_window import _WrapRow
         from clipper.gui.timeline_controls import TimelineControls

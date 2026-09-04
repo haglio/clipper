@@ -4,11 +4,10 @@ import time
 from pathlib import Path
 
 import cv2
-
 from PyQt6.QtWidgets import QDialog
 
 from .clip_range import ClipRange
-from .create_session import ffprobe_video_metadata, create_session
+from .create_session import create_session, ffprobe_video_metadata
 from .frame_window import FrameWindow
 from .gui.launcher_dialog import LauncherDialog
 from .launch_choice import ClipWholeVideo, LaunchChoice, LoadSession, NewSession

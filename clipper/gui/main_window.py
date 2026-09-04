@@ -14,7 +14,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
 from shared_ui.colors import (
     BORDER_DEFAULT,
     TIMELINE_ACTIVE,
@@ -35,9 +34,9 @@ from .floating_controls import FloatingControlLayout
 from .frame_converter import bgr_to_qimage, scale_to_fit
 from .legend_widget import LegendWidget
 from .main_window_style import (
+    CHROME_STYLE,
     LABEL_STYLE,
     WARNING_STYLE,
-    CHROME_STYLE,
     refuse_focus,
     size_controls,
     small_font,

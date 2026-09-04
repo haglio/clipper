@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import QApplication
 from clipper.gui.playback_timer import PlaybackTimer
 
 
-@pytest.fixture()
+@pytest.fixture
 def timer():
     return PlaybackTimer()
 

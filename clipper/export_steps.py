@@ -4,11 +4,10 @@ import shutil
 import subprocess
 import sys
 import time
-from pathlib import Path
 from collections.abc import Callable, Sequence
+from pathlib import Path
 
 import cv2
-
 from app_support.subprocess_utils import hidden_subprocess_kwargs
 
 from .export_progress import ExportProgress
