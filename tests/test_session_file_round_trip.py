@@ -76,14 +76,14 @@ class _StubCapture:
         pass
 
 
-@pytest.fixture()
+@pytest.fixture
 def session_file(tmp_path: Path) -> Path:
     path = tmp_path / "beta rehearsal.json"
     path.write_text(GOLDEN_SESSION, encoding="utf-8")
     return path
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_session(session_file):
     """Open the golden session through the launcher's own load path."""
     from clipper.launch_choice import LoadSession

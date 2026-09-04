@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from PyQt6.QtCore import QRectF, Qt
 from PyQt6.QtGui import QFont, QPainter
 from PyQt6.QtWidgets import QWidget
-
 from shared_ui.colors import (
     BG_KEYCAP,
     BG_PRIMARY,

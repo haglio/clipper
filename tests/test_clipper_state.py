@@ -34,7 +34,6 @@ from clipper.playback import (
 )
 from clipper.state import VideoState
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -279,7 +278,7 @@ class TestContractLeft:
 
     def test_does_nothing_when_gap_too_small(self, make_state):
         s = make_state(loaded_start=0, active_start=3, base_step=5)
-        s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(0, 100)}
+        s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(100)}
         original = s.loaded_start
         contract_left(s)
         assert s.loaded_start == original
@@ -380,8 +379,8 @@ class TestContractRight:
 
     def test_prunes_frames_and_signatures_after_new_loaded_end(self, make_state):
         s = make_state(loaded_start=0, loaded_end=30, active_end=20, base_step=5)
-        s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(0, 31)}
-        s.frame_signatures = {i: np.zeros((2, 2), dtype=np.float32) for i in range(0, 31)}
+        s.frames = {i: np.zeros((2, 2, 3), dtype=np.uint8) for i in range(31)}
+        s.frame_signatures = {i: np.zeros((2, 2), dtype=np.float32) for i in range(31)}
 
         contract_right(s)
 

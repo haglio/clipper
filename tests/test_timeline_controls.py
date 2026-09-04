@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-
 import pytest
 
 from clipper.gui.timeline_controls import TimelineControls
 
 
-@pytest.fixture()
+@pytest.fixture
 def ctl():
     return TimelineControls()
 

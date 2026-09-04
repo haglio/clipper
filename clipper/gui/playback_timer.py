@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PyQt6.QtCore import QTimer, pyqtSignal, QObject
+from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
 
 class PlaybackTimer(QObject):

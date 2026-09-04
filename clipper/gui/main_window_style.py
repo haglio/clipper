@@ -9,15 +9,14 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QPushButton, QWidget
-
 from shared_ui.colors import (
-    RED,
     BG_BUTTON,
     BG_BUTTON_ACTIVE,
     BG_KEYCAP,
     BG_PRIMARY,
     BG_TERTIARY,
     BORDER_SUBTLE,
+    RED,
     TEXT_PRIMARY,
     TEXT_SECONDARY,
 )

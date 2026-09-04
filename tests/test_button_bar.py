@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-
 import pytest
 
 from clipper.gui.button_bar import ButtonBar
 
 
-@pytest.fixture()
+@pytest.fixture
 def bar():
     return ButtonBar()
 
@@ -44,7 +43,6 @@ def test_the_transport_wears_the_familys_marks(bar):
     apps sit open together.  These were an icon font's, at its weight."""
     from PyQt6.QtCore import QSize
     from PyQt6.QtGui import QIcon
-
     from shared_ui.colors import TEXT_PRIMARY
     from shared_ui.icons import glyph_pixmap
 

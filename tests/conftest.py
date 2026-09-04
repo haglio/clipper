@@ -22,7 +22,7 @@ import pytest
 # watch something on a real display.
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PyQt6.QtWidgets import QApplication  # noqa: E402  -- after the platform is set
+from PyQt6.QtWidgets import QApplication
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -110,7 +110,7 @@ TMP_ROOT = Path(
 ).resolve()
 
 
-@pytest.fixture()
+@pytest.fixture
 def tmp_path() -> Path:
     TMP_ROOT.mkdir(parents=True, exist_ok=True)
     path = (TMP_ROOT / f"case_{uuid.uuid4().hex}").resolve()
@@ -197,7 +197,7 @@ class _FakeAutosave:
         self.calls += 1
 
 
-@pytest.fixture()
+@pytest.fixture
 def ticked_within():
     """Whether a Qt signal fires inside a budget; returns as soon as it does."""
     def wait(signal, budget_ms: int) -> bool:
@@ -218,7 +218,7 @@ def ticked_within():
     return wait
 
 
-@pytest.fixture()
+@pytest.fixture
 def rendered():
     """Paint a widget into an image, so a test can read the pixels it drew.
 
@@ -231,7 +231,7 @@ def rendered():
     return paint
 
 
-@pytest.fixture()
+@pytest.fixture
 def frames_of():
     """One solid BGR frame per value -- the shape the loop transforms read in.
 
@@ -243,7 +243,7 @@ def frames_of():
     return factory
 
 
-@pytest.fixture()
+@pytest.fixture
 def values_of():
     """The inverse of ``frames_of``: read each frame back as its one value."""
     def factory(frames: list[np.ndarray]) -> list[int]:
@@ -251,7 +251,7 @@ def values_of():
     return factory
 
 
-@pytest.fixture()
+@pytest.fixture
 def make_state():
     """Factory for a VideoState the tests can edit without a disk or a codec.
 
@@ -423,13 +423,13 @@ def _deep_merge(base: dict, override: dict) -> None:
             base[key] = val
 
 
-@pytest.fixture()
+@pytest.fixture
 def cfg_path(tmp_path: Path) -> Path:
     """Return path to a written minimal valid config file."""
     return _write_config(tmp_path)
 
 
-@pytest.fixture()
+@pytest.fixture
 def cfg_factory(tmp_path: Path):
     """Return a factory that writes a config with optional overrides."""
     def factory(overrides: dict | None = None) -> Path:

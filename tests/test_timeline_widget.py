@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import QMouseEvent
-
 from shared_ui.colors import (
     TIMELINE_ACTIVE,
     TIMELINE_CURSOR,
@@ -18,7 +17,7 @@ from shared_ui.colors import (
 from clipper.gui.timeline_widget import TimelineWidget
 
 
-@pytest.fixture()
+@pytest.fixture
 def widget():
     w = TimelineWidget()
     w.resize(800, 40)
@@ -124,7 +123,7 @@ class TestPainting:
     ``return`` was caught only by the dead-code guard.
     """
 
-    @pytest.fixture()
+    @pytest.fixture
     def painted(self, widget, rendered):
         widget.set_loaded_range(0, 100)
         widget.set_active_range(20, 80)

@@ -27,6 +27,7 @@ from .content import load_content
 from .paths import sanitize_name
 from .timecode import format_seconds
 
+
 @dataclass(frozen=True)
 class SessionPrefill:
     """The three fields the launcher's form has, and nothing beside them."""

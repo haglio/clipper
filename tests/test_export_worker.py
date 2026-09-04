@@ -10,7 +10,7 @@ from clipper.gui.export_worker import ExportWorker
 from clipper.paths import AUDIO_DIR, CLIPS_DIR, RAW_CLIPS_DIR, VR_CLIPS_DIR
 
 
-@pytest.fixture()
+@pytest.fixture
 def state(make_state):
     return make_state(
         path="C:/fake/video.mp4", session_path="C:/fake/session.json",
@@ -43,7 +43,7 @@ class _Step:
         return bool(self.calls)
 
 
-@pytest.fixture()
+@pytest.fixture
 def steps():
     """The three export steps, stubbed at the module they are imported from."""
     stubs = {

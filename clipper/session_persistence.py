@@ -37,7 +37,7 @@ def safe_atomic_write_json(path: Path, payload: dict[str, Any]) -> tuple[bool, s
 
 
 def read_json(path: Path) -> dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 

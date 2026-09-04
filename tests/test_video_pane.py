@@ -6,19 +6,18 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-
 from shared_ui.colors import BG_SECONDARY
 
 from clipper.gui.frame_converter import bgr_to_qimage
 from clipper.gui.video_pane import VideoPane
 
 
-@pytest.fixture()
+@pytest.fixture
 def pane():
     return VideoPane()
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_frame():
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
     frame[:] = (50, 100, 150)  # BGR
@@ -62,7 +61,7 @@ class TestPainting:
     whole suite at baseline apart from the dead-code guard.
     """
 
-    @pytest.fixture()
+    @pytest.fixture
     def small_frame(self):
         frame = np.zeros((100, 200, 3), dtype=np.uint8)
         frame[:] = (50, 100, 150)  # BGR

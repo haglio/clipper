@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-
 import pytest
 
 from clipper.gui.export_dialog import ExportDialog
 
 
-@pytest.fixture()
+@pytest.fixture
 def dialog():
     return ExportDialog()
 

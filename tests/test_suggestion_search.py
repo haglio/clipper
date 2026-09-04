@@ -126,7 +126,7 @@ class TestFindingTheRepeatBehindAFrame:
     PERIOD = 60
     REF = 180
 
-    @pytest.fixture()
+    @pytest.fixture
     def looping_clip(self, make_state):
         rng = np.random.default_rng(11)
         texture = rng.integers(0, 256, (64, 64, 3), dtype=np.uint8)

@@ -121,7 +121,7 @@ class TestRuns:
     of the gate saying why. The predicate asks for a frame.
     """
 
-    @pytest.fixture()
+    @pytest.fixture
     def extracted(self, tmp_path: Path, monkeypatch) -> Path:
         monkeypatch.setattr(fetch_rife, "DEST", tmp_path)
         monkeypatch.setattr(fetch_rife, "RIFE_EXE", tmp_path / "rife-ncnn-vulkan.exe")
@@ -179,7 +179,7 @@ class TestRuns:
 class TestMain:
     """The entry point the merge gate runs, and the flag it runs it with."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def fetched(self, tmp_path: Path, monkeypatch) -> Path:
         """A checkout that already has the files, so main() does not download."""
         monkeypatch.setattr(fetch_rife, "DEST", tmp_path)

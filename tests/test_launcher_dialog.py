@@ -14,7 +14,7 @@ from clipper.gui.launcher_dialog import VR_VIDEO_DIR, LauncherDialog
 from clipper.launch_choice import ClipWholeVideo, LoadSession, NewSession
 
 
-@pytest.fixture()
+@pytest.fixture
 def dialog():
     return LauncherDialog()
 
