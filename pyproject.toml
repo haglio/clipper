@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-timeout", "vulture"]
+dev = ["pytest", "pytest-timeout", "vulture", "ruff==0.16.6"]
 
 [tool.setuptools.packages.find]
 include = ["clipper*"]
