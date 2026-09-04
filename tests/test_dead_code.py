@@ -1,96 +1,62 @@
-"""Dead-code guardrail — fail if vulture finds unlisted dead code."""
+"""This repo's dead-code gate. Every check it runs is `app_support.dead_code` or
+`app_support.unread`, the family's one shape."""
 from __future__ import annotations
 
 from pathlib import Path
 
-import vulture
-
-_PROJECT = Path(__file__).resolve().parents[1]
-_CLIPPER = _PROJECT / "clipper"
-
-# ---- Whitelist: false positives proven to be framework/platform callbacks ----
-#
-# Format: {(relative_posix_path, name)} — keeps the set readable and diffable.
-# Only add entries that are *provably* invoked by a framework, platform API,
-# or dynamic attribute access (dataclass fields accessed via obj.attr).
-#
-# Entries are (path, name) pairs and nothing else.  This used to carry a second
-# set that exempted clipper/config.py and clipper/state.py whole, on the stated
-# grounds that every field in them was read dynamically.  Neither was true, and
-# a file-wide exemption cannot fail: the two files holding the most dead surface
-# in the repo were the two the gate could never see, and it hid 67 findings.
-
-# Qt method overrides — called by the Qt event loop, not user code.
-_QT_OVERRIDES: set[tuple[str, str]] = {
-    ("clipper/gui/legend_widget.py", "paintEvent"),
-    ("clipper/gui/main_window.py", "paintEvent"),
-    ("clipper/gui/main_window.py", "closeEvent"),
-    ("clipper/gui/timeline_widget.py", "mousePressEvent"),
-    ("clipper/gui/timeline_widget.py", "paintEvent"),
-    ("clipper/gui/video_pane.py", "paintEvent"),
-}
-
-# Attribute mutations on state objects — used by production code but vulture
-# can't trace setattr on dynamic types.
-_STATE_MUTATIONS: set[tuple[str, str]] = {
-    ("clipper/gui/main_window.py", "_export_worker"),
-    ("clipper/session_launch.py", "original_session_payload"),
-    ("clipper/session_persistence.py", "last_saved_payload"),
-    ("clipper/state_factory.py", "last_saved_payload"),
-}
-
-# The declarations those mutations write to, one line per field, each with the
-# reader vulture cannot see.  These are what the file-wide state.py exemption
-# used to cover; naming them costs four lines and leaves the rest of the file
-# under the gate.
-_STATE_FIELDS: set[tuple[str, str]] = {
-    # VideoState.original_session_payload — the payload the session was opened
-    # with, kept so a discard-on-exit has something to compare against.
-    ("clipper/state.py", "original_session_payload"),
-    # VideoState.last_saved_payload — the last payload that reached disk.  A
-    # failed write leaves it alone, which is how the warning path proves the
-    # good copy survived (tests/test_clipper_session_persistence.py:96-100).
-    ("clipper/state.py", "last_saved_payload"),
-    # VideoState.render_rev — bumped by every edit that changes what is drawn.
-    # No production reader consults it: the 60 Hz tick repaints unconditionally,
-    # so it survives as the observable the edit tables read to prove an edit
-    # happened.  See the 2026-08-29 changelog note.
-    ("clipper/state.py", "render_rev"),
-}
-
-WHITELIST: set[tuple[str, str]] = (
-    _QT_OVERRIDES
-    | _STATE_MUTATIONS
-    | _STATE_FIELDS
+from app_support import unread
+from app_support.dead_code import (
+    assert_every_package_is_scanned,
+    assert_no_dead_code,
+    assert_no_function_takes_an_argument_it_never_reads,
+    assert_nothing_is_imported_or_assigned_and_left_unread,
+    assert_whitelist_is_live,
 )
 
-
-def _relative_posix(path: str) -> str:
-    """Convert an absolute path to a project-relative posix path."""
-    try:
-        return Path(path).resolve().relative_to(_PROJECT.resolve()).as_posix()
-    except ValueError:
-        return path
+ROOT = Path(__file__).resolve().parent.parent
+PACKAGES = (ROOT / "clipper", ROOT / "tools",)
+SCANNED = PACKAGES
+WHITELIST = ROOT / "vulture_whitelist.py"
 
 
 def test_no_dead_code():
-    v = vulture.Vulture()
-    v.scavenge([_CLIPPER])
+    assert_no_dead_code(*SCANNED, whitelist=WHITELIST)
 
-    unlisted = []
-    for item in v.get_unused_code():
-        rel = _relative_posix(item.filename)
-        if (rel, item.name) in WHITELIST:
-            continue
-        unlisted.append(
-            f"  {rel}:{item.first_lineno} — unused {item.typ} '{item.name}' "
-            f"({item.confidence}% confidence)"
-        )
 
-    if unlisted:
-        msg = (
-            f"Vulture found {len(unlisted)} dead-code item(s) not in the whitelist.\n"
-            "Delete genuinely dead code or add proven false positives to the "
-            "whitelist in test_dead_code.py:\n" + "\n".join(sorted(unlisted))
-        )
-        raise AssertionError(msg)
+def test_the_whitelist_still_suppresses_what_it_claims_to():
+    assert_whitelist_is_live(*SCANNED, whitelist=WHITELIST)
+
+
+def test_every_package_in_the_tree_is_scanned():
+    assert_every_package_is_scanned(ROOT, ("clipper", "tools",))
+
+
+def test_nothing_is_imported_or_assigned_and_left_unread():
+    assert_nothing_is_imported_or_assigned_and_left_unread(ROOT, *SCANNED, ROOT / "tests")
+
+
+def test_no_function_takes_an_argument_it_never_reads():
+    assert_no_function_takes_an_argument_it_never_reads(ROOT, *SCANNED)
+
+
+def test_no_module_level_constant_goes_unread():
+    unread.assert_no_module_constant_goes_unread(ROOT, SCANNED)
+
+
+def test_no_constructor_parameter_is_stored_and_never_read():
+    unread.assert_no_constructor_parameter_is_stored_and_never_read(ROOT, SCANNED)
+
+
+def test_no_dataclass_field_goes_unread():
+    # Written on every launch and read only by the tests that prove it was: the discard-on-exit
+    # it was kept for has no production reader. Item 28's remainder judges it; not deleted here.
+    unread.assert_no_dataclass_field_goes_unread(
+        ROOT, SCANNED, allowing=("VideoState.original_session_payload",))
+
+
+def test_every_declared_command_line_option_is_read():
+    unread.assert_every_argparse_option_is_read(ROOT, SCANNED)
+
+
+def test_no_test_helper_is_written_and_never_called():
+    unread.assert_no_test_helper_is_written_and_never_called(ROOT, ROOT / "tests")
