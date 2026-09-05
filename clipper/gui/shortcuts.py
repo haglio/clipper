@@ -98,25 +98,29 @@ SHORTCUTS: tuple[Shortcut, ...] = (
 
 # What the legend says, row by row.  The keycaps are not written here -- they
 # come from the shortcuts named, which is what stops the two disagreeing.
+# Which entry sits in which row is a free choice, and it is made so the rows
+# come out even: the widest has to fit the window's 900 px minimum, and a
+# six-entry bounds row did not (bug 56).  Transport and loop; the bounds
+# with the cursor between them and the wrap; the in-out edits together.
 LEGEND_ROWS: tuple[tuple[LegendEntry, ...], ...] = (
     (
         (("speed_down", "speed_up"), " or ", "speed"),
         (("play_pause",), "", "play or pause preview"),
         (("export",), "", "export"),
         (("quit",), "", "quit"),
+        (("cycle_loop_mode",), "", "cycle loop type"),
     ),
     (
         (("extend_left", "contract_left"), " or ", "adjust left bound"),
-        (("shift_left", "shift_right"), " or ", "shift in-out"),
         (("cursor_left", "cursor_right"), " or ", "move cursor"),
-        (("mark_in",), "/", "mark in"),
-        (("mark_out",), "/", "mark out"),
         (("contract_right", "extend_right"), " or ", "adjust right bound"),
+        (("toggle_wrap",), "", "toggle cursor wrap mode"),
     ),
     (
+        (("shift_left", "shift_right"), " or ", "shift in-out"),
+        (("mark_in",), "/", "mark in"),
+        (("mark_out",), "/", "mark out"),
         (("accept_in", "accept_out"), " or ", "accept in or out suggestion"),
-        (("toggle_wrap",), "", "toggle cursor wrap mode"),
-        (("cycle_loop_mode",), "", "cycle loop type"),
     ),
 )
 
