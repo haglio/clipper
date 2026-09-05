@@ -318,15 +318,16 @@ class TestExtendLeft:
 
         assert s.loaded_start == 0
 
-    def test_at_the_start_of_the_video_it_still_saves(self, make_state):
-        """It marks dirty unconditionally -- there is nowhere to go, but the
-        session is written anyway."""
+    def test_at_the_start_of_the_video_it_leaves_the_session_clean(self, make_state):
+        """There is nowhere to go, so nothing changed and nothing is saved --
+        it used to mark dirty unconditionally and write the session once per
+        keypress at the edge (bug 88)."""
         s = make_state(loaded_start=0, loaded_end=60, base_step=5)
 
         extend_left(s)
 
         assert s.loaded_start == 0
-        assert s.dirty is True
+        assert s.dirty is False
 
 
 class TestExtendRight:
@@ -350,6 +351,15 @@ class TestExtendRight:
         extend_right(s)
 
         assert s.loaded_end == 99
+
+    def test_at_the_end_of_the_video_it_leaves_the_session_clean(self, make_state):
+        """The right-hand twin of the extend_left case (bug 88)."""
+        s = make_state(total_frames=100, loaded_start=0, loaded_end=99, base_step=5)
+
+        extend_right(s)
+
+        assert s.loaded_end == 99
+        assert s.dirty is False
 
     def test_it_takes_the_whole_step_even_when_the_decoder_gives_up_early(self, make_state):
         """The window ends up spanning frames nothing decoded.
