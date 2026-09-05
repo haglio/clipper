@@ -195,6 +195,24 @@ def test_create_session_sanitizes_name(tmp_path):
     assert result.name == "Bad__Name.json"
 
 
+def test_create_session_sanitizes_a_supplied_name_too(tmp_path):
+    """Only the name derived from the video was sanitized; a `--name` with a
+    forbidden character was written as given, to a file the rest of the app
+    -- which builds every path from the sanitized form -- could never find
+    again (bug 31)."""
+    with _mock_ffprobe():
+        result = create_session(
+            r"C:\videos\SomeLongFilename_v2.mp4",
+            0.0,
+            session_name="Take: two?",
+            sessions_dir=tmp_path,
+        )
+
+    assert result == tmp_path / "Take_ two_.json"
+    payload = json.loads(result.read_text(encoding="utf-8"))
+    assert payload["session_name"] == "Take_ two_"
+
+
 def test_create_session_updates_last_session_file(tmp_path):
     last_session = tmp_path / ".last_session.txt"
     with _mock_ffprobe(), \
