@@ -87,8 +87,7 @@ def build_session_payload(
     vr: bool = False,
 ) -> dict:
     """Build the session payload dict without touching the filesystem."""
-    if not session_name:
-        session_name = sanitize_name(Path(video_path).stem)
+    session_name = sanitize_name(session_name or Path(video_path).stem)
 
     base_step = max(1, int(round(fps)))
     start_idx = max(0, min(total_frames - 1, int(round(start_time_s * fps))))
@@ -138,8 +137,9 @@ def create_session(
 
     fps, total_frames = ffprobe_video_metadata(video_path)
 
-    if not session_name:
-        session_name = sanitize_name(Path(video_path).stem)
+    # A supplied name is sanitized like a derived one: every path the rest of
+    # the app builds from a session name is built from the sanitized form.
+    session_name = sanitize_name(session_name or Path(video_path).stem)
 
     session_path = sessions_dir / f"{session_name}.json"
     if session_path.exists():
