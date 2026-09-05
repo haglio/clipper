@@ -48,18 +48,17 @@ class TestPainting:
         assert _keycap_pixels(image, 0, image.height()) == 0
         assert image.pixelColor(450, 60).name() == BG_PRIMARY.name()
 
-    def test_the_bounds_row_is_the_widest(self, legend):
-        """The legend is generated now, so an added entry could push a row off
-        the edge.  The six-entry bounds row (index 1) is already the widest, and
-        at the window's 900x600 minimum it is the one that overflows.  That
-        overflow predates the generated legend (it measures the same before and
-        after) and is recorded rather than fixed -- how to make it fit is a
-        layout decision.  This is the ratchet: if any other row grows past it, a
-        new offender has appeared and this reds.
+    def test_no_row_carries_more_than_two_fifths_of_the_legend(self, legend):
+        """The rows are balanced so the widest fits the window's 900 px minimum.
 
-        The invariant is relative -- which row is widest -- not an exact pixel
-        count, because QFontMetrics differ per platform (the Windows runner
-        measures the bounds row well past 900 too, just at other numbers).
+        Measured with the family's font on Windows (Segoe UI) the three rows
+        are 598, 736 and 638 px against the 884 px a row has there; before
+        the repartition the six-entry bounds row was 959 px and its last entry
+        drew off the right edge (bug 56).  The suite paints with the offscreen
+        platform's stand-in font, which widens every row alike, so the
+        invariant is a share of the whole rather than a pixel count: no row is
+        more than two fifths of the three together.  An entry added to the
+        wrong row reds this before it reaches the edge.
         """
         from PyQt6.QtGui import QFont, QImage, QPainter
         from shared_ui.fonts import FONT_UI, SIZE_SMALL, SIZE_TINY
@@ -76,8 +75,7 @@ class TestPainting:
         ]
         painter.end()
 
-        bounds_row = 1
-        assert widths.index(max(widths)) == bounds_row, widths
+        assert max(widths) <= 0.4 * sum(widths), widths
 
     def test_a_wider_row_gets_more_keycap_ink_than_a_narrower_one(self, legend, rendered):
         legend.legend_rows = ((((("x",), "", "one"),)),)
