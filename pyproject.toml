@@ -16,7 +16,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-timeout", "vulture", "ruff==0.16.6"]
+# Pillow is the suite's, not the app's: the icon check in shared_ui.app_icon reads
+# the .ico with it, and nothing the app runs does.
+dev = ["pytest", "pytest-timeout", "vulture", "ruff==0.16.6", "pillow"]
 
 [tool.setuptools.packages.find]
 include = ["clipper*"]
