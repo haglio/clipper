@@ -23,6 +23,69 @@ def test_load_range_returns_empty_when_end_before_start():
     cap.read.assert_not_called()
 
 
+class _DamagedAt:
+    """A decoder that cannot produce one frame and reads past it fine."""
+
+    def __init__(self, bad: int):
+        self._bad = bad
+        self._pos = 0
+        self.seeks: list[int] = []
+
+    def set(self, prop, value) -> bool:
+        self._pos = int(value)
+        self.seeks.append(self._pos)
+        return True
+
+    def read(self):
+        if self._pos == self._bad:
+            return False, None
+        self._pos += 1
+        return True, np.zeros((2, 2, 3), dtype=np.uint8)
+
+
+class _EndsAt:
+    """A decoder that gives up for good after a frame, as a truncated file does."""
+
+    def __init__(self, last: int):
+        self._last = last
+        self._pos = 0
+        self.seeks: list[int] = []
+
+    def set(self, prop, value) -> bool:
+        self._pos = int(value)
+        self.seeks.append(self._pos)
+        return True
+
+    def read(self):
+        if self._pos > self._last:
+            return False, None
+        self._pos += 1
+        return True, np.zeros((2, 2, 3), dtype=np.uint8)
+
+
+def test_load_range_gets_past_a_frame_the_decoder_cannot_produce():
+    """One damaged frame used to end the whole load, and `extend_right` faked
+    the edge past it to force the next seek beyond (bug 55).  The loader seeks
+    past a failed read itself, so the damaged frame alone is missing."""
+    cap = _DamagedAt(62)
+
+    result = load_range(cap, 61, 65)
+
+    assert sorted(result) == [61, 63, 64, 65]
+    assert cap.seeks == [61, 63]
+
+
+def test_load_range_gives_up_on_a_file_that_has_ended():
+    """Past a truncation every read fails; the retries are bounded, so the
+    loader answers with what it got rather than seeking forever."""
+    cap = _EndsAt(62)
+
+    result = load_range(cap, 61, 300)
+
+    assert sorted(result) == [61, 62]
+    assert len(cap.seeks) <= 10
+
+
 def test_ensure_loaded_expands_missing_edges_and_bumps_render_rev(make_state):
     state = make_state(loaded_start=10, loaded_end=20)
     left_frames = {i: np.full((2, 2, 3), i, dtype=np.uint8) for i in range(5, 10)}

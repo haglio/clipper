@@ -361,24 +361,26 @@ class TestExtendRight:
         assert s.loaded_end == 99
         assert s.dirty is False
 
-    def test_it_takes_the_whole_step_even_when_the_decoder_gives_up_early(self, make_state):
-        """The window ends up spanning frames nothing decoded.
-
-        That is what the app does, and until now nothing said so -- which is
-        how the trailing `if new_end != loaded_end` in this function came to
-        look like a no-op.  It is one only while every requested frame
-        decodes.  A file the decoder abandons early leaves `loaded_end` past
-        the last frame in `state.frames`, and `safe_frame` raises for the
-        frames in between; recorded in the item-40 changelog rather than
-        changed here.
+    def test_the_edge_is_the_last_frame_the_decoder_produced(self, make_state):
+        """A file the decoder abandons early used to leave the window claiming
+        the whole step -- frames nothing decoded, which the timeline painted,
+        the cursor could be walked onto and `safe_frame` raised for (bug 55).
+        The edge is where the frames end, and a press with nothing more to
+        decode moves nothing and saves nothing.
         """
         s = make_state(total_frames=100, loaded_start=0, loaded_end=60, base_step=5)
         s.cap = _CapturesUpTo(62)
 
         extend_right(s)
 
-        assert s.loaded_end == 65
+        assert s.loaded_end == 62
         assert max(s.frames) == 62
+
+        s.dirty = False
+        extend_right(s)
+
+        assert s.loaded_end == 62
+        assert s.dirty is False
 
 
 class TestContractRight:
