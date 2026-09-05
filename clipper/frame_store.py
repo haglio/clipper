@@ -9,16 +9,37 @@ if TYPE_CHECKING:
     from .state import VideoState
 
 
+# How many reads in a row may fail before a range is given up on.  A damaged
+# patch is a few frames wide; past a truncation every read fails.
+_FAILED_READS_TOLERATED = 8
+
+
 def load_range(cap: cv2.VideoCapture, start_idx: int, end_idx: int) -> dict[int, np.ndarray]:
+    """The frames ``start_idx``..``end_idx`` the decoder can produce, by index.
+
+    A read the decoder fails is seeked past and the next one tried, a bounded
+    number of times: a damaged patch is got past with only its own frames
+    missing, and a file that has ended is given up on with what it had.  The
+    caller's edge is the last frame here, never a frame that was merely asked
+    for -- `extend_right` used to fake the edge out to force the next seek
+    past a bad frame, and the window then claimed frames nothing produced.
+    """
     result: dict[int, np.ndarray] = {}
     if end_idx < start_idx:
         return result
     cap.set(cv2.CAP_PROP_POS_FRAMES, start_idx)
     idx = start_idx
+    failed = 0
     while idx <= end_idx:
         ok, frame = cap.read()
         if not ok:
-            break
+            failed += 1
+            if failed >= _FAILED_READS_TOLERATED:
+                break
+            idx += 1
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+            continue
+        failed = 0
         result[idx] = frame
         idx += 1
     return result

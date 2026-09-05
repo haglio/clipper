@@ -148,29 +148,13 @@ class TestWiden:
         assert window.loaded_end == 60
 
 
-class TestReachRight:
-    """The one move that can put the edge past a frame nothing decoded.
+class TestTheEdgeIsOnlyEverWidenedToAFrame:
+    """No move can put the edge past a frame nothing decoded (bug 55): the
+    only way the right edge moves out is `widen_right_to`, called with the
+    last frame the loader produced."""
 
-    `extend_right` asks for a step out and then takes it whether or not every
-    frame arrived, so a truncated file leaves the window claiming frames the
-    decoder never produced.  That is what the app has always done; it is pinned
-    here rather than tidied away, because tidying it away is a behavior change
-    nobody asked for.
-    """
-
-    def test_it_takes_the_edge_where_it_is_told(self):
-        window = _window(loaded_end=60)
-
-        window.reach_right_to(65)
-
-        assert window.loaded_end == 65
-
-    def test_it_will_pull_the_edge_back_as_well(self):
-        window = _window(loaded_end=60)
-
-        window.reach_right_to(55)
-
-        assert window.loaded_end == 55
+    def test_nothing_reaches_the_edge_to_a_bare_number(self):
+        assert not hasattr(_window(loaded_end=60), "reach_right_to")
 
 
 class TestStepCursor:
