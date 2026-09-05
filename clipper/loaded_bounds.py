@@ -17,7 +17,10 @@ def contract_left(state: VideoState) -> None:
 
 
 def extend_left(state: VideoState) -> None:
+    before = state.loaded_start
     ensure_loaded(state, state.window.step_out_left(), state.loaded_end)
+    if state.loaded_start == before:
+        return  # at the start of the video: nothing moved, nothing to save
     update_loop_suggestions(state)
     state.mark_dirty()
 
@@ -30,11 +33,14 @@ def contract_right(state: VideoState) -> None:
 
 
 def extend_right(state: VideoState) -> None:
+    before = state.loaded_end
     target = state.window.step_out_right()
     ensure_loaded(state, state.loaded_start, target)
     # Takes the step whether or not the decoder produced every frame of it.
     # `ensure_loaded` stops at the last frame it actually read, and this puts
     # the edge back out at what was asked for.
     state.window.reach_right_to(target)
+    if state.loaded_end == before:
+        return  # at the end of the video: nothing moved, nothing to save
     update_loop_suggestions(state)
     state.mark_dirty()
