@@ -4,6 +4,7 @@ import logging
 import sys
 
 from app_support.logging_utils import configure_logging, install_exception_logging
+from app_support.process_identity import ProcessNamer
 
 from .paths import PROJECT_DIR
 from .session_launch import launch_state
@@ -35,24 +36,12 @@ def _init_logger() -> logging.Logger:
 
 
 def _name_this_process() -> None:
-    """Leave ``launch_clipper.vbs`` an interpreter that says "Clipper" next time.
-
-    Naming *this* process is the one thing that cannot be done: writing the
-    named copy takes the very interpreter being named.  So each run prepares it
-    for the run after, and the launcher picks it up.
-    """
-    try:
-        from pathlib import Path as _Path
-
-        from app_support.process_identity import ProcessNamer
-
-        icon = _Path(__file__).resolve().parent.parent / "clipper.ico"
-        ProcessNamer("Clipper", icon=icon).prepare_launcher(
-            "Clipper", _Path(sys.executable).with_name("python.exe"))
-    except Exception:
-        # Cosmetic: costs a name in the task list, never a launch.
-        logging.getLogger(__name__).debug(
-            "Could not prepare the named launcher", exc_info=True)
+    """Leave ``launch_clipper.vbs`` an interpreter that says "Clipper" next
+    time.  The console interpreter, because that is the one the launcher runs --
+    it redirects the app's output into its log.  Why it is one launch behind, and
+    why it can never cost the launch: :meth:`ProcessNamer.name_this_process`."""
+    ProcessNamer("Clipper", icon=PROJECT_DIR / "clipper.ico").name_this_process(
+        "Clipper", interpreter="python.exe")
 
 
 def main() -> int:
