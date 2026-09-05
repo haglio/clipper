@@ -7,15 +7,10 @@ from typing import TYPE_CHECKING
 from PyQt6.QtCore import QRectF, Qt
 from PyQt6.QtGui import QFont, QPainter
 from PyQt6.QtWidgets import QWidget
-from shared_ui.colors import (
-    BG_KEYCAP,
-    BG_PRIMARY,
-    BORDER_DEFAULT,
-    TEXT_LEGEND_JOIN,
-    TEXT_LEGEND_LABEL,
-    TEXT_PRIMARY,
-)
+from shared_ui.colors import BG_KEYCAP, BG_PRIMARY, BORDER_DEFAULT, TEXT_PRIMARY
 from shared_ui.fonts import FONT_UI, SIZE_SMALL, SIZE_TINY
+
+from .timeline_colors import TEXT_LEGEND_JOIN, TEXT_LEGEND_LABEL
 
 if TYPE_CHECKING:
     from .shortcuts import LegendEntry

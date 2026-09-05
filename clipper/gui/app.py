@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
+from shared_ui.chrome import family_stylesheet
 
 from clipper.window_icons import clipper_icon_path
 
@@ -15,6 +16,12 @@ from .playback_timer import PlaybackTimer
 
 if TYPE_CHECKING:
     from clipper.state import VideoState
+
+
+def dress(app: QApplication) -> None:
+    """The family's chrome, on the application rather than the window: a
+    tooltip is a top-level popup, and a sheet on a window never reaches it."""
+    app.setStyleSheet(family_stylesheet())
 
 
 class ClipperApp:
@@ -31,6 +38,7 @@ class ClipperApp:
         if self._app is None:
             self._app = QApplication(sys.argv)
         self._app.setApplicationName("Clipper")
+        dress(self._app)
 
         icon_path = clipper_icon_path()
         if icon_path.exists():

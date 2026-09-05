@@ -493,10 +493,10 @@ class TestFloatingControlsStandAlone:
 
     def test_it_places_the_wrap_button_over_the_range_it_is_given(self):
         from PyQt6.QtWidgets import QWidget
-        from shared_ui.colors import TIMELINE_LOADED
 
         from clipper.gui.floating_controls import FloatingControlLayout
         from clipper.gui.main_window import _WrapRow
+        from clipper.gui.timeline_colors import TIMELINE_LOADED
         from clipper.gui.timeline_controls import TimelineControls
         from clipper.gui.timeline_widget import TimelineWidget
 
