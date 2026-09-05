@@ -5,6 +5,7 @@ import sys
 
 from app_support.logging_utils import configure_logging, install_exception_logging
 from app_support.process_identity import ProcessNamer
+from app_support.win32 import set_app_user_model_id
 
 from .paths import PROJECT_DIR
 from .session_launch import launch_state
@@ -13,16 +14,16 @@ CLIPPER_APP_USER_MODEL_ID = "FunTime.Clipper"
 
 
 def _set_windows_app_user_model_id() -> None:
+    """Claim the identity the pinned shortcut carries, before any window exists.
+
+    Cosmetic: a window under the interpreter's icon is still a window, so a
+    refusal is logged and the launch goes on.
+    """
     if sys.platform != "win32":
         return
     try:
-        import ctypes
-
-        set_app_id = ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID
-        set_app_id.argtypes = [ctypes.c_wchar_p]
-        set_app_id.restype = ctypes.c_long
-        _ = set_app_id(CLIPPER_APP_USER_MODEL_ID)
-    except Exception:
+        set_app_user_model_id(CLIPPER_APP_USER_MODEL_ID)
+    except OSError:
         logging.getLogger(__name__).debug(
             "Could not set the AppUserModelID", exc_info=True)
 
