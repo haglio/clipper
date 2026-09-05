@@ -9,40 +9,21 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QPushButton, QWidget
-from shared_ui.colors import (
-    BG_BUTTON,
-    BG_BUTTON_ACTIVE,
-    BG_KEYCAP,
-    BG_PRIMARY,
-    BG_TERTIARY,
-    BORDER_SUBTLE,
-    RED,
-    TEXT_PRIMARY,
-    TEXT_SECONDARY,
-)
+from shared_ui.colors import RED, TEXT_SECONDARY
 from shared_ui.fonts import FONT_UI, SIZE_SMALL, make_font
+from shared_ui.spacing import BUTTON_PAD_H_TIGHT, BUTTON_PAD_V
 
 LABEL_STYLE = f"color: {TEXT_SECONDARY.name()}; background: transparent;"
 WARNING_STYLE = f"color: {RED.name()}; background: transparent;"
 
+# The buttons themselves are the family's, from the sheet the application
+# wears.  What is this window's own is how tightly they are packed: every
+# control here is a fixed square or a fixed short bar, and at the family's
+# ordinary side pad a two-character label has no room left inside one.
 CHROME_STYLE = f"""
-    background-color: {BG_PRIMARY.name()};
-    color: {TEXT_PRIMARY.name()};
     QPushButton {{
-        font-family: "{FONT_UI}";
-        font-size: {SIZE_SMALL}pt;
-        color: {TEXT_PRIMARY.name()};
-        background: {BG_BUTTON.name()};
-        border: 1px solid {BORDER_SUBTLE.name()};
-        padding: 3px 8px;
-        min-height: 22px;
+        padding: {BUTTON_PAD_V}px {BUTTON_PAD_H_TIGHT}px;
     }}
-    QPushButton:hover {{ background: {BG_KEYCAP.name()}; }}
-    QPushButton:pressed {{ background: {BG_TERTIARY.name()}; }}
-    /* One rule across the family: a control that is ON sits on a lighter ground
-       than one at rest, so a toggled button reads the same whichever app it is
-       in. */
-    QPushButton:checked {{ background: {BG_BUTTON_ACTIVE.name()}; }}
 """
 
 # Compact square buttons; the wider ones the labels they carry need.

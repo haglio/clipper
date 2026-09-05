@@ -5,7 +5,8 @@ from __future__ import annotations
 import pytest
 from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import QMouseEvent
-from shared_ui.colors import (
+
+from clipper.gui.timeline_colors import (
     TIMELINE_ACTIVE,
     TIMELINE_CURSOR,
     TIMELINE_LOADED,
@@ -13,7 +14,6 @@ from shared_ui.colors import (
     TIMELINE_SUGGESTED_IN,
     TIMELINE_SUGGESTED_OUT,
 )
-
 from clipper.gui.timeline_widget import TimelineWidget
 
 

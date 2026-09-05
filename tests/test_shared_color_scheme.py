@@ -15,8 +15,9 @@ import re
 from pathlib import Path
 
 from PyQt6.QtGui import QColor
+from PyQt6.QtWidgets import QApplication
 
-from clipper.gui.main_window import ClipperMainWindow
+from clipper.gui.app import dress
 
 _GUI = Path(__file__).resolve().parent.parent / "clipper" / "gui"
 
@@ -95,18 +96,20 @@ def _button_backgrounds(sheet: str) -> dict[str, QColor]:
     return found
 
 
-def test_a_control_that_is_on_sits_on_a_lighter_ground(make_state):
+def test_a_control_that_is_on_sits_on_a_lighter_ground():
     """One rule across the family, so a toggled button reads the same whichever
-    app it is in.  Origenerator had it and this did not.
+    app it is in.  Origenerator had it and this did not, until the buttons
+    became the family's.
 
-    Read off the sheet the window installs, not off the private constant it is
-    built from -- so a sheet that is written and never applied fails here.  It
-    is compared rather than name-matched, so it survives a palette change and
+    Read off the sheet the app installs, not off the library it is built
+    from -- so a sheet that is written and never applied fails here.  It is
+    compared rather than name-matched, so it survives a palette change and
     still fails an inversion.
     """
-    window = ClipperMainWindow(make_state())
+    app = QApplication.instance()
+    dress(app)
 
-    backgrounds = _button_backgrounds(window.centralWidget().styleSheet())
+    backgrounds = _button_backgrounds(app.styleSheet())
 
     assert ":checked" in backgrounds, "no rule paints a button that is switched on"
     assert "" in backgrounds, "no rule paints a button at rest"

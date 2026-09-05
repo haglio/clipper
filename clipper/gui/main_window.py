@@ -14,11 +14,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from shared_ui.colors import (
-    BORDER_DEFAULT,
-    TIMELINE_ACTIVE,
-    TIMELINE_LOADED,
-)
+from shared_ui.colors import BORDER_DEFAULT
 from shared_ui.fonts import FONT_UI, SIZE_HEADING, make_font
 
 from clipper.frame_store import safe_frame
@@ -42,6 +38,7 @@ from .main_window_style import (
     small_font,
 )
 from .shortcuts import BY_NAME, legend_rows, shortcut_for
+from .timeline_colors import TIMELINE_ACTIVE, TIMELINE_LOADED
 from .timeline_controls import TimelineControls
 from .timeline_widget import TimelineWidget
 from .video_pane import VideoPane
