@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from clipper.content import EXAMPLE_CONTENT, load_content
+from app_support.overlay import overlay_value
+
+from clipper.content import EXAMPLE_CONTENT, LOCAL_CONTENT, load_content
 
 # The media library lives outside the checkout and its location is private;
 # it reaches the code through the content overlay.
-_SUITE_ROOT = Path(load_content()["suite_root"])
+_SUITE_ROOT = Path(overlay_value(load_content(), "suite_root", path=LOCAL_CONTENT))
 
 # What the committed example documents the shape with, and therefore the one
 # value that names no library.
