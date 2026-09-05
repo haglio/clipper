@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import PureWindowsPath
 
+from app_support.overlay import overlay_value
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -17,12 +18,12 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from clipper.content import load_content
+from clipper.content import LOCAL_CONTENT, load_content
 from clipper.launch_choice import ClipWholeVideo, LaunchChoice, LoadSession, NewSession
 from clipper.loop_modes import LOOP_MODES
 
 # The library root is private; it comes from the content overlay.
-VR_VIDEO_DIR = PureWindowsPath(load_content()["suite_root"]) / "videos" / "videos" / "VR"
+VR_VIDEO_DIR = PureWindowsPath(overlay_value(load_content(), "suite_root", path=LOCAL_CONTENT)) / "videos" / "videos" / "VR"
 
 
 class LauncherDialog(QDialog):
