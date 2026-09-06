@@ -31,7 +31,7 @@ def ffprobe_video_metadata(video_path: str) -> tuple[float, int]:
     Public because `session_launch` imports it: a name another module reaches
     for is part of this one's surface whether the underscore says so or not,
     and the underscore was the strongest available signal that this module's
-    published surface was missing a member.
+    published surface was missing a name.
     """
     kwargs = hidden_subprocess_kwargs()
 
