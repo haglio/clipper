@@ -1,4 +1,4 @@
-"""The similarity walk behind the suggested in and out points."""
+"""The similarity walk backing the suggested in and out points."""
 
 from __future__ import annotations
 
