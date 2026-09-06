@@ -163,7 +163,7 @@ class TestCreatingANewSession:
 
 
 class TestBuildClipWholeState:
-    """The lightweight state behind "Clip whole vid...": no frames, no editor."""
+    """The lightweight state backing "Clip whole vid...": no frames, no editor."""
 
     @pytest.fixture
     def whole(self):

@@ -39,7 +39,7 @@ def _init_logger() -> logging.Logger:
 def _name_this_process() -> None:
     """Leave ``launch_clipper.vbs`` an interpreter that says "Clipper" next
     time.  The console interpreter, because that is the one the launcher runs --
-    it redirects the app's output into its log.  Why it is one launch behind, and
+    it redirects the app's output into its log.  Why it is one launch late, and
     why it can never cost the launch: :meth:`ProcessNamer.name_this_process`."""
     ProcessNamer("Clipper", icon=PROJECT_DIR / "clipper.ico").name_this_process(
         "Clipper", interpreter="python.exe")

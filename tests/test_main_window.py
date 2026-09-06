@@ -200,7 +200,7 @@ def _with_suggestions(state):
 # (label, Qt key, event text, prepare, what to read afterwards, what it must be)
 # -- every key the shortcut table binds, read off a real VideoState.  Six of
 # these used to be `patch(...); assert_called_once_with(state)`, which pins the
-# import name rather than the edit: swapping the handlers behind s/d and w/l,
+# import name rather than the edit: swapping the handlers under s/d and w/l,
 # and flipping the sign of both change_speed steps, shipped green.
 _KEY_BINDINGS = [
     ("left", Qt.Key.Key_Left, "", _no_prep, lambda s: s.current, 29),

@@ -112,7 +112,7 @@ class TestTheTwoDirectionsAreMirrorImages:
         assert sorted(backward) == list(range(20, 51))
 
 
-class TestFindingTheRepeatBehindAFrame:
+class TestFindingTheRepeatBeforeAFrame:
     """The end-to-end effect of the window's order, on a clip that does loop.
 
     One texture rolled a pixel at a time with a 60-frame period: neighboring

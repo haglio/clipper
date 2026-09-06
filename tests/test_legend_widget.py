@@ -88,7 +88,7 @@ class TestPainting:
 
 
 def test_the_legend_does_not_need_the_video_decoder_to_be_imported():
-    """It paints keycaps; it should not drag cv2 in behind them.
+    """It paints keycaps; it should not drag cv2 in with them.
 
     The shortcut table names the editing functions, which reach `frame_store`,
     which imports cv2 -- so fetching the rows here rather than being handed

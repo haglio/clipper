@@ -2,8 +2,8 @@
 
 ``VideoState``'s field names *are* the version-1 session-JSON keys, and
 ``evolver/util/reference_stores.py`` enumerates this directory and rewrites
-``video_path`` in place.  So every extraction out of ``VideoState`` has to sit
-behind the payload builder and leave the file alone: same keys, same order,
+``video_path`` in place.  So every extraction out of ``VideoState`` has to go
+through the payload builder and leave the file alone: same keys, same order,
 same spellings, same trailing newline.
 
 The golden text below is a literal, not something the code produced -- a test
