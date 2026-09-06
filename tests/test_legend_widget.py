@@ -16,11 +16,11 @@ def legend():
     return widget
 
 
-def _keycap_pixels(image, top: int, bottom: int) -> int:
+def _keycap_pixels(image, upper: int, lower: int) -> int:
     return sum(
         1
         for x in range(image.width())
-        for y in range(top, bottom)
+        for y in range(upper, lower)
         if image.pixelColor(x, y).name() == BG_KEYCAP.name()
     )
 

@@ -24,8 +24,8 @@ def sample_frame():
     return frame
 
 
-def _drawn_box(image, background: str):
-    """The bounding box of everything painted over the pane's background."""
+def _drawn_rect(image, background: str):
+    """The bounding rect of everything painted over the pane's background."""
     inked = [
         (x, y)
         for x in range(image.width())
@@ -72,7 +72,7 @@ class TestPainting:
 
         image = rendered(pane)
 
-        assert _drawn_box(image, BG_SECONDARY.name()) is None
+        assert _drawn_rect(image, BG_SECONDARY.name()) is None
 
     def test_it_draws_the_frame_centered_at_its_own_size(self, pane, rendered, small_frame):
         pane.resize(400, 300)
@@ -81,7 +81,7 @@ class TestPainting:
         image = rendered(pane)
 
         assert image.pixelColor(200, 150).name() == "#966432"  # the frame, as RGB
-        assert _drawn_box(image, BG_SECONDARY.name()) == (100, 100, 299, 199)
+        assert _drawn_rect(image, BG_SECONDARY.name()) == (100, 100, 299, 199)
 
     def test_a_new_frame_replaces_the_one_before_it(self, pane, rendered, small_frame):
         pane.resize(400, 300)
@@ -93,7 +93,7 @@ class TestPainting:
         image = rendered(pane)
 
         assert image.pixelColor(200, 150).name() == "#1e140a"
-        assert _drawn_box(image, BG_SECONDARY.name()) == (50, 100, 349, 199)
+        assert _drawn_rect(image, BG_SECONDARY.name()) == (50, 100, 349, 199)
 
     def test_clearing_the_frame_wipes_what_was_drawn(self, pane, rendered, small_frame):
         pane.resize(400, 300)
@@ -102,4 +102,4 @@ class TestPainting:
         pane.set_frame(None)
         image = rendered(pane)
 
-        assert _drawn_box(image, BG_SECONDARY.name()) is None
+        assert _drawn_rect(image, BG_SECONDARY.name()) is None

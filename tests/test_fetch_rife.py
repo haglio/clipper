@@ -115,7 +115,7 @@ def _bridge_returning(result):
 class TestRuns:
     """Presence is not runnability, and starting is not interpolating.
 
-    A spawn probe answers yes on a Windows box with no Vulkan device -- upstream
+    A spawn probe answers yes on a Windows machine with no Vulkan device -- upstream
     prints its usage and exits before touching Vulkan when called with no
     arguments -- so the four seam-bridge tests would run and fail there instead
     of the gate saying why. The predicate asks for a frame.
