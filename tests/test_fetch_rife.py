@@ -23,16 +23,16 @@ _RELEASE_BYTES = b"pretend release"
 
 
 def _release_zip(path: Path) -> Path:
-    """A stand-in for the upstream asset: the six members, and a model to leave.
+    """A stand-in for the upstream asset: the six files, and a model to leave.
 
     Contents are invented -- the point is which names come out, not what is in
     them.
     """
     with zipfile.ZipFile(path, "w") as zf:
-        for member in fetch_rife.MEMBERS:
+        for name in fetch_rife.FILES:
             zf.writestr(
-                f"rife-ncnn-vulkan-{fetch_rife.RELEASE}-windows/{member}",
-                f"contents of {member}\n",
+                f"rife-ncnn-vulkan-{fetch_rife.RELEASE}-windows/{name}",
+                f"contents of {name}\n",
             )
         zf.writestr(
             f"rife-ncnn-vulkan-{fetch_rife.RELEASE}-windows/rife-anime/flownet.bin",
@@ -61,7 +61,7 @@ class TestWhereItLands:
 
 
 class TestExtract:
-    def test_it_writes_every_member_it_names(self, tmp_path: Path):
+    def test_it_writes_every_file_it_names(self, tmp_path: Path):
         dest = tmp_path / "out"
 
         fetch_rife.extract(_release_zip(tmp_path / "release.zip"), dest)
@@ -69,7 +69,7 @@ class TestExtract:
         written = sorted(
             p.relative_to(dest).as_posix() for p in dest.rglob("*") if p.is_file()
         )
-        assert written == sorted(fetch_rife.MEMBERS)
+        assert written == sorted(fetch_rife.FILES)
 
     def test_it_leaves_the_models_the_code_never_opens(self, tmp_path: Path):
         """One model directory is asked for by name; the other ten stay in the zip."""

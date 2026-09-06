@@ -23,7 +23,7 @@ Upstream, and the whole of this file's provenance::
 MIT, (c) 2020 nihui.  Upstream's LICENSE is one of the six files extracted, so
 the notice travels with the binaries it covers.
 
-Six members come out and the other ten model directories stay in the zip, which
+Six files come out and the other ten model directories stay in the zip, which
 is deleted once they are extracted.
 """
 from __future__ import annotations
@@ -47,7 +47,7 @@ ZIP_PATH = TOOLS_DIR / ASSET
 
 # The executable, the C runtime it loads, the one model _rife_setup names, and
 # upstream's own notice and usage.
-MEMBERS = (
+FILES = (
     "LICENSE",
     "README.md",
     "rife-ncnn-vulkan.exe",
@@ -67,8 +67,8 @@ def is_present() -> bool:
     fetched.
     """
     return all(
-        (DEST / member).is_file() and (DEST / member).stat().st_size > 0
-        for member in MEMBERS
+        (DEST / name).is_file() and (DEST / name).stat().st_size > 0
+        for name in FILES
     )
 
 
@@ -134,13 +134,13 @@ def download(target: Path = ZIP_PATH) -> Path:
 
 
 def extract(archive: Path, dest: Path = DEST) -> None:
-    """Unpack the six members into *dest*, flat under it as upstream nests them."""
+    """Unpack the six files into *dest*, flat under it as upstream nests them."""
     dest.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(archive) as zf:
-        for member in MEMBERS:
-            out = dest / member
+        for name in FILES:
+            out = dest / name
             out.parent.mkdir(parents=True, exist_ok=True)
-            with zf.open(f"rife-ncnn-vulkan-{RELEASE}-windows/{member}") as src:
+            with zf.open(f"rife-ncnn-vulkan-{RELEASE}-windows/{name}") as src:
                 out.write_bytes(src.read())
 
 
