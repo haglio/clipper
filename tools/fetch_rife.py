@@ -77,7 +77,7 @@ def runs() -> bool:
 
     Not whether the file is on disk, and not whether the process starts.  The
     release is a Windows PE that every other platform finds and then refuses;
-    and a Windows box with no Vulkan device *starts* it happily and gets
+    and a Windows machine with no Vulkan device *starts* it happily and gets
     nothing back, because upstream prints its usage and exits before touching
     Vulkan when it is called with no arguments.  A spawn probe would answer
     yes to both, and the merge gate spends a step on this precisely so the four

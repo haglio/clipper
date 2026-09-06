@@ -27,7 +27,7 @@ from shared_ui.colors import (
 TEXT_LEGEND_LABEL = TEXT_SECONDARY
 TEXT_LEGEND_JOIN = TEXT_MUTED
 
-# A timeline's stroke and its ticks are the standard outline.
+# A timeline's outline and its ticks are the standard border.
 BORDER_TIMELINE = BORDER_DEFAULT
 BORDER_TICK = BORDER_DEFAULT
 

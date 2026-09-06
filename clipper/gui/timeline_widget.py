@@ -103,7 +103,7 @@ class TimelineWidget(QWidget):
         ax2 = self.x_for_index(self.active_end)
         p.fillRect(ax1, 0, ax2 - ax1, h, TIMELINE_ACTIVE)
 
-        # Frame tick dots (top and bottom)
+        # Frame tick dots (upper and lower edges)
         tick_pen = QPen(BORDER_TICK, 1)
         p.setPen(tick_pen)
         for i in range(self.loaded_start, self.loaded_end + 1):
