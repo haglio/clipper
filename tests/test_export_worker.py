@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from clipper.gui.export_worker import ExportWorker
-from clipper.paths import AUDIO_DIR, CLIPS_DIR, RAW_CLIPS_DIR, VR_CLIPS_DIR
+from clipper.paths import RAW_CLIPS_DIR, audio_dir, clips_dir, vr_clips_dir
 
 
 @pytest.fixture
@@ -110,14 +110,14 @@ class TestRunCallsExportSteps:
         post_state, raw_in, clip_out, progress = steps["post"].calls[0]
         assert post_state is state
         assert raw_in == steps["raw"].calls[0][1]
-        assert clip_out.parent == CLIPS_DIR
+        assert clip_out.parent == clips_dir()
         assert progress is worker
 
     def test_the_audio_step_writes_beside_the_clip(self, state, steps):
         ExportWorker(state).run()
 
         _audio_state, audio_out, _progress = steps["audio"].calls[0]
-        assert audio_out.parent == AUDIO_DIR
+        assert audio_out.parent == audio_dir()
         assert audio_out.suffix == ".mp3"
 
     def test_all_three_outputs_take_the_session_name(self, state, steps):
@@ -190,7 +190,7 @@ class TestFailures:
 
         ok, message = seen["export_finished"][0]
         assert ok is True
-        assert str(CLIPS_DIR) in message
+        assert str(clips_dir()) in message
 
 
 class TestVrExportPath:
@@ -199,14 +199,14 @@ class TestVrExportPath:
 
         ExportWorker(state).run()
 
-        assert steps["post"].calls[0][2].parent == CLIPS_DIR
+        assert steps["post"].calls[0][2].parent == clips_dir()
 
     def test_a_vr_clip_lands_in_the_vr_clips_folder(self, state, steps):
         state.vr = True
 
         ExportWorker(state).run()
 
-        assert steps["post"].calls[0][2].parent == VR_CLIPS_DIR
+        assert steps["post"].calls[0][2].parent == vr_clips_dir()
 
 
 class TestSkipPostprocess:
@@ -224,7 +224,7 @@ class TestSkipPostprocess:
     def test_the_clip_is_written_straight_into_the_clips_folder(self, state, steps):
         ExportWorker(state).run()
 
-        assert steps["raw"].calls[0][1].parent == CLIPS_DIR
+        assert steps["raw"].calls[0][1].parent == clips_dir()
 
     def test_the_skipped_stage_still_reports_itself_finished(self, state, steps):
         worker = ExportWorker(state)

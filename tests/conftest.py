@@ -219,6 +219,31 @@ def ticked_within():
 
 
 @pytest.fixture
+def content_overlay(tmp_path, monkeypatch):
+    """Give the app a fabricated content overlay, chosen the way the real one is.
+
+    Called with a dictionary, it writes a ``content.local.json`` and points the
+    app at it; called with nothing, it points the app at a file that does not
+    exist, which is the fresh or public checkout the committed example answers
+    for.  Nothing here reaches past the file: every consumer asks
+    ``load_content`` at the moment it needs a value, so redirecting the file is
+    the whole of the injection.
+    """
+    from clipper import content
+
+    def use(values: dict | None = None) -> Path:
+        local = tmp_path / "content.local.json"
+        if values is not None:
+            local.write_text(json.dumps(values), encoding="utf-8")
+        monkeypatch.setattr(content, "LOCAL_CONTENT", local)
+        content.load_content.cache_clear()
+        return local
+
+    yield use
+    content.load_content.cache_clear()
+
+
+@pytest.fixture
 def rendered():
     """Paint a widget into an image, so a test can read the pixels it drew.
 
