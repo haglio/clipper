@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 
 from clipper.clip_postprocess_pipeline import (
@@ -65,6 +66,93 @@ def test_build_output_frames_register_mode_falls_back_on_tiny_frames(frames_of):
     )
     assert normalized_n == 6
     assert len(out_frames) == 6
+
+
+class TestTheRegisteredSeam:
+    """What ``--mode register`` does once the two ends actually align.
+
+    Every other case here feeds solid frames, which have no keypoints, so the
+    alignment fails and the blend fallback is what runs -- leaving the three
+    paths the mode exists for pinned by nothing.  The interpolator itself is
+    stubbed at this module's own boundary, since whether it is on the machine
+    is not what these decide.
+    """
+
+    def _built(self, frames, **overrides):
+        return build_output_frames(
+            frames,
+            **{"loop_mode": "base-tip-base", "bridge_frames": 2, "mode": "register",
+               "keep_length": True, "symmetric_blend": 0, "seam_frames": 3,
+               **overrides},
+        )
+
+    def test_a_converged_seam_is_the_whole_answer(self, textured_frames, frames_of, values_of):
+        """Nudging the frames either side of the seam together needs no bridge."""
+        converged = frames_of([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+
+        with patch("clipper.clip_postprocess_pipeline.build_rife_seam",
+                   return_value=converged) as seam:
+            out, normalized_n = self._built(textured_frames())
+
+        seam.assert_called_once()
+        assert seam.call_args.args[1] == 3
+        assert values_of(out) == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        assert normalized_n == 10
+
+    def test_a_seam_that_will_not_converge_falls_to_an_interpolated_bridge(
+        self, textured_frames, frames_of
+    ):
+        bridge = frames_of([1, 2])
+
+        with patch("clipper.clip_postprocess_pipeline.build_rife_seam", return_value=None), \
+             patch("clipper.clip_postprocess_pipeline.build_rife_bridge", return_value=bridge):
+            out, normalized_n = self._built(textured_frames())
+
+        assert len(out) == normalized_n == 10
+        assert out[-2:] == bridge
+
+    def test_an_appended_bridge_makes_the_clip_longer(self, textured_frames, frames_of):
+        bridge = frames_of([1, 2])
+
+        with patch("clipper.clip_postprocess_pipeline.build_rife_seam", return_value=None), \
+             patch("clipper.clip_postprocess_pipeline.build_rife_bridge", return_value=bridge):
+            out, normalized_n = self._built(textured_frames(), keep_length=False)
+
+        assert normalized_n == 10
+        assert len(out) == 12
+        assert out[-2:] == bridge
+
+    def test_with_no_interpolator_the_geometric_correction_stands_alone(
+        self, textured_frames
+    ):
+        """RIFE is a Windows binary the checkout may not have, and the aligned
+        frames are still closer at the seam than the ones that went in.
+
+        The correction is spread over the whole clip -- the first frame stays
+        put and every one after it is warped by a growing fraction of the drift
+        -- which is what tells this apart from the fallback, where only the
+        last few frames move.
+        """
+        frames = textured_frames()
+
+        with patch("clipper.clip_postprocess_pipeline.build_rife_seam", return_value=None), \
+             patch("clipper.clip_postprocess_pipeline.build_rife_bridge", return_value=None):
+            out, normalized_n = self._built(frames)
+
+        assert len(out) == normalized_n == 10
+        moved = [i for i, (was, now) in enumerate(zip(frames, out))
+                 if not np.array_equal(was, now)]
+        assert moved == list(range(1, 10))
+        gap_before = np.mean(np.abs(frames[-1].astype(float) - frames[0].astype(float)))
+        gap_after = np.mean(np.abs(out[-1].astype(float) - out[0].astype(float)))
+        assert gap_after < gap_before
+
+    def test_a_bridge_longer_than_the_clip_is_refused(self, textured_frames, frames_of):
+        with patch("clipper.clip_postprocess_pipeline.build_rife_seam", return_value=None), \
+             patch("clipper.clip_postprocess_pipeline.build_rife_bridge",
+                   return_value=frames_of([1] * 10)), \
+             pytest.raises(RuntimeError, match="--keep-length bridge is too long"):
+            self._built(textured_frames(), bridge_frames=10)
 
 
 def test_build_output_frames_rejects_keep_length_when_bridge_is_too_long(frames_of):
