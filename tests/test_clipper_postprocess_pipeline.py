@@ -100,7 +100,7 @@ class TestTheRegisteredSeam:
         assert normalized_n == 10
 
     def test_a_seam_that_will_not_converge_falls_to_an_interpolated_bridge(
-        self, textured_frames, frames_of
+        self, textured_frames, frames_of, values_of
     ):
         bridge = frames_of([1, 2])
 
@@ -109,9 +109,11 @@ class TestTheRegisteredSeam:
             out, normalized_n = self._built(textured_frames())
 
         assert len(out) == normalized_n == 10
-        assert out[-2:] == bridge
+        assert values_of(out[-2:]) == [1, 2]
 
-    def test_an_appended_bridge_makes_the_clip_longer(self, textured_frames, frames_of):
+    def test_an_appended_bridge_makes_the_clip_longer(
+        self, textured_frames, frames_of, values_of
+    ):
         bridge = frames_of([1, 2])
 
         with patch("clipper.clip_postprocess_pipeline.build_rife_seam", return_value=None), \
@@ -120,7 +122,7 @@ class TestTheRegisteredSeam:
 
         assert normalized_n == 10
         assert len(out) == 12
-        assert out[-2:] == bridge
+        assert values_of(out[-2:]) == [1, 2]
 
     def test_with_no_interpolator_the_geometric_correction_stands_alone(
         self, textured_frames
@@ -224,7 +226,7 @@ def _options(tmp_path: Path, **overrides) -> PostprocessOptions:
 @pytest.fixture
 def run_pipeline(frames_of):
     """Drive postprocess_clip with the decode/probe/encode boundary stubbed."""
-    def run(options, *, values=(10, 20, 30, 40), size=8, fps=24.0, encoder=None):
+    def run(options, *, values=(10, 20, 30, 40), size=8, fps=24.0, encoder=None, report=None):
         encoder = encoder or _RecordingEncoder()
         with patch("clipper.clip_postprocess_pipeline.ffprobe_video",
                    return_value={"fps": fps, "width": size, "height": size,
@@ -232,7 +234,7 @@ def run_pipeline(frames_of):
              patch("clipper.clip_postprocess_pipeline.read_frames",
                    return_value=frames_of(list(values), size=size)) as decode, \
              patch("clipper.clip_postprocess_pipeline.encode_with_ffmpeg", encoder):
-            summary = postprocess_clip(options)
+            summary = postprocess_clip(options, report=report)
         probe.assert_called_once_with(options.input)
         decode.assert_called_once_with(options.input)
         return summary, encoder
@@ -408,3 +410,54 @@ def test_the_register_fallback_blends_the_same_way(frames_of, values_of):
     )
 
     assert (values_of(out[:registered_n]), registered_n) == (blended, n)
+
+
+class TestSayingHowFarItHasGot:
+    """The bar for this step used to be invented by the caller -- a hundredth
+    per tenth of a second, stopping short of full so it could not claim to be
+    done, and unrelated to the work.  The run says so itself now.
+    """
+
+    def test_each_step_is_reported_as_that_step_finishes(self, tmp_path, frames_of):
+        """Nothing reports 1.0: this returns the summary when it is done, and
+        the caller that drives it as a subprocess has its exit code besides.
+        """
+        trace: list = []
+
+        def decode(_path):
+            trace.append("decoded")
+            return frames_of([10, 20, 30, 40], size=8)
+
+        def encode(_frames, _fps, out_path, *_args, **_kwargs):
+            trace.append("encoded")
+            Path(out_path).write_bytes(b"\0" * 16)
+
+        with patch("clipper.clip_postprocess_pipeline.ffprobe_video",
+                   return_value={"fps": 24.0, "width": 8, "height": 8,
+                                 "nb_frames": 4, "duration": 4 / 24.0}), \
+             patch("clipper.clip_postprocess_pipeline.read_frames", decode), \
+             patch("clipper.clip_postprocess_pipeline.encode_with_ffmpeg", encode):
+            postprocess_clip(_options(tmp_path), report=trace.append)
+
+        assert trace == ["decoded", 0.2, 0.6, "encoded"]
+
+    def test_a_re_encode_does_not_claim_the_run_advanced(self, tmp_path, run_pipeline):
+        """Shrinking to fit repeats a step already reported, so the bar holds
+        where it is rather than moving for work that has to be done again.
+        """
+        reported: list[float] = []
+        encoder = _RecordingEncoder(2 * 1024 * 1024, 4096)
+
+        summary, _ = run_pipeline(_options(tmp_path), size=80, encoder=encoder,
+                                  report=reported.append)
+
+        assert summary["encode_attempts"] == 2
+        assert reported == [0.2, 0.6]
+
+    def test_it_runs_with_nobody_listening(self, tmp_path, run_pipeline):
+        """Nothing else in the app calls this without a caller to tell, but the
+        command line run by hand is exactly that.
+        """
+        summary, _ = run_pipeline(_options(tmp_path))
+
+        assert summary["output_frames"] == 4

@@ -3,14 +3,13 @@ from __future__ import annotations
 import shutil
 import subprocess
 import sys
-import time
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
 import cv2
 from app_support.subprocess_utils import hidden_subprocess_kwargs
 
-from .export_progress import ExportProgress
+from .export_progress import ExportProgress, fraction_in
 from .paths import CLIP_POSTPROCESS_SCRIPT
 from .state import VideoState
 
@@ -127,30 +126,27 @@ def run_clip_postprocess(state: VideoState, raw_path: Path, out_path: Path, prog
         return False, f"{CLIP_POSTPROCESS_SCRIPT.name} not found at {CLIP_POSTPROCESS_SCRIPT}"
     cmd = [sys.executable, str(CLIP_POSTPROCESS_SCRIPT), str(raw_path), "-o", str(out_path), "--loop-mode", state.loop_mode]
     try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, **hidden_subprocess_kwargs())
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, bufsize=1, **hidden_subprocess_kwargs())
     except Exception as exc:
         return False, str(exc)
-    lines = []
-    # The script says nothing until it is finished, so this bar is invented:
-    # a hundredth per tick, stopping short of full so it cannot claim to be
-    # done.  It is unrelated to the work (`all/design/029`); reporting it
-    # truthfully means the pipeline emitting progress of its own.
-    fraction = 0.0
-    while True:
-        line = proc.stdout.readline() if proc.stdout else ""
-        if line:
-            lines.append(line.rstrip())
-        if proc.poll() is not None:
-            break
-        fraction = min(0.95, fraction + 0.01)
-        progress.fix(fraction)
-        time.sleep(0.1)
-    if proc.stdout:
-        rest = proc.stdout.read()
-        if rest:
-            lines.append(rest)
-        proc.stdout.close()
-    rc = proc.wait()
+    # Read as it goes, the way the ffmpeg steps above do. The script says how
+    # far it has got on its own stdout; every other line is for a person, and
+    # is kept for the message shown if the run fails.
+    lines: list[str] = []
+    try:
+        for raw in proc.stdout or ():
+            line = raw.rstrip()
+            fraction = fraction_in(line)
+            if fraction is None:
+                if line:
+                    lines.append(line)
+            else:
+                progress.fix(fraction)
+        rc = proc.wait()
+    finally:
+        if proc.stdout is not None:
+            proc.stdout.close()
     if rc != 0:
         return False, f"{CLIP_POSTPROCESS_SCRIPT.name} failed:\n" + "\n".join(lines[-20:])
     progress.fix(1.0)

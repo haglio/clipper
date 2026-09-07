@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable
 
 from .clip_postprocess_media import encode_with_ffmpeg, ffprobe_video, read_frames
 from .clip_postprocess_transforms import (
@@ -16,6 +17,19 @@ from .clip_postprocess_transforms import (
 from .postprocess_options import PostprocessOptions
 
 logger = logging.getLogger(__name__)
+
+# How far along each finished step leaves the run. Coarse, and true at the
+# moment it is said: the step it names has completed. Finer would mean knowing
+# the total work, which nothing here does -- and a bar invented to look finer
+# than that is what these replaced. The values are roughly what decoding and
+# building the frames cost against the encode, on a clip the length clipper
+# exports. Nothing says 1.0: returning is what says the run is over.
+_DECODED = 0.2
+_FRAMES_BUILT = 0.6
+
+
+def _nobody_listening(_fraction: float) -> None:
+    """What the progress goes to when the run was started by hand."""
 
 
 def compute_bridge_frames(*, fps: float, bridge_ms: float, bridge_frames: int | None, normalized_frame_count: int) -> int:
@@ -126,7 +140,11 @@ def build_output_frames(
     return _with_bridge(work_frames, bridge, bridge_frames, keep_length), normalized_n
 
 
-def postprocess_clip(options: PostprocessOptions) -> dict[str, int | float | str]:
+def postprocess_clip(
+    options: PostprocessOptions,
+    report: Callable[[float], None] | None = None,
+) -> dict[str, int | float | str]:
+    say = report or _nobody_listening
     if options.max_mb <= 0:
         raise RuntimeError("--max-mb must be greater than 0.")
 
@@ -138,6 +156,7 @@ def postprocess_clip(options: PostprocessOptions) -> dict[str, int | float | str
     input_count = len(frames)
     if input_count < 3:
         raise RuntimeError("Clip is too short.")
+    say(_DECODED)
 
     normalized_preview = normalize_loop_mode(frames, options.loop_mode)
     bridge_frames = compute_bridge_frames(
@@ -160,6 +179,7 @@ def postprocess_clip(options: PostprocessOptions) -> dict[str, int | float | str
         symmetric_blend=options.symmetric_blend,
         seam_frames=seam_frames_count,
     )
+    say(_FRAMES_BUILT)
 
     scale = 1.0
     min_dim = 64

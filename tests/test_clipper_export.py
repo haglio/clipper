@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+from clipper.export_progress import progress_line
 from clipper.export_steps import (
     _parse_ffmpeg_clock,
     _run_ffmpeg_with_progress,
@@ -231,27 +232,69 @@ class TestRunFfmpegWithProgress:
 
 
 class TestRunClipPostprocess:
-    def test_passes_loop_mode_to_script(self, tmp_path: Path, make_state):
+    """The script runs as a subprocess and says how far it has got on stdout.
+
+    The bar for it used to be invented here -- a hundredth per tenth of a
+    second, capped at 0.95 so it could not claim to be done -- while the loop
+    that drove it read the pipe one line per sleep.
+    """
+
+    def _run(self, tmp_path: Path, make_state, printed: list[str], returncode: int = 0):
         progress = _Recorder()
         state = make_state(loop_mode="tip-base")
-        raw_path = tmp_path / "raw.mp4"
-        out_path = tmp_path / "out.mp4"
-
         proc = MagicMock()
-        proc.stdout = io.StringIO("done\n")
-        proc.poll.side_effect = [0]
-        proc.wait.return_value = 0
+        proc.stdout = io.StringIO("".join(f"{line}\n" for line in printed))
+        proc.wait.return_value = returncode
+        proc.poll.return_value = returncode
+        script = tmp_path / "clip_postprocess.py"
+        script.write_text("# test\n", encoding="utf-8")
 
-        with patch("clipper.export_steps.CLIP_POSTPROCESS_SCRIPT", tmp_path / "clip_postprocess.py"):
-            (tmp_path / "clip_postprocess.py").write_text("# test\n", encoding="utf-8")
-            with patch("subprocess.Popen", return_value=proc) as popen:
-                ok, detail = run_clip_postprocess(state, raw_path, out_path, progress)
+        with patch("clipper.export_steps.CLIP_POSTPROCESS_SCRIPT", script), \
+             patch("subprocess.Popen", return_value=proc) as popen:
+            ok, detail = run_clip_postprocess(
+                state, tmp_path / "raw.mp4", tmp_path / "out.mp4", progress
+            )
+        return ok, detail, progress, popen
+
+    def test_passes_loop_mode_to_script(self, tmp_path: Path, make_state):
+        ok, detail, _progress, popen = self._run(tmp_path, make_state, ["done"])
 
         assert ok is True
-        assert detail == str(out_path)
+        assert detail == str(tmp_path / "out.mp4")
         cmd = popen.call_args.args[0]
         assert "--loop-mode" in cmd
         assert "tip-base" in cmd
+
+    def test_the_bar_is_what_the_script_said_it_had_done(self, tmp_path: Path, make_state):
+        printed = [progress_line(0.2), "Input frames: 4", progress_line(0.6),
+                   "Wrote: out.mp4"]
+
+        _ok, _detail, progress, _popen = self._run(tmp_path, make_state, printed)
+
+        assert progress.fixes == [0.2, 0.6, 1.0]
+
+    def test_the_last_of_it_is_the_run_ending_rather_than_a_line(
+        self, tmp_path: Path, make_state
+    ):
+        """The script says how far it has got while it runs and never says it
+        is done; what says that is the process exiting cleanly, which is also
+        how the two ffmpeg steps above finish their bars.
+        """
+        _ok, _detail, progress, _popen = self._run(
+            tmp_path, make_state, ["Input frames: 4", "Wrote: out.mp4"]
+        )
+
+        assert progress.fixes == [1.0]
+
+    def test_a_failure_reports_the_lines_a_person_can_read(self, tmp_path: Path, make_state):
+        printed = [progress_line(0.2), "Traceback (most recent call last):",
+                   "RuntimeError: Clip is too short."]
+
+        ok, detail, _progress, _popen = self._run(tmp_path, make_state, printed, returncode=1)
+
+        assert ok is False
+        assert "RuntimeError: Clip is too short." in detail
+        assert progress_line(0.2) not in detail
 
 
 class TestExportFullAudioMp3:
