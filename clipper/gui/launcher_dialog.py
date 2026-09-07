@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import PureWindowsPath
 
-from app_support.overlay import overlay_value
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -18,12 +17,9 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from clipper.content import LOCAL_CONTENT, load_content
 from clipper.launch_choice import ClipWholeVideo, LaunchChoice, LoadSession, NewSession
 from clipper.loop_modes import LOOP_MODES
-
-# The library root is private; it comes from the content overlay.
-VR_VIDEO_DIR = PureWindowsPath(overlay_value(load_content(), "suite_root", path=LOCAL_CONTENT)) / "videos" / "videos" / "VR"
+from clipper.paths import SESSIONS_DIR, vr_video_dir
 
 
 class LauncherDialog(QDialog):
@@ -126,8 +122,6 @@ class LauncherDialog(QDialog):
         )
 
     def _browse_session(self) -> None:
-        from clipper.paths import SESSIONS_DIR
-
         start_dir = str(SESSIONS_DIR) if SESSIONS_DIR.is_dir() else ""
         path, _ = QFileDialog.getOpenFileName(
             self, "Select Session JSON", start_dir, "JSON Files (*.json)"
@@ -137,7 +131,7 @@ class LauncherDialog(QDialog):
 
     def _on_video_path_changed(self) -> None:
         path = PureWindowsPath(self.video_file_edit.text().strip())
-        self.vr_checkbox.setChecked(path.is_relative_to(VR_VIDEO_DIR))
+        self.vr_checkbox.setChecked(path.is_relative_to(vr_video_dir()))
 
     def _browse_video(self) -> None:
         path, _ = QFileDialog.getOpenFileName(

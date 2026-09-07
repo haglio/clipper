@@ -4,7 +4,7 @@ from __future__ import annotations
 import ast
 import inspect
 import textwrap
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import pytest
 
@@ -17,6 +17,7 @@ from clipper.paths import (
     library_is_configured,
     sanitize_name,
     vr_clips_dir,
+    vr_video_dir,
 )
 
 # The five directories the app writes into, by the name the function reaches
@@ -123,6 +124,31 @@ class TestWhereTheLibraryFoldersAre:
 
         with pytest.raises(LookupError, match=str(local.name)):
             clips_dir()
+
+
+class TestTheVrVideoFolder:
+    """Where the VR source videos are, which is what the launcher's checkbox
+    reads to decide whether an export lands in ``vr_clips`` or ``clips``.
+    """
+
+    def test_it_is_the_vr_folder_under_the_librarys_own_root(self, content_overlay):
+        """The literal tail is written here, so repointing it reds this."""
+        content_overlay({"suite_root": "D:/example-suite"})
+
+        assert vr_video_dir() == PureWindowsPath(
+            r"D:\example-suite\videos\videos\VR"
+        )
+
+    def test_it_matches_a_windows_path_wherever_the_test_is_run(self, content_overlay):
+        """The paths it is compared against come from a Windows file dialog, so
+        the folder is a Windows path too -- on POSIX a native one would make
+        every match a no-op, and the tests run there.
+        """
+        content_overlay({"suite_root": "D:/example-suite"})
+
+        typed = PureWindowsPath(r"D:\example-suite\videos\videos\VR\seaside walk.mp4")
+
+        assert typed.is_relative_to(vr_video_dir())
 
 
 class TestEnsureRuntimeDirs:
