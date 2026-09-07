@@ -1,32 +1,54 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from app_support.overlay import overlay_value
 
 from clipper.content import EXAMPLE_CONTENT, LOCAL_CONTENT, load_content
 
-# The media library lives outside the checkout and its location is private;
-# it reaches the code through the content overlay.
-_SUITE_ROOT = Path(overlay_value(load_content(), "suite_root", path=LOCAL_CONTENT))
-
-# What the committed example documents the shape with, and therefore the one
-# value that names no library.
-_PLACEHOLDER_SUITE_ROOT = Path(
-    json.loads(EXAMPLE_CONTENT.read_text(encoding="utf-8"))["suite_root"]
-)
-
 PACKAGE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = PACKAGE_DIR.parent
 SESSIONS_DIR = PROJECT_DIR / "sessions"
 RAW_CLIPS_DIR = PROJECT_DIR / "raw_clips"
-_GENAU_DIR = _SUITE_ROOT / "videos" / "genau"
-CLIPS_DIR = _GENAU_DIR / "clips"
-VR_CLIPS_DIR = _GENAU_DIR / "vr_clips"
-AUDIO_DIR = _GENAU_DIR / "audio"
 LAST_SESSION_FILE = SESSIONS_DIR / ".last_session.txt"
 CLIP_POSTPROCESS_SCRIPT = PACKAGE_DIR / "clip_postprocess.py"
+
+
+def suite_root() -> Path:
+    """Where the media library lives, as this machine's overlay names it.
+
+    Asked at the call rather than read into a constant at import: a module that
+    reads the overlay to be imported makes every consumer -- a test, a tool,
+    another app's smoke check -- pay for the file and inherit whichever copy
+    happened to be on disk first.  ``load_content`` caches the text, so asking
+    repeatedly costs one read.
+    """
+    return Path(overlay_value(load_content(), "suite_root", path=LOCAL_CONTENT))
+
+
+def _placeholder_suite_root() -> Path:
+    """What the committed example documents the shape with, and therefore the
+    one ``suite_root`` that names no library.  It is the example that is wanted
+    whichever overlay this machine has, so both arguments are the example.
+    """
+    return Path(load_content(EXAMPLE_CONTENT, EXAMPLE_CONTENT)["suite_root"])
+
+
+def _genau_dir() -> Path:
+    """The output tree genau reads, which is what clipper exports into."""
+    return suite_root() / "videos" / "genau"
+
+
+def clips_dir() -> Path:
+    return _genau_dir() / "clips"
+
+
+def vr_clips_dir() -> Path:
+    return _genau_dir() / "vr_clips"
+
+
+def audio_dir() -> Path:
+    return _genau_dir() / "audio"
 
 
 def library_is_configured() -> bool:
@@ -38,7 +60,7 @@ def library_is_configured() -> bool:
     ``C:/path/to/suite-root`` — so "is there a local overlay" answers yes at
     exactly the moment there is still no library.
     """
-    return _SUITE_ROOT != _PLACEHOLDER_SUITE_ROOT
+    return suite_root() != _placeholder_suite_root()
 
 
 def ensure_runtime_dirs() -> None:
@@ -56,7 +78,7 @@ def ensure_runtime_dirs() -> None:
         directory.mkdir(parents=True, exist_ok=True)
     if not library_is_configured():
         return
-    for directory in (CLIPS_DIR, VR_CLIPS_DIR, AUDIO_DIR):
+    for directory in (clips_dir(), vr_clips_dir(), audio_dir()):
         directory.mkdir(parents=True, exist_ok=True)
 
 
