@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any
 
 from .clip_postprocess_media import encode_with_ffmpeg, ffprobe_video, read_frames
 from .clip_postprocess_transforms import (
@@ -14,6 +13,7 @@ from .clip_postprocess_transforms import (
     normalize_loop_mode,
     resize_frames,
 )
+from .postprocess_options import PostprocessOptions
 
 logger = logging.getLogger(__name__)
 
@@ -104,38 +104,38 @@ def build_output_frames(
     return work_frames + bridge, normalized_n
 
 
-def postprocess_clip(args: Any) -> dict[str, int | float | str]:
-    if args.max_mb <= 0:
+def postprocess_clip(options: PostprocessOptions) -> dict[str, int | float | str]:
+    if options.max_mb <= 0:
         raise RuntimeError("--max-mb must be greater than 0.")
 
-    max_output_size_bytes = int(args.max_mb * 1024 * 1024)
-    meta = ffprobe_video(args.input)
+    max_output_size_bytes = int(options.max_mb * 1024 * 1024)
+    meta = ffprobe_video(options.input)
     fps = meta["fps"]
 
-    frames = read_frames(args.input)
+    frames = read_frames(options.input)
     input_count = len(frames)
     if input_count < 3:
         raise RuntimeError("Clip is too short.")
 
-    normalized_preview = normalize_loop_mode(frames, args.loop_mode)
+    normalized_preview = normalize_loop_mode(frames, options.loop_mode)
     bridge_frames = compute_bridge_frames(
         fps=fps,
-        bridge_ms=args.bridge_ms,
-        bridge_frames=args.bridge_frames,
+        bridge_ms=options.bridge_ms,
+        bridge_frames=options.bridge_frames,
         normalized_frame_count=len(normalized_preview),
     )
     seam_frames_count = compute_seam_frames(
         fps=fps,
-        seam_ms=getattr(args, "seam_ms", 250.0),
+        seam_ms=options.seam_ms,
         normalized_frame_count=len(normalized_preview),
     )
     out_frames, normalized_n = build_output_frames(
         frames,
-        loop_mode=args.loop_mode,
+        loop_mode=options.loop_mode,
         bridge_frames=bridge_frames,
-        mode=args.mode,
-        keep_length=args.keep_length,
-        symmetric_blend=args.symmetric_blend,
+        mode=options.mode,
+        keep_length=options.keep_length,
+        symmetric_blend=options.symmetric_blend,
         seam_frames=seam_frames_count,
     )
 
@@ -148,14 +148,14 @@ def postprocess_clip(args: Any) -> dict[str, int | float | str]:
         encode_with_ffmpeg(
             frames_to_encode,
             fps,
-            args.output,
-            args.crf,
-            args.preset,
-            args.pix_fmt,
-            input_audio_path=args.input if args.copy_audio else None,
+            options.output,
+            options.crf,
+            options.preset,
+            options.pix_fmt,
+            input_audio_path=options.input if options.copy_audio else None,
         )
 
-        size_bytes = os.path.getsize(args.output)
+        size_bytes = os.path.getsize(options.output)
         if size_bytes <= max_output_size_bytes:
             break
 
@@ -163,23 +163,23 @@ def postprocess_clip(args: Any) -> dict[str, int | float | str]:
         if min(h, w) <= min_dim:
             logger.warning(
                 "Output is still >%g MB at the minimum allowed resolution.",
-                args.max_mb,
+                options.max_mb,
             )
             break
 
         scale *= 0.9
 
-    final_size = os.path.getsize(args.output)
+    final_size = os.path.getsize(options.output)
     return {
         "fps": fps,
         "input_frames": input_count,
-        "loop_mode": args.loop_mode,
+        "loop_mode": options.loop_mode,
         "normalized_frames": normalized_n,
         "bridge_frames": bridge_frames,
         "output_frames": len(out_frames),
         "encode_attempts": attempt,
         "final_scale": scale,
         "final_size_bytes": final_size,
-        "target_max_mb": args.max_mb,
-        "output_path": args.output,
+        "target_max_mb": options.max_mb,
+        "output_path": options.output,
     }

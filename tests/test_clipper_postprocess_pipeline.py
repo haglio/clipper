@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -13,6 +12,7 @@ from clipper.clip_postprocess_pipeline import (
     compute_seam_frames,
     postprocess_clip,
 )
+from clipper.postprocess_options import PostprocessOptions
 
 
 def test_compute_bridge_frames_uses_milliseconds_when_explicit_frames_missing():
@@ -121,31 +121,22 @@ class _RecordingEncoder:
         Path(out_path).write_bytes(b"\0" * size)
 
 
-def _args(tmp_path: Path, **overrides):
-    settings = {
-        "input": str(tmp_path / "clip_in.mp4"),
-        "output": str(tmp_path / "clip_out.mp4"),
-        "loop_mode": "base-tip-base",
-        "bridge_ms": 80.0,
-        "bridge_frames": 1,
-        "mode": "blend",
-        "keep_length": True,
-        "symmetric_blend": 0,
-        "seam_ms": 0.0,
-        "copy_audio": False,
-        "crf": 12,
-        "preset": "slow",
-        "pix_fmt": "yuv420p",
-        "max_mb": 1.0,
-    }
-    settings.update(overrides)
-    return SimpleNamespace(**settings)
+def _options(tmp_path: Path, **overrides) -> PostprocessOptions:
+    """What one run was asked for: the record's own defaults but for the three
+    a case here needs pinned -- a bridge in frames, the mode that does not need
+    a keypoint match, and no RIFE seam.
+    """
+    return PostprocessOptions(
+        input=str(tmp_path / "clip_in.mp4"),
+        output=str(tmp_path / "clip_out.mp4"),
+        **{"bridge_frames": 1, "mode": "blend", "seam_ms": 0.0, **overrides},
+    )
 
 
 @pytest.fixture
 def run_pipeline(frames_of):
     """Drive postprocess_clip with the decode/probe/encode boundary stubbed."""
-    def run(args, *, values=(10, 20, 30, 40), size=8, fps=24.0, encoder=None):
+    def run(options, *, values=(10, 20, 30, 40), size=8, fps=24.0, encoder=None):
         encoder = encoder or _RecordingEncoder()
         with patch("clipper.clip_postprocess_pipeline.ffprobe_video",
                    return_value={"fps": fps, "width": size, "height": size,
@@ -153,17 +144,17 @@ def run_pipeline(frames_of):
              patch("clipper.clip_postprocess_pipeline.read_frames",
                    return_value=frames_of(list(values), size=size)) as decode, \
              patch("clipper.clip_postprocess_pipeline.encode_with_ffmpeg", encoder):
-            summary = postprocess_clip(args)
-        probe.assert_called_once_with(args.input)
-        decode.assert_called_once_with(args.input)
+            summary = postprocess_clip(options)
+        probe.assert_called_once_with(options.input)
+        decode.assert_called_once_with(options.input)
         return summary, encoder
     return run
 
 
 def test_postprocess_clip_reports_the_clip_it_actually_encoded(tmp_path, run_pipeline):
-    args = _args(tmp_path)
+    options = _options(tmp_path)
 
-    summary, encoder = run_pipeline(args)
+    summary, encoder = run_pipeline(options)
 
     assert summary == {
         "fps": 24.0,
@@ -176,17 +167,17 @@ def test_postprocess_clip_reports_the_clip_it_actually_encoded(tmp_path, run_pip
         "final_scale": 1.0,
         "final_size_bytes": 16,
         "target_max_mb": 1.0,
-        "output_path": args.output,
+        "output_path": options.output,
     }
     assert len(encoder.calls) == 1
     assert encoder.calls[0]["frame_count"] == 4
     assert encoder.calls[0]["fps"] == 24.0
-    assert Path(args.output).exists()
+    assert Path(options.output).exists()
 
 
 def test_postprocess_clip_normalizes_the_loop_before_bridging(tmp_path, run_pipeline):
     """base-tip mirrors the four frames back to seven before the bridge lands."""
-    summary, encoder = run_pipeline(_args(tmp_path, loop_mode="base-tip"))
+    summary, encoder = run_pipeline(_options(tmp_path, loop_mode="base-tip"))
 
     assert summary["normalized_frames"] == 7
     assert summary["output_frames"] == 7
@@ -195,7 +186,7 @@ def test_postprocess_clip_normalizes_the_loop_before_bridging(tmp_path, run_pipe
 
 def test_postprocess_clip_appends_the_bridge_when_the_length_is_not_kept(tmp_path, run_pipeline):
     summary, encoder = run_pipeline(
-        _args(tmp_path, keep_length=False, bridge_frames=2),
+        _options(tmp_path, keep_length=False, bridge_frames=2),
         values=(10, 20, 30, 40, 50, 60),
     )
 
@@ -206,7 +197,7 @@ def test_postprocess_clip_appends_the_bridge_when_the_length_is_not_kept(tmp_pat
 
 
 def test_postprocess_clip_caps_the_bridge_at_a_third_of_the_normalized_clip(tmp_path, run_pipeline):
-    summary, _encoder = run_pipeline(_args(tmp_path, bridge_frames=3))
+    summary, _encoder = run_pipeline(_options(tmp_path, bridge_frames=3))
 
     assert summary["bridge_frames"] == 1
 
@@ -215,7 +206,7 @@ def test_postprocess_clip_shrinks_and_re_encodes_until_the_output_fits(tmp_path,
     over = 2 * 1024 * 1024
     encoder = _RecordingEncoder(over, 4096)
 
-    summary, encoder = run_pipeline(_args(tmp_path), size=80, encoder=encoder)
+    summary, encoder = run_pipeline(_options(tmp_path), size=80, encoder=encoder)
 
     assert summary["encode_attempts"] == 2
     assert summary["final_scale"] == pytest.approx(0.9)
@@ -234,7 +225,7 @@ def test_postprocess_clip_stops_shrinking_at_the_smallest_allowed_frame(tmp_path
     encoder = _RecordingEncoder(2 * 1024 * 1024)
 
     with caplog.at_level(logging.WARNING, logger="clipper.clip_postprocess_pipeline"):
-        summary, encoder = run_pipeline(_args(tmp_path), size=64, encoder=encoder)
+        summary, encoder = run_pipeline(_options(tmp_path), size=64, encoder=encoder)
 
     assert summary["encode_attempts"] == 1
     assert summary["final_scale"] == 1.0
@@ -246,16 +237,16 @@ def test_postprocess_clip_stops_shrinking_at_the_smallest_allowed_frame(tmp_path
 def test_postprocess_clip_keeps_the_input_audio_only_when_asked(
     tmp_path, run_pipeline, copy_audio, expected_audio
 ):
-    args = _args(tmp_path, copy_audio=copy_audio)
+    options = _options(tmp_path, copy_audio=copy_audio)
 
-    _summary, encoder = run_pipeline(args)
+    _summary, encoder = run_pipeline(options)
 
-    want = args.input if expected_audio == "input" else None
+    want = options.input if expected_audio == "input" else None
     assert encoder.calls[0]["input_audio_path"] == want
 
 
 def test_postprocess_clip_passes_the_encoder_settings_through(tmp_path, run_pipeline):
-    _summary, encoder = run_pipeline(_args(tmp_path, crf=30, preset="veryfast", pix_fmt="yuv444p"))
+    _summary, encoder = run_pipeline(_options(tmp_path, crf=30, preset="veryfast", pix_fmt="yuv444p"))
 
     assert encoder.calls[0]["crf"] == 30
     assert encoder.calls[0]["preset"] == "veryfast"
@@ -264,12 +255,12 @@ def test_postprocess_clip_passes_the_encoder_settings_through(tmp_path, run_pipe
 
 def test_postprocess_clip_refuses_a_size_budget_of_zero(tmp_path, run_pipeline):
     with pytest.raises(RuntimeError, match="--max-mb must be greater than 0"):
-        run_pipeline(_args(tmp_path, max_mb=0.0))
+        run_pipeline(_options(tmp_path, max_mb=0.0))
 
 
 def test_postprocess_clip_refuses_a_clip_too_short_to_bridge(tmp_path, run_pipeline):
     with pytest.raises(RuntimeError, match="Clip is too short"):
-        run_pipeline(_args(tmp_path), values=(10, 20))
+        run_pipeline(_options(tmp_path), values=(10, 20))
 
 
 # --seam-ms's blend sibling. Every case above passes symmetric_blend=0, so the
