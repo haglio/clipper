@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from app_support.overlay import overlay_value
 
@@ -49,6 +49,18 @@ def vr_clips_dir() -> Path:
 
 def audio_dir() -> Path:
     return _genau_dir() / "audio"
+
+
+def vr_video_dir() -> PureWindowsPath:
+    """The library folder whose videos are VR, which is what the launcher's
+    checkbox reads to decide whether an export lands in ``vr_clips``.
+
+    A pure Windows path: what it is compared against is whatever the file
+    dialog handed the launcher on the machine the app runs on, and that machine
+    is a Windows one.  A native path would make the comparison a no-op
+    everywhere else, which is where the tests run.
+    """
+    return PureWindowsPath(suite_root()) / "videos" / "videos" / "VR"
 
 
 def library_is_configured() -> bool:

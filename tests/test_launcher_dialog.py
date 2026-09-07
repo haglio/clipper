@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import PureWindowsPath
 from unittest.mock import patch
 
 import pytest
 from PyQt6.QtWidgets import QFileDialog
 
-from clipper.content import load_content
-from clipper.gui import launcher_dialog
-from clipper.gui.launcher_dialog import VR_VIDEO_DIR, LauncherDialog
+from clipper.gui.launcher_dialog import LauncherDialog
 from clipper.launch_choice import ClipWholeVideo, LoadSession, NewSession
 
 
@@ -104,20 +101,19 @@ class TestResult:
 
 
 class TestVrAutoDetect:
-    """Which folder a clip lands in -- CLIPS_DIR or VR_CLIPS_DIR -- is decided here.
+    """Which folder a clip lands in -- clips or vr_clips -- is decided here.
 
-    Both cases used to build their input out of ``VR_VIDEO_DIR`` itself, so the
-    assertion held for any value of it: repointing the constant at a folder that
-    is not in the library left both green while every VR clip silently routed to
-    the non-VR folder.  The paths below are literals in the two spellings the
-    file dialog returns, against a fabricated root.
+    Both cases used to build their input out of the VR folder constant itself,
+    so the assertion held for any value of it: repointing that constant at a
+    folder outside the library left both green while every VR clip silently
+    routed to the non-VR folder.  The paths below are literals in the two
+    spellings the file dialog returns, under the suite root the fabricated
+    overlay names.
     """
 
-    VR_DIR = PureWindowsPath(r"D:\example-suite") / "videos" / "videos" / "VR"
-
     @pytest.fixture(autouse=True)
-    def _fabricated_library(self, monkeypatch):
-        monkeypatch.setattr(launcher_dialog, "VR_VIDEO_DIR", self.VR_DIR)
+    def _fabricated_library(self, content_overlay):
+        content_overlay({"suite_root": "D:/example-suite"})
 
     @pytest.mark.parametrize("typed, is_vr", [
         (r"D:\example-suite\videos\videos\VR\seaside walk.mp4", True),
@@ -140,12 +136,3 @@ class TestVrAutoDetect:
         dialog.video_file_edit.setText(r"D:\example-suite\videos\videos\flat\seaside walk.mp4")
 
         assert dialog.vr_checkbox.isChecked() is False
-
-
-class TestVrVideoDir:
-    def test_it_is_the_vr_folder_under_the_librarys_own_root(self):
-        """The literal tail is written here, so repointing the constant reds this."""
-        assert VR_VIDEO_DIR.parts[-3:] == ("videos", "videos", "VR")
-
-        suite_root = PureWindowsPath(load_content()["suite_root"])
-        assert VR_VIDEO_DIR.is_relative_to(suite_root)
