@@ -169,14 +169,8 @@ class TestEstimateAlignment:
 
 
 class TestBuildRegisteredSeam:
-    def test_reduces_endpoint_drift(self):
-        frame = _make_textured_frame(128, 128, seed=10)
-        # A ten-frame drift: the first frame, and the same frame shifted (8, 6).
-        frames = []
-        for i in range(10):
-            t = i / 9.0
-            M_t = np.array([[1, 0, 8 * t], [0, 1, 6 * t]], dtype=np.float32)
-            frames.append(cv2.warpAffine(frame, M_t, (128, 128), borderMode=cv2.BORDER_REFLECT))
+    def test_reduces_endpoint_drift(self, textured_frames):
+        frames = textured_frames()
 
         diff_before = np.mean(np.abs(frames[-1].astype(float) - frames[0].astype(float)))
         result, ok = build_registered_seam(frames, seam_frames=3)

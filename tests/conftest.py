@@ -269,6 +269,34 @@ def frames_of():
 
 
 @pytest.fixture
+def textured_frames():
+    """Frames with enough detail for a keypoint match to have anything to match,
+    drifting a few pixels from the first to the last.
+
+    That drift is the seam ``--mode register`` exists to close.  ``frames_of``
+    makes solid frames, which have no keypoints at all, so every alignment on
+    them fails and the register path is never the one under test.
+    """
+    import cv2
+
+    def factory(count: int = 10, size: int = 128, seed: int = 10,
+                drift: tuple[int, int] = (8, 6)) -> list[np.ndarray]:
+        frame = np.random.RandomState(seed).randint(0, 256, (size, size, 3), dtype=np.uint8)
+        shifted = []
+        for i in range(count):
+            travelled = i / max(1, count - 1)
+            move = np.array(
+                [[1, 0, drift[0] * travelled], [0, 1, drift[1] * travelled]],
+                dtype=np.float32,
+            )
+            shifted.append(
+                cv2.warpAffine(frame, move, (size, size), borderMode=cv2.BORDER_REFLECT)
+            )
+        return shifted
+    return factory
+
+
+@pytest.fixture
 def values_of():
     """The inverse of ``frames_of``: read each frame back as its one value."""
     def factory(frames: list[np.ndarray]) -> list[int]:
