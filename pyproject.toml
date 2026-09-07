@@ -5,20 +5,36 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "clipper"
 version = "0.1.0"
-requires-python = ">=3.10"
-# app_support and shared_ui are NOT listed here: they are installed from the
-# sibling checkouts (see app_support's README) and are not published, so pip
-# would go looking for them on PyPI. CI installs both from GitHub explicitly.
+# 3.12, not 3.10: every gate in the family runs 3.12 and nothing has ever
+# collected a suite on anything older, so >=3.10 was a promise no run backed.
+requires-python = ">=3.12"
+# app_support and shared_ui are in [tool.haglio] below, not here: neither is
+# published, so pip would go looking for them on PyPI.
+#
+# Every requirement carries a ceiling. Without one each run installs whatever
+# PyPI served that morning: this repo's venv holds opencv-python 4 and the gate
+# was installing opencv-python 5, so the imaging stack the clip code stands on
+# was a different major version in CI than in production. Floors are what this
+# repo's venv holds today.
 dependencies = [
-    "numpy",
-    "opencv-python",
-    "PyQt6",
+    "numpy>=2.4,<3",
+    "opencv-python>=4.8,<5",
+    "PyQt6>=6,<7",
 ]
 
 [project.optional-dependencies]
 # Pillow is the suite's, not the app's: the icon check in shared_ui.app_icon reads
 # the .ico with it, and nothing the app runs does.
-dev = ["pytest", "pytest-timeout", "vulture", "ruff==0.16.6", "pillow"]
+dev = ["pytest>=9,<10", "pytest-timeout>=2.4,<3", "vulture>=2.16,<3", "ruff==0.16.6",
+       "pillow>=12,<13"]
+
+# The family checkouts this one is installed beside. shared_ui was named nowhere
+# in this file while five gui modules imported it; app_support had a comment.
+# Neither is published, so neither can go in [project.dependencies], and a
+# comment is what decayed across the family -- so this is the record, and
+# tests/test_dependencies.py holds it against the tree.
+[tool.haglio]
+siblings = ["app_support", "shared_ui"]
 
 [tool.setuptools.packages.find]
 include = ["clipper*"]
