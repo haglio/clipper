@@ -45,6 +45,52 @@ def _softly_blended(work_frames: list, symmetric_blend: int, normalized_n: int) 
     return build_symmetric_blend(work_frames, blend_frames)
 
 
+def _with_bridge(work_frames: list, bridge: list, bridge_frames: int, keep_length: bool) -> list:
+    """The clip with the bridge on the end: in place of the tail, or after it."""
+    if not keep_length:
+        return work_frames + bridge
+    if bridge_frames >= len(work_frames):
+        raise RuntimeError("--keep-length bridge is too long for this clip.")
+    return work_frames[:-bridge_frames] + bridge
+
+
+def _registered_seam(
+    work_frames: list,
+    *,
+    bridge_frames: int,
+    keep_length: bool,
+    symmetric_blend: int,
+    seam_frames: int,
+) -> list | None:
+    """The finished clip a keypoint-aligned seam gives, or None when the ends
+    could not be aligned and the caller should bridge them instead.
+
+    ``build_registered_seam`` hands the frames straight back when it cannot
+    align them, so the caller's list is untouched on the None.
+    """
+    normalized_n = len(work_frames)
+    seam_region = min(
+        symmetric_blend if symmetric_blend > 0 else max(1, normalized_n // 3),
+        max(1, normalized_n // 3),
+    )
+    registered, registered_ok = build_registered_seam(work_frames, seam_region)
+    if not registered_ok:
+        return None
+
+    if seam_frames > 0:
+        # Nudge the frames either side of the seam together; where that
+        # converges it handles the transition and no bridge is wanted.
+        converged = build_rife_seam(registered, seam_frames)
+        if converged is not None:
+            return list(converged)
+
+    rife_bridge = build_rife_bridge(registered[-1], registered[0], bridge_frames)
+    if rife_bridge is None:
+        # No interpolator on this machine: the geometric correction stands alone.
+        return list(registered)
+    return _with_bridge(registered, rife_bridge, bridge_frames, keep_length)
+
+
 def build_output_frames(
     frames: list,
     *,
@@ -59,49 +105,25 @@ def build_output_frames(
     normalized_n = len(work_frames)
 
     if mode == "register":
-        seam_region = min(
-            symmetric_blend if symmetric_blend > 0 else max(1, normalized_n // 3),
-            max(1, normalized_n // 3),
+        registered = _registered_seam(
+            work_frames,
+            bridge_frames=bridge_frames,
+            keep_length=keep_length,
+            symmetric_blend=symmetric_blend,
+            seam_frames=seam_frames,
         )
-        work_frames, registered_ok = build_registered_seam(
-            work_frames, seam_region
-        )
-        if registered_ok:
-            # RIFE seam convergence: gradually nudge frames near the seam
-            if seam_frames > 0:
-                converged = build_rife_seam(work_frames, seam_frames)
-                if converged is not None:
-                    # Seam convergence handles the transition; no bridge needed.
-                    return list(converged), normalized_n
-            # No seam convergence — try short RIFE bridge at the seam point
-            rife_bridge = build_rife_bridge(
-                work_frames[-1], work_frames[0], bridge_frames
-            )
-            if rife_bridge is not None:
-                if keep_length:
-                    if bridge_frames >= len(work_frames):
-                        raise RuntimeError(
-                            "--keep-length bridge is too long for this clip."
-                        )
-                    return work_frames[:-bridge_frames] + rife_bridge, normalized_n
-                return work_frames + rife_bridge, normalized_n
-            # RIFE unavailable — geometric-only (no bridge)
-            return list(work_frames), normalized_n
-        # Fallback to existing approach
-        work_frames = _softly_blended(work_frames, symmetric_blend, normalized_n)
-        bridge = build_bridge(work_frames[-1], work_frames[0], bridge_frames, "flow")
+        if registered is not None:
+            return registered, normalized_n
+        bridge_mode = "flow"
     else:
         # seam_frames is not read here: --seam-ms drives RIFE seam convergence,
         # which only the register path runs.  The blend width comes from
         # --symmetric-blend, and reusing the parameter's name for it hid that.
-        work_frames = _softly_blended(work_frames, symmetric_blend, normalized_n)
-        bridge = build_bridge(work_frames[-1], work_frames[0], bridge_frames, mode)
+        bridge_mode = mode
 
-    if keep_length:
-        if bridge_frames >= len(work_frames):
-            raise RuntimeError("--keep-length bridge is too long for this clip.")
-        return work_frames[:-bridge_frames] + bridge, normalized_n
-    return work_frames + bridge, normalized_n
+    work_frames = _softly_blended(work_frames, symmetric_blend, normalized_n)
+    bridge = build_bridge(work_frames[-1], work_frames[0], bridge_frames, bridge_mode)
+    return _with_bridge(work_frames, bridge, bridge_frames, keep_length), normalized_n
 
 
 def postprocess_clip(options: PostprocessOptions) -> dict[str, int | float | str]:
