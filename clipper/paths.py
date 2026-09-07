@@ -4,10 +4,11 @@ from pathlib import Path, PureWindowsPath
 
 from app_support.overlay import overlay_value
 
-from clipper.content import EXAMPLE_CONTENT, LOCAL_CONTENT, load_content
+from clipper.content import EXAMPLE_CONTENT, LOCAL_CONTENT, PROJECT_DIR, load_content
 
+# The checkout root is `content`'s: it needs one to find the overlay beside it,
+# and cannot ask this module for it, since this module asks it for the overlay.
 PACKAGE_DIR = Path(__file__).resolve().parent
-PROJECT_DIR = PACKAGE_DIR.parent
 SESSIONS_DIR = PROJECT_DIR / "sessions"
 RAW_CLIPS_DIR = PROJECT_DIR / "raw_clips"
 LAST_SESSION_FILE = SESSIONS_DIR / ".last_session.txt"
