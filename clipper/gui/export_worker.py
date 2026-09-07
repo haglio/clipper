@@ -61,52 +61,7 @@ class ExportWorker(QThread):
         self.audio_progress.emit(fraction)
 
     def run(self) -> None:
-        from clipper.export_steps import (
-            export_full_audio_mp3,
-            export_raw_clip,
-            run_clip_postprocess,
-        )
-        from clipper.paths import (
-            RAW_CLIPS_DIR,
-            audio_dir,
-            clips_dir,
-            sanitize_name,
-            vr_clips_dir,
-        )
+        from clipper.export_pipeline import run_export
 
-        self.stage("preparing export")
-        self.clip(0.0)
-        self.fix(0.0)
-        self.audio(0.0)
-
-        session_base = sanitize_name(self._state.session_name)
-        raw_path = RAW_CLIPS_DIR / f"{session_base}.mp4"
-        clip_folder = vr_clips_dir() if self._state.vr else clips_dir()
-        clip_path = clip_folder / f"{session_base}.mp4"
-        audio_path = audio_dir() / f"{session_base}.mp3"
-
-        try:
-            if self._state.skip_postprocess:
-                ok, detail = export_raw_clip(self._state, clip_path, self)
-            else:
-                ok, detail = export_raw_clip(self._state, raw_path, self)
-            if not ok:
-                self.export_finished.emit(False, detail)
-                return
-
-            if self._state.skip_postprocess:
-                self.fix(1.0)
-            else:
-                ok, detail = run_clip_postprocess(self._state, raw_path, clip_path, self)
-                if not ok:
-                    self.export_finished.emit(False, detail)
-                    return
-
-            ok, detail = export_full_audio_mp3(self._state, audio_path, self)
-            if not ok:
-                self.export_finished.emit(False, detail)
-                return
-
-            self.export_finished.emit(True, f"Done: {clip_path}")
-        except Exception as exc:
-            self.export_finished.emit(False, str(exc))
+        ok, message = run_export(self._state, self)
+        self.export_finished.emit(ok, message)

@@ -1,4 +1,10 @@
-"""Tests for clipper.gui.export_worker — QThread-based export."""
+"""Tests for clipper.gui.export_worker — the QThread that runs an export.
+
+What the export itself does -- the order of the steps, where each output lands,
+what a failed one means -- is `tests/test_export_pipeline.py`, which drives it
+with no thread and no window.  What is left here is the worker's own job: run
+that off the Qt thread and turn what it answers into signals.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +13,6 @@ from unittest.mock import patch
 import pytest
 
 from clipper.gui.export_worker import ExportWorker
-from clipper.paths import RAW_CLIPS_DIR, audio_dir, clips_dir, vr_clips_dir
 
 
 @pytest.fixture
@@ -20,41 +25,31 @@ def state(make_state):
 
 
 class _Step:
-    """A stand-in for an export step: records its call, reports progress the
-    way the real step does, and answers with whatever it is told to.
+    """A stand-in for an export step: reports progress the way the real step
+    does, and answers that it worked.
     """
 
-    def __init__(self, *, stage: str, reports: str, ok: bool = True, detail: str = ""):
+    def __init__(self, *, stage: str, reports: str):
         self.stage_text = stage
         self.reports = reports
-        self.ok = ok
-        self.detail = detail
-        self.calls: list[tuple] = []
 
     def __call__(self, *args):
-        self.calls.append(args)
         progress = args[-1]
         progress.stage(self.stage_text)
         getattr(progress, self.reports)(1.0)
-        return self.ok, self.detail
-
-    @property
-    def called(self) -> bool:
-        return bool(self.calls)
+        return True, "written.mp4"
 
 
 @pytest.fixture
 def steps():
-    """The three export steps, stubbed at the module they are imported from."""
-    stubs = {
-        "raw": _Step(stage="clipping", reports="clip", detail="raw.mp4"),
-        "post": _Step(stage="fixing the loop", reports="fix", detail="clip.mp4"),
-        "audio": _Step(stage="pulling audio", reports="audio", detail="audio.mp3"),
-    }
-    with patch("clipper.export_steps.export_raw_clip", stubs["raw"]), \
-         patch("clipper.export_steps.run_clip_postprocess", stubs["post"]), \
-         patch("clipper.export_steps.export_full_audio_mp3", stubs["audio"]):
-        yield stubs
+    """The three export steps, stubbed at the module they are called through."""
+    with patch("clipper.export_steps.export_raw_clip",
+               _Step(stage="clipping", reports="clip")), \
+         patch("clipper.export_steps.run_clip_postprocess",
+               _Step(stage="fixing the loop", reports="fix")), \
+         patch("clipper.export_steps.export_full_audio_mp3",
+               _Step(stage="pulling audio", reports="audio")):
+        yield
 
 
 def _recorded(worker: ExportWorker) -> dict[str, list]:
@@ -93,151 +88,22 @@ class TestSignals:
         assert len(seen["export_finished"]) == 1
 
 
-class TestRunCallsExportSteps:
-    def test_the_raw_clip_step_gets_the_state_an_output_path_and_the_worker(self, state, steps):
-        worker = ExportWorker(state)
-        worker.run()
+class TestWhatTheRunAnswers:
+    """The worker's whole job at the end: say what the export said."""
 
-        clip_state, out_path, progress = steps["raw"].calls[0]
-        assert clip_state is state
-        assert out_path.parent == RAW_CLIPS_DIR
-        assert progress is worker
-
-    def test_the_post_process_step_gets_the_raw_input_and_the_clip_output(self, state, steps):
-        worker = ExportWorker(state)
-        worker.run()
-
-        post_state, raw_in, clip_out, progress = steps["post"].calls[0]
-        assert post_state is state
-        assert raw_in == steps["raw"].calls[0][1]
-        assert clip_out.parent == clips_dir()
-        assert progress is worker
-
-    def test_the_audio_step_writes_beside_the_clip(self, state, steps):
-        ExportWorker(state).run()
-
-        _audio_state, audio_out, _progress = steps["audio"].calls[0]
-        assert audio_out.parent == audio_dir()
-        assert audio_out.suffix == ".mp3"
-
-    def test_all_three_outputs_take_the_session_name(self, state, steps):
-        state.session_name = "second pass"
-
-        ExportWorker(state).run()
-
-        assert steps["raw"].calls[0][1].stem == "second pass"
-        assert steps["post"].calls[0][2].stem == "second pass"
-        assert steps["audio"].calls[0][1].stem == "second pass"
-
-    def test_a_session_name_that_cannot_be_a_filename_is_sanitized(self, state, steps):
-        state.session_name = "take 1: second pass"
-
-        ExportWorker(state).run()
-
-        assert steps["raw"].calls[0][1].stem == "take 1_ second pass"
-
-
-class TestFailures:
-    def test_a_failed_clip_stops_the_run_and_reports_why(self, state, steps):
-        steps["raw"].ok = False
-        steps["raw"].detail = "ffmpeg not found on PATH"
+    @pytest.mark.parametrize("answer", [
+        (True, "Done: clip.mp4"),
+        (False, "ffmpeg not found on PATH"),
+    ])
+    def test_the_finished_signal_carries_what_the_export_answered(self, state, answer):
         worker = ExportWorker(state)
         seen = _recorded(worker)
 
-        worker.run()
-
-        assert seen["export_finished"] == [(False, "ffmpeg not found on PATH")]
-        assert not steps["post"].called
-        assert not steps["audio"].called
-
-    def test_a_failed_post_process_stops_before_the_audio(self, state, steps):
-        steps["post"].ok = False
-        steps["post"].detail = "the bridge is too long"
-        worker = ExportWorker(state)
-        seen = _recorded(worker)
-
-        worker.run()
-
-        assert seen["export_finished"] == [(False, "the bridge is too long")]
-        assert not steps["audio"].called
-
-    def test_a_failed_audio_pull_is_reported(self, state, steps):
-        steps["audio"].ok = False
-        steps["audio"].detail = "no audio stream"
-        worker = ExportWorker(state)
-        seen = _recorded(worker)
-
-        worker.run()
-
-        assert seen["export_finished"] == [(False, "no audio stream")]
-
-    def test_a_step_that_raises_is_reported_rather_than_lost(self, state, steps):
-        def explode(*args):
-            raise RuntimeError("the disk went away")
-
-        worker = ExportWorker(state)
-        seen = _recorded(worker)
-        with patch("clipper.export_steps.export_raw_clip", explode):
+        with patch("clipper.export_pipeline.run_export", return_value=answer) as export:
             worker.run()
 
-        assert seen["export_finished"] == [(False, "the disk went away")]
-
-    def test_a_finished_run_names_the_clip_it_wrote(self, state, steps):
-        worker = ExportWorker(state)
-        seen = _recorded(worker)
-
-        worker.run()
-
-        ok, message = seen["export_finished"][0]
-        assert ok is True
-        assert str(clips_dir()) in message
-
-
-class TestVrExportPath:
-    def test_a_non_vr_clip_lands_in_the_clips_folder(self, state, steps):
-        state.vr = False
-
-        ExportWorker(state).run()
-
-        assert steps["post"].calls[0][2].parent == clips_dir()
-
-    def test_a_vr_clip_lands_in_the_vr_clips_folder(self, state, steps):
-        state.vr = True
-
-        ExportWorker(state).run()
-
-        assert steps["post"].calls[0][2].parent == vr_clips_dir()
-
-
-class TestSkipPostprocess:
-    """A whole-video export is already a loop; it does not want the seam pass."""
-
-    @pytest.fixture(autouse=True)
-    def _skipping(self, state):
-        state.skip_postprocess = True
-
-    def test_the_post_process_step_never_runs(self, state, steps):
-        ExportWorker(state).run()
-
-        assert not steps["post"].called
-
-    def test_the_clip_is_written_straight_into_the_clips_folder(self, state, steps):
-        ExportWorker(state).run()
-
-        assert steps["raw"].calls[0][1].parent == clips_dir()
-
-    def test_the_skipped_stage_still_reports_itself_finished(self, state, steps):
-        worker = ExportWorker(state)
-        seen = _recorded(worker)
-
-        worker.run()
-
-        assert seen["fix_progress"] == [0.0, 1.0]
-
-    def test_the_audio_is_still_pulled(self, state, steps):
-        ExportWorker(state).run()
-
-        assert steps["audio"].called
+        assert seen["export_finished"] == [answer]
+        assert export.call_args.args == (state, worker)
 
 
 class TestConnectExport:
@@ -258,21 +124,3 @@ class TestConnectExport:
         worker.run()  # in this thread, so the queued signals are direct
 
         assert dialog.stage_label.text() == "Export complete."
-        assert dialog.clip_bar.value() == dialog.clip_bar.maximum()
-        assert dialog.fix_bar.value() == dialog.fix_bar.maximum()
-        assert dialog.audio_bar.value() == dialog.audio_bar.maximum()
-        assert dialog.close_btn.isEnabled()
-        assert dialog.error_label.text() == ""
-
-    def test_a_failure_puts_its_reason_on_the_dialog(self, state, steps):
-        from clipper.gui.export_dialog import ExportDialog
-        from clipper.gui.export_worker import connect_export
-
-        steps["raw"].ok = False
-        steps["raw"].detail = "no room on the disk"
-        dialog = ExportDialog()
-
-        connect_export(state, dialog).run()
-
-        assert dialog.stage_label.text() == "Export failed."
-        assert dialog.error_label.text() == "no room on the disk"

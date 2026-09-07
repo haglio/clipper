@@ -9,6 +9,7 @@ import pytest
 
 from clipper.clip_postprocess import main, parse_options
 from clipper.clip_postprocess_transforms import normalize_loop_mode, shift_frames_halfway
+from clipper.export_progress import fraction_in
 from clipper.postprocess_options import PostprocessOptions
 
 
@@ -89,33 +90,54 @@ def test_clip_postprocess_cli_runs_as_direct_script():
     assert "register" in result.stdout
 
 
-def test_the_cli_runs_a_clip_through_and_prints_what_it_wrote(tmp_path, frames_of, capsys):
-    """One real invocation, not just --help.
+@pytest.fixture
+def cli_run(tmp_path, frames_of, capsys):
+    """One real invocation of the script, and what it printed.
 
     ffmpeg and the decoder are stubbed; everything between them -- argument
-    parsing, loop normalization, the bridge, the size loop and the summary the
-    user reads -- runs for real.
+    parsing, loop normalization, the bridge, the size loop, the progress it
+    reports and the summary the user reads -- runs for real.
     """
     output = tmp_path / "cli_out.mp4"
 
     def fake_encode(frames, fps, out_path, *args, **kwargs):
         Path(out_path).write_bytes(b"\0" * 32)
 
-    argv = [
-        "clip_postprocess", str(tmp_path / "cli_in.mp4"), "-o", str(output),
-        "--loop-mode", "base-tip", "--mode", "blend", "--bridge-frames", "1",
-        "--seam-ms", "0",
-    ]
-    with patch.object(sys, "argv", argv), \
-         patch("clipper.clip_postprocess_pipeline.ffprobe_video",
-               return_value={"fps": 24.0, "width": 8, "height": 8,
-                             "nb_frames": 4, "duration": 4 / 24.0}), \
-         patch("clipper.clip_postprocess_pipeline.read_frames",
-               return_value=frames_of([10, 20, 30, 40], size=8)), \
-         patch("clipper.clip_postprocess_pipeline.encode_with_ffmpeg", fake_encode):
-        main()
+    def run() -> str:
+        argv = [
+            "clip_postprocess", str(tmp_path / "cli_in.mp4"), "-o", str(output),
+            "--loop-mode", "base-tip", "--mode", "blend", "--bridge-frames", "1",
+            "--seam-ms", "0",
+        ]
+        with patch.object(sys, "argv", argv), \
+             patch("clipper.clip_postprocess_pipeline.ffprobe_video",
+                   return_value={"fps": 24.0, "width": 8, "height": 8,
+                                 "nb_frames": 4, "duration": 4 / 24.0}), \
+             patch("clipper.clip_postprocess_pipeline.read_frames",
+                   return_value=frames_of([10, 20, 30, 40], size=8)), \
+             patch("clipper.clip_postprocess_pipeline.encode_with_ffmpeg", fake_encode):
+            main()
+        return capsys.readouterr().out
 
-    printed = capsys.readouterr().out
+    run.output = output
+    return run
+
+
+def test_the_cli_says_how_far_it_has_got_as_it_goes(cli_run):
+    """The caller drives this as a subprocess and reads these lines to move a
+    bar it used to invent; a person running it by hand sees them too.
+    """
+    printed = cli_run()
+
+    said = [fraction_in(line) for line in printed.splitlines()]
+    assert [fraction for fraction in said if fraction is not None] == [0.2, 0.6]
+
+
+def test_the_cli_runs_a_clip_through_and_prints_what_it_wrote(cli_run):
+    output = cli_run.output
+
+    printed = cli_run()
+
     assert "Input FPS: 24.000000" in printed
     assert "Input frames: 4" in printed
     assert "Loop mode: base-tip" in printed

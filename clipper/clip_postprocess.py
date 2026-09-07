@@ -8,10 +8,12 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from clipper.clip_postprocess_pipeline import postprocess_clip
+    from clipper.export_progress import progress_line
     from clipper.loop_modes import LOOP_MODES
     from clipper.postprocess_options import PostprocessOptions
 else:
     from .clip_postprocess_pipeline import postprocess_clip
+    from .export_progress import progress_line
     from .loop_modes import LOOP_MODES
     from .postprocess_options import PostprocessOptions
 
@@ -117,8 +119,16 @@ def parse_options(argv: Sequence[str] | None = None) -> PostprocessOptions:
     return PostprocessOptions(**vars(build_parser().parse_args(argv)))
 
 
+def _say_how_far(fraction: float) -> None:
+    """Print how far the run has got, for whoever is driving this as a
+    subprocess -- flushed, because the point of it is to arrive while the work
+    is still going.
+    """
+    print(progress_line(fraction), flush=True)
+
+
 def main():
-    summary = postprocess_clip(parse_options())
+    summary = postprocess_clip(parse_options(), report=_say_how_far)
 
     print(f"Input FPS: {summary['fps']:.6f}")
     print(f"Input frames: {summary['input_frames']}")

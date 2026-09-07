@@ -29,3 +29,30 @@ class ExportProgress(Protocol):
 
     def audio(self, fraction: float) -> None:
         """How far the audio extraction has got, 0.0 to 1.0."""
+
+
+# The loop post-process is a subprocess, so the only way it can say how far it
+# has got is to print it.  Written and read here, both: a parent and a child
+# that each spell the format out is a bar that stops moving the day one of them
+# is edited, and silently, because the line just stops matching.
+_PROGRESS_PREFIX = "postprocess-progress"
+
+
+def progress_line(fraction: float) -> str:
+    """How the post-process says it has finished *fraction* of its work."""
+    return f"{_PROGRESS_PREFIX} {fraction:.4f}"
+
+
+def fraction_in(line: str) -> float | None:
+    """The fraction that line carries, or None -- it is a line for a person.
+
+    Everything else the script prints is its summary or an error, which the
+    caller keeps for the message it shows when the run fails.
+    """
+    prefix, _, rest = line.partition(" ")
+    if prefix != _PROGRESS_PREFIX:
+        return None
+    try:
+        return float(rest)
+    except ValueError:
+        return None
