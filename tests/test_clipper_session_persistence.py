@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from clipper.session_persistence import (
+    SESSION_FORMAT_VERSION,
     autosave_session,
     current_payload,
     safe_atomic_write_json,
@@ -62,6 +63,28 @@ def test_current_payload_builds_expected_fields():
 def test_current_payload_includes_vr_true():
     payload = current_payload(_state(vr=True))
     assert payload["vr"] is True
+
+
+class TestTheFieldsAnotherAppReads:
+    """Evolver moves the videos this app cuts, so it walks `sessions/*.json`,
+    repoints the reference in each and writes the file back whole.  Four keys
+    are therefore its contract and not ours to rename quietly -- a rename that
+    stopped here would strand every session it would have repointed, silently,
+    since nothing over there imports this."""
+
+    def test_a_session_says_which_shape_it_is(self):
+        assert current_payload(_state())["version"] == SESSION_FORMAT_VERSION
+
+    def test_the_video_it_was_cut_against_is_a_top_level_string(self):
+        assert current_payload(_state())["video_path"] == "/video.mp4"
+
+    def test_the_footage_is_described_well_enough_to_recognize_after_a_rename(self):
+        """A video that was renamed rather than moved is nowhere to search for
+        by name, and this pair is the only handle left on it."""
+        payload = current_payload(_state())
+
+        assert payload["fps"] == 30.0
+        assert payload["total_frames"] == 120
 
 
 def test_autosave_session_updates_last_saved_payload_on_success():
