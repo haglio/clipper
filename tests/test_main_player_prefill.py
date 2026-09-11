@@ -1,4 +1,4 @@
-"""What the launcher prefills from, now that the suite's main player is Nau.
+"""What the launcher prefills from: the suite's main player.
 
 Fun Time's `;` already pushes the video and the playhead into
 ``clipper.create_session`` without asking clipper anything.  This is the pull
@@ -14,10 +14,10 @@ import subprocess
 import textwrap
 from pathlib import Path
 
-from clipper import nau_prefill
-from clipper.nau_prefill import SessionPrefill, detect_nau_session_prefill
+from clipper import main_player_prefill
+from clipper.main_player_prefill import SessionPrefill, detect_main_player_session_prefill
 
-# Nau publishes `key=value` lines. Fabricated values throughout: what matters
+# The main player publishes `key=value` lines. Fabricated values throughout: what matters
 # is the shape, and a real one would name the library.
 _PLAYING = {
     "video": "S:/library/main/alpha clip.mp4",
@@ -31,7 +31,7 @@ _PLAYING = {
 
 def _status(tmp_path: Path, **overrides) -> Path:
     fields = {**_PLAYING, **overrides}
-    path = tmp_path / "nau_status.txt"
+    path = tmp_path / "main_player_status.txt"
     path.write_text(
         "".join(f"{k}={v}\n" for k, v in fields.items()), encoding="utf-8"
     )
@@ -39,14 +39,14 @@ def _status(tmp_path: Path, **overrides) -> Path:
 
 
 class TestWhatItReads:
-    def test_it_takes_the_video_nau_is_playing(self, tmp_path: Path):
-        prefill = detect_nau_session_prefill(_status(tmp_path))
+    def test_it_takes_the_video_main_player_is_playing(self, tmp_path: Path):
+        prefill = detect_main_player_session_prefill(_status(tmp_path))
 
         assert prefill.video_file == "S:/library/main/alpha clip.mp4"
 
     def test_the_timestamp_is_the_playhead(self, tmp_path: Path):
         """72500 ms is 00:01:12.500, and the launcher's field wants that shape."""
-        prefill = detect_nau_session_prefill(_status(tmp_path))
+        prefill = detect_main_player_session_prefill(_status(tmp_path))
 
         assert prefill.timestamp == "00:01:12.500"
 
@@ -59,7 +59,7 @@ class TestWhatItReads:
         """
         from clipper.create_session import build_session_payload
 
-        prefill = detect_nau_session_prefill(_status(tmp_path))
+        prefill = detect_main_player_session_prefill(_status(tmp_path))
         pushed = build_session_payload(prefill.video_file, 0.0, fps=30.0, total_frames=100)
 
         assert prefill.session_name == pushed["session_name"]
@@ -68,44 +68,44 @@ class TestWhenThereIsNothingToPrefill:
     """Every one of these is a normal state, not an error: no prefill, blank form."""
 
     def test_a_machine_that_has_not_named_the_status_file(self, monkeypatch):
-        monkeypatch.setattr(nau_prefill, "nau_status_file", lambda: None)
+        monkeypatch.setattr(main_player_prefill, "main_player_status_file", lambda: None)
 
-        assert detect_nau_session_prefill() is None
+        assert detect_main_player_session_prefill() is None
 
-    def test_nau_is_not_running_so_the_file_is_not_there(self, tmp_path: Path):
-        assert detect_nau_session_prefill(tmp_path / "nau_status.txt") is None
+    def test_main_player_is_not_running_so_the_file_is_not_there(self, tmp_path: Path):
+        assert detect_main_player_session_prefill(tmp_path / "main_player_status.txt") is None
 
-    def test_nau_is_running_with_nothing_playing(self, tmp_path: Path):
-        """The empty `video` is Nau's own way of saying so, and what `;` checks."""
-        assert detect_nau_session_prefill(_status(tmp_path, video="")) is None
+    def test_main_player_is_running_with_nothing_playing(self, tmp_path: Path):
+        """The empty `video` is the main player's own way of saying so, and what `;` checks."""
+        assert detect_main_player_session_prefill(_status(tmp_path, video="")) is None
 
     def test_a_status_file_caught_mid_write(self, tmp_path: Path):
-        path = tmp_path / "nau_status.txt"
+        path = tmp_path / "main_player_status.txt"
         path.write_text("vid", encoding="utf-8")
 
-        assert detect_nau_session_prefill(path) is None
+        assert detect_main_player_session_prefill(path) is None
 
     def test_a_playhead_that_is_not_a_number(self, tmp_path: Path):
         """Rather than lose the video over it, the session starts at zero."""
-        prefill = detect_nau_session_prefill(_status(tmp_path, position_ms="  "))
+        prefill = detect_main_player_session_prefill(_status(tmp_path, position_ms="  "))
 
         assert prefill.timestamp == "00:00:00.000"
 
     def test_a_file_that_cannot_be_read(self, tmp_path: Path):
-        assert detect_nau_session_prefill(tmp_path) is None
+        assert detect_main_player_session_prefill(tmp_path) is None
 
 
-class TestTheContractWithNau:
+class TestTheContractWithTheMainPlayer:
     """The two field names clipper depends on, checked against their producer.
 
-    Nau publishes these; fun_time and clipper both read them. This is the check
-    that fires by itself on a machine that has the genau checkout, so a rename
-    on Nau's side reds clipper's suite instead of quietly emptying the launcher.
+    The main player publishes these; fun_time and clipper both read them. This is the check
+    that fires by itself on a machine that has the fun_time checkout, so a rename
+    on the main player's side reds clipper's suite instead of quietly emptying the launcher.
     """
 
     @staticmethod
-    def _nau_status_source() -> Path | None:
-        """``genau/nau/status.py`` beside the primary checkout, if it is there.
+    def _main_player_status_source() -> Path | None:
+        """``fun_time/main_player/status.py`` beside the primary checkout, if it is there.
 
         Resolved through the primary rather than from here, because everything
         runs in a worktree and a worktree's neighbors are other worktrees.
@@ -120,7 +120,7 @@ class TestTheContractWithNau:
         except (OSError, subprocess.SubprocessError):
             return None
         primary = (PROJECT_DIR / common).resolve().parent
-        source = primary.parent / "genau" / "nau" / "status.py"
+        source = primary.parent / "fun_time" / "main_player" / "status.py"
         return source if source.is_file() else None
 
     @staticmethod
@@ -130,7 +130,7 @@ class TestTheContractWithNau:
         Read rather than declared, so there is no second list of these names to
         fall out of step with the ``values.get`` calls that are the real ones.
         """
-        source = inspect.getsource(nau_prefill.detect_nau_session_prefill)
+        source = inspect.getsource(main_player_prefill.detect_main_player_session_prefill)
         tree = ast.parse(textwrap.dedent(source))
         return {
             node.args[0].value
@@ -144,7 +144,7 @@ class TestTheContractWithNau:
         }
 
     @staticmethod
-    def _keys_nau_publishes(source: Path) -> set[str]:
+    def _keys_main_player_publishes(source: Path) -> set[str]:
         """The dict keys ``status_fields`` returns, off its syntax tree."""
         tree = ast.parse(source.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -158,30 +158,30 @@ class TestTheContractWithNau:
                 }
         return set()
 
-    def test_nau_still_publishes_both_fields_clipper_reads(self):
+    def test_main_player_still_publishes_both_fields_clipper_reads(self):
         """Asserted, not skipped, when genau is absent: a checkout without the
         sibling has nothing to disagree with, and saying so in the assertion
         keeps this a test that always runs and always means something."""
         wanted = self._keys_clipper_reads()
-        source = self._nau_status_source()
-        published = self._keys_nau_publishes(source) if source else wanted
+        source = self._main_player_status_source()
+        published = self._keys_main_player_publishes(source) if source else wanted
 
         assert wanted and wanted <= published, (
-            f"nau/status.py publishes {sorted(published)}, which no longer covers "
+            f"main_player/status.py publishes {sorted(published)}, which no longer covers "
             f"{sorted(wanted)} -- the launcher would prefill nothing"
         )
 
-    def test_the_prefill_reads_a_payload_nau_itself_produced(self, tmp_path: Path):
+    def test_the_prefill_reads_a_payload_main_player_itself_produced(self, tmp_path: Path):
         """Not a fixture in our own shape: the writer's key set, whatever it holds."""
-        source = self._nau_status_source()
-        keys = self._keys_nau_publishes(source) if source else set(_PLAYING)
+        source = self._main_player_status_source()
+        keys = self._keys_main_player_publishes(source) if source else set(_PLAYING)
         payload = {key: _PLAYING.get(key, "0") for key in sorted(keys)}
         payload["video"] = "S:/library/main/beta clip.mp4"
         payload["position_ms"] = "1000"
-        path = tmp_path / "nau_status.txt"
+        path = tmp_path / "main_player_status.txt"
         path.write_text("".join(f"{k}={v}\n" for k, v in payload.items()), encoding="utf-8")
 
-        prefill = detect_nau_session_prefill(path)
+        prefill = detect_main_player_session_prefill(path)
 
         assert prefill == SessionPrefill(
             video_file="S:/library/main/beta clip.mp4",

@@ -202,7 +202,7 @@ def test_a_canceled_launcher_gives_no_state_to_open():
     with patch("clipper.session_launch.ensure_runtime_dirs"), \
          patch("clipper.session_launch.LAST_SESSION_FILE", MagicMock(exists=MagicMock(return_value=False))), \
          patch("clipper.session_launch.LauncherDialog", return_value=mock_dialog), \
-         patch("clipper.session_launch.detect_nau_session_prefill", return_value=None):
+         patch("clipper.session_launch.detect_main_player_session_prefill", return_value=None):
         assert launch_state() is None
 
 
@@ -214,7 +214,7 @@ def test_launch_state_runs_clip_whole_and_returns_none():
     with patch("clipper.session_launch.ensure_runtime_dirs"), \
          patch("clipper.session_launch.LAST_SESSION_FILE", MagicMock(exists=MagicMock(return_value=False))), \
          patch("clipper.session_launch.LauncherDialog", return_value=mock_dialog), \
-         patch("clipper.session_launch.detect_nau_session_prefill", return_value=None), \
+         patch("clipper.session_launch.detect_main_player_session_prefill", return_value=None), \
          patch("clipper.session_launch._run_clip_whole_export") as mock_export:
         result = launch_state()
 
@@ -232,7 +232,7 @@ def test_launch_state_builds_state_from_launcher_info():
     with patch("clipper.session_launch.ensure_runtime_dirs") as ensure_dirs, \
          patch("clipper.session_launch.LAST_SESSION_FILE", MagicMock(exists=MagicMock(return_value=False))), \
          patch("clipper.session_launch.LauncherDialog", return_value=mock_dialog), \
-         patch("clipper.session_launch.detect_nau_session_prefill", return_value=None), \
+         patch("clipper.session_launch.detect_main_player_session_prefill", return_value=None), \
          patch("clipper.session_launch.build_state", return_value=built_state) as open_it:
         result = launch_state()
 

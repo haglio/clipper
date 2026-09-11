@@ -12,7 +12,7 @@ Shared rules are in the global `~/.claude/CLAUDE.md`. This file contains only cl
 
 Clipper is a standalone PyQt6/OpenCV video clip editor, extracted from the fun_time project. Key relationships:
 
-- **What the suite tells clipper**: exactly two things, both about one video. Fun Time's `;` pushes — it reads Nau's status file and runs `python -m clipper.create_session --video <path> --time <seconds>`. `clipper/nau_prefill.py` pulls the same two fields out of the same file, for the case where clipper is opened on its own; the file's location is one optional key in clipper's own `content.local.json`. **Clipper does not read fun_time's config**, and has no path to the fun_time checkout. It used to do both, for a VLC prefill the suite outgrew.
+- **What the suite tells clipper**: exactly two things, both about one video. Fun Time's `;` pushes — it reads the main player's status file and runs `python -m clipper.create_session --video <path> --time <seconds>`. `clipper/main_player_prefill.py` pulls the same two fields out of the same file, for the case where clipper is opened on its own; the file's location is one optional key in clipper's own `content.local.json`. **Clipper does not read fun_time's config**, and has no path to the fun_time checkout. It used to do both, for a VLC prefill the suite outgrew.
 - **Output dirs**: Clips export to `<suite-root>/videos/genau/clips/`, audio to `<suite-root>/videos/genau/audio/`. These are shared with fun_time's Genau listener.
 - **What an export records**: what made each finished clip, as `provenance.cut` on the clip's metadata sidecar (`<suite-root>/videos/metadata/genau/clips/<name>.json`, the record Evolver keeps for that clip). A sweep reads it to find the clips made before a change and remake them.
 - **Entry point**: `python -m clipper` -> `__main__.py` -> `app.py:main()` -> launcher dialog -> UI.
@@ -64,7 +64,7 @@ not bump it. The near miss that still counts: a default tuned in
 
 ## Testing principles
 
-- **Test through realistic inputs, not mocked internals.** Feed the real thing through the real function, with only the outside world stubbed. `tests/test_nau_prefill.py` builds its status payload from the key set it reads out of Nau's own `status_fields`, rather than from a fixture in the shape clipper happens to want — so the test fails when the producer's format moves, which is the whole reason to have it.
+- **Test through realistic inputs, not mocked internals.** Feed the real thing through the real function, with only the outside world stubbed. `tests/test_main_player_prefill.py` builds its status payload from the key set it reads out of the main player's own `status_fields`, rather than from a fixture in the shape clipper happens to want — so the test fails when the producer's format moves, which is the whole reason to have it.
 - **Test each resolution path independently.** If a function has a primary path and a fallback, write separate tests proving each works — and that the fallback is not reached when the primary succeeds. `tests/test_fetch_rife.py` does this for the archive: an intact copy already on disk is reused, and `mock.assert_not_called()`-style stubs prove nothing was downloaded.
 - **Mock at the boundary, not in the middle.** Patch the I/O (`clip_postprocess_media`'s `ffprobe_video`, `read_frames`, `encode_with_ffmpeg`) and let everything above it run for real, as `tests/test_clipper_postprocess_pipeline.py` does. Stubbing the intermediate logic tests the stubs.
 
