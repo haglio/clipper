@@ -12,7 +12,7 @@ from .frame_window import FrameWindow
 from .gui.launcher_dialog import LauncherDialog
 from .launch_choice import ClipWholeVideo, LaunchChoice, LoadSession, NewSession
 from .loop_cursor import LoopCursor
-from .nau_prefill import detect_nau_session_prefill
+from .main_player_prefill import detect_main_player_session_prefill
 from .paths import LAST_SESSION_FILE, SESSIONS_DIR, ensure_runtime_dirs, sanitize_name
 from .session_persistence import read_json
 from .state import VideoState
@@ -103,7 +103,7 @@ def launch_state() -> VideoState | None:
     last_session = LAST_SESSION_FILE.read_text(encoding="utf-8").strip() if LAST_SESSION_FILE.exists() else ""
     dialog = LauncherDialog(last_session=last_session)
 
-    prefill = detect_nau_session_prefill()
+    prefill = detect_main_player_session_prefill()
     if prefill:
         dialog.prefill(prefill.session_name, prefill.video_file, prefill.timestamp)
 

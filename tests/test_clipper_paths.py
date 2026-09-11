@@ -116,7 +116,7 @@ class TestWhereTheLibraryFoldersAre:
     def test_an_overlay_with_no_suite_root_says_so_and_names_the_file(
         self, content_overlay
     ):
-        local = content_overlay({"nau_status_file": "D:/example-suite/nau_status.txt"})
+        local = content_overlay({"main_player_status_file": "D:/example-suite/main_player_status.txt"})
 
         with pytest.raises(LookupError, match="suite_root"):
             clips_dir()
