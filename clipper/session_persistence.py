@@ -41,6 +41,9 @@ def read_json(path: Path) -> dict[str, Any]:
         return json.load(f)
 
 
+#: Which shape a session file is.  Evolver rewrites only a version it was
+#: written for, so this number going up is how a change here reaches it as a
+#: refusal rather than as a wrong rewrite.
 SESSION_FORMAT_VERSION = 1
 
 
@@ -68,6 +71,12 @@ def session_payload(
     already drifted (fourteen keys, no `vr`).  Evolver enumerates this
     directory and rewrites `video_path` in it, so the key set and its order are
     a contract with another repo, not an implementation detail.
+
+    Four of these keys are that repo's and not ours to rename quietly:
+    `version` says which shape it is reading, `video_path` is the reference it
+    repoints when it moves a video, and `fps` with `total_frames` are how it
+    recognizes the same footage under a name it no longer has.
+    `tests/test_clipper_session_persistence.py` holds all four.
     """
     return {
         "version": SESSION_FORMAT_VERSION,
