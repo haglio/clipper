@@ -244,6 +244,28 @@ def content_overlay(tmp_path, monkeypatch):
 
 
 @pytest.fixture
+def library(tmp_path, content_overlay) -> Path:
+    """A media library of the test's own, so nothing a test exports or records
+    lands in the one this machine's overlay names."""
+    root = tmp_path / "library"
+    content_overlay({"suite_root": str(root)})
+    return root
+
+
+@pytest.fixture
+def genau_sidecar(library):
+    """Where the family files the metadata of a clip in Genau's folder."""
+    return lambda clip_name: library / "videos" / "metadata" / "genau" / "clips" / f"{clip_name}.json"
+
+
+@pytest.fixture
+def recorded_cut(genau_sidecar):
+    """The stamp filed on a Genau clip's sidecar for the cut that made the clip."""
+    return lambda clip_name: json.loads(
+        genau_sidecar(clip_name).read_text(encoding="utf-8"))["provenance"]["cut"]
+
+
+@pytest.fixture
 def rendered():
     """Paint a widget into an image, so a test can read the pixels it drew.
 

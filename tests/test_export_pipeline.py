@@ -14,6 +14,9 @@ import pytest
 
 from clipper.export_pipeline import run_export
 from clipper.paths import RAW_CLIPS_DIR, audio_dir, clips_dir, vr_clips_dir
+from clipper.sidecar import record_provenance
+
+pytestmark = pytest.mark.usefixtures("library")
 
 
 class _Watcher:
@@ -204,6 +207,24 @@ class TestVrExportPath:
         assert steps["post"].calls[0][2].parent == vr_clips_dir()
 
 
+class TestALoopedClipsRecord:
+    """The loop fix stamps the clip from inside its own run, whose code is what
+    made it -- which is not always the code this window was opened on."""
+
+    def test_the_export_leaves_the_stamp_the_loop_fix_wrote(
+        self, state, steps, watcher, recorded_cut
+    ):
+        def loop_fix(_state, _raw_path, clip_path, _progress):
+            record_provenance(clip_path, recipe="clip_postprocess", recipe_version="3")
+            return True, str(clip_path)
+
+        with patch("clipper.export_steps.run_clip_postprocess", loop_fix):
+            run_export(state, watcher)
+
+        recorded = recorded_cut(state.session_name)
+        assert (recorded["recipe"], recorded["recipe_version"]) == ("clip_postprocess", "3")
+
+
 class TestSkipPostprocess:
     """A whole-video export is already a loop; it does not want the seam pass."""
 
@@ -234,3 +255,15 @@ class TestSkipPostprocess:
         run_export(state, watcher)
 
         assert steps["audio"].called
+
+    def test_the_clip_says_clipper_made_it_and_that_no_recipe_did(
+        self, state, steps, watcher, recorded_cut
+    ):
+        """Nothing but the cut touched it, so a sweep for clips made before a
+        change to the loop fix finds nothing here to remake."""
+        run_export(state, watcher)
+
+        recorded = recorded_cut(state.session_name)
+        assert (recorded["app"], recorded["recipe"], recorded["recipe_version"]) == (
+            "clipper", None, None,
+        )

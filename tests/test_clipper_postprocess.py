@@ -12,6 +12,8 @@ from clipper.clip_postprocess_transforms import normalize_loop_mode, shift_frame
 from clipper.export_progress import fraction_in
 from clipper.postprocess_options import PostprocessOptions
 
+pytestmark = pytest.mark.usefixtures("library")
+
 
 class TestShiftFramesHalfway:
     def test_rotates_sequence_from_middle(self, frames_of, values_of):

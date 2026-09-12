@@ -13,6 +13,7 @@ from pathlib import Path
 from . import export_steps
 from .export_progress import ExportProgress
 from .paths import RAW_CLIPS_DIR, audio_dir, clips_dir, sanitize_name, vr_clips_dir
+from .sidecar import record_provenance
 from .state import VideoState
 
 
@@ -54,6 +55,7 @@ def run_export(state: VideoState, progress: ExportProgress) -> tuple[bool, str]:
             return False, detail
 
         if state.skip_postprocess:
+            record_provenance(clip_path)
             progress.fix(1.0)
         else:
             ok, detail = export_steps.run_clip_postprocess(

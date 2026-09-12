@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -8,12 +9,16 @@ import numpy as np
 import pytest
 
 from clipper.clip_postprocess_pipeline import (
+    RECIPE_VERSION,
     build_output_frames,
     compute_bridge_frames,
     compute_seam_frames,
     postprocess_clip,
 )
+from clipper.paths import clips_dir
 from clipper.postprocess_options import PostprocessOptions
+
+pytestmark = pytest.mark.usefixtures("library")
 
 
 def test_compute_bridge_frames_uses_milliseconds_when_explicit_frames_missing():
@@ -341,6 +346,22 @@ def test_postprocess_clip_passes_the_encoder_settings_through(tmp_path, run_pipe
     assert encoder.calls[0]["crf"] == 30
     assert encoder.calls[0]["preset"] == "veryfast"
     assert encoder.calls[0]["pix_fmt"] == "yuv444p"
+
+
+def test_a_clip_it_writes_into_the_library_says_the_loop_fix_made_it(
+    tmp_path, run_pipeline, recorded_cut
+):
+    """The recipe's name is what a sweep for clips made before a change filters
+    on, so it is written out here rather than read back off the module."""
+    clips_dir().mkdir(parents=True)
+    options = replace(_options(tmp_path), output=str(clips_dir() / "scene one.mp4"))
+
+    run_pipeline(options)
+
+    recorded = recorded_cut("scene one")
+    assert (recorded["app"], recorded["recipe"], recorded["recipe_version"]) == (
+        "clipper", "clip_postprocess", RECIPE_VERSION,
+    )
 
 
 def test_postprocess_clip_refuses_a_size_budget_of_zero(tmp_path, run_pipeline):

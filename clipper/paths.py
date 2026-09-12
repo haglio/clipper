@@ -52,6 +52,10 @@ def audio_dir() -> Path:
     return _genau_dir() / "audio"
 
 
+def metadata_dir() -> Path:
+    return suite_root() / "videos" / "metadata"
+
+
 def vr_video_dir() -> PureWindowsPath:
     """The library folder whose videos are VR, which is what the launcher's
     checkbox reads to decide whether an export lands in ``vr_clips``.
