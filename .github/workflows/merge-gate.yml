@@ -41,6 +41,5 @@ jobs:
       qt-platform: offscreen
       cache-path: tools/rife-ncnn-vulkan-20221029-windows
       cache-key: rife-20221029
-      reverse: false
       prepare: |
         python tools/fetch_rife.py --require
