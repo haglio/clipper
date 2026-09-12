@@ -14,6 +14,7 @@ Clipper is a standalone PyQt6/OpenCV video clip editor, extracted from the fun_t
 
 - **What the suite tells clipper**: exactly two things, both about one video. Fun Time's `;` pushes — it reads Nau's status file and runs `python -m clipper.create_session --video <path> --time <seconds>`. `clipper/nau_prefill.py` pulls the same two fields out of the same file, for the case where clipper is opened on its own; the file's location is one optional key in clipper's own `content.local.json`. **Clipper does not read fun_time's config**, and has no path to the fun_time checkout. It used to do both, for a VLC prefill the suite outgrew.
 - **Output dirs**: Clips export to `<suite-root>/videos/genau/clips/`, audio to `<suite-root>/videos/genau/audio/`. These are shared with fun_time's Genau listener.
+- **What an export records**: what made each finished clip, as `provenance.cut` on the clip's metadata sidecar (`<suite-root>/videos/metadata/genau/clips/<name>.json`, the record Evolver keeps for that clip). A sweep reads it to find the clips made before a change and remake them.
 - **Entry point**: `python -m clipper` -> `__main__.py` -> `app.py:main()` -> launcher dialog -> UI.
 - **Launcher chain**: `Clipper.lnk` -> `wscript.exe` -> `launch_clipper.vbs` -> `python -m clipper`. `Clipper.lnk` is git-ignored, so it is made by hand on each machine; **after making it, run `set_shortcut_appid.ps1` once** to stamp the shortcut with the same AppUserModelID the app sets at startup, or Windows gives the running app a second, unlabelled taskbar button instead of grouping it under the shortcut. Nothing calls that script — not CI, not the launcher — so this line is its only caller; `tests/test_process_name.py` pins its default AppId against `clipper/app.py`'s constant so the two cannot drift.
 - **Shared scaffolding**: logging setup, exception hooks and `hidden_subprocess_kwargs` come from the sibling `../app_support`, which every app in this family installs editable — fix those there, not here. Install it with `--config-settings editable_mode=compat`; its README says why, and its `tests/test_install.py` goes red without it.
@@ -40,6 +41,22 @@ does fetch it, and fails rather than skipping the four tests that drive the seam
 bridge. Everywhere else those four skip; without the binary the postprocess falls
 back to its geometric seam, which is also what happens in production.
 
+## Bump the loop fix's recipe version when its output changes
+
+Every clip the loop fix writes is stamped with `RECIPE_VERSION` from
+`clipper/clip_postprocess_pipeline.py`, and that number is what a later sweep
+compares to tell the clips made before a change from the ones made after it.
+**Bump it in the commit that changes what the loop fix writes**: a transform in
+`clip_postprocess_transforms.py`, how `clip_postprocess_pipeline.py` builds the
+frames or shrinks the file, the encode in `clip_postprocess_media.py`, a default
+in `postprocess_options.py`, or the RIFE build `tools/fetch_rife.py` fetches.
+
+Nothing checks it, and a missed bump fails silently: clips from before and after
+the change carry the same number, so the only way left to tell them apart is by
+commit. A change that leaves the output as it was (a rename, a refactor) does
+not bump it. The near miss that still counts: a default tuned in
+`postprocess_options.py` alone, which touches no transform and changes every clip.
+
 ## Communication rules
 
 - **Answer questions before doing work.** When the user asks questions or raises concerns, respond to each one. Do not silently go off and do a batch of work instead of engaging with the conversation.
@@ -55,6 +72,7 @@ back to its geometric seam, which is also what happens in production.
 
 - The test environment is the project `.venv`, not system Python or Conda.
 - `sessions/` and `raw_clips/` are at the project root (not inside `clipper/`). They are gitignored runtime data.
+- A test that runs an export or the loop fix into `clips_dir()` writes that clip's metadata sidecar for real. Ask for the `library` fixture, which gives the test a library under tmp; without it the sidecar lands in the library this machine's overlay names.
 
 ## Test fixtures must be fabricated, never copied from the real library
 

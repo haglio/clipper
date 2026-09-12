@@ -56,7 +56,7 @@ def checkout_dirs(tmp_path: Path, monkeypatch):
 
 
 @pytest.fixture
-def runtime_dirs(tmp_path: Path, content_overlay, checkout_dirs):
+def runtime_dirs(library, checkout_dirs):
     """Everything ``ensure_runtime_dirs`` creates, under tmp_path.
 
     Four of the six it had were patched and two were not, so simply running the
@@ -68,8 +68,7 @@ def runtime_dirs(tmp_path: Path, content_overlay, checkout_dirs):
     here; a third checkout constant would escape, which is what the guard test
     below is for.
     """
-    content_overlay({"suite_root": str(tmp_path / "library")})
-    genau = tmp_path / "library" / "videos" / "genau"
+    genau = library / "videos" / "genau"
     return {
         **checkout_dirs,
         "clips_dir": genau / "clips",
