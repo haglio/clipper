@@ -11,7 +11,7 @@ import numpy as np
 from .clip_range import ClipRange
 from .frame_window import FrameWindow
 from .loop_cursor import LoopCursor
-from .loop_modes import LOOP_MODE_BASE_TIP_BASE
+from .loop_modes import LoopMode
 from .session_persistence import (
     autosave_session as persist_session_state,
 )
@@ -19,7 +19,7 @@ from .session_persistence import (
     current_payload as build_current_payload,
 )
 from .suggestions import Suggestions
-from .wrap_modes import WRAP_OVER_LOADED, wrap_bounds
+from .wrap_modes import WrapMode, wrap_bounds
 
 
 @dataclass
@@ -35,8 +35,8 @@ class VideoState:
     session_name: str
     session_path: str
     original_session_payload: dict[str, Any]
-    loop_mode: str = LOOP_MODE_BASE_TIP_BASE
-    wrap_mode: str = WRAP_OVER_LOADED
+    loop_mode: LoopMode = LoopMode.BASE_TIP_BASE
+    wrap_mode: WrapMode = WrapMode.OVER_LOADED
     skip_postprocess: bool = False
     vr: bool = False
     session_warning: str = ""

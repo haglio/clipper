@@ -66,6 +66,5 @@ def shift_active_range(state: VideoState, direction: int) -> None:
 
 
 def cycle_loop_mode(state: VideoState, step: int = 1) -> None:
-    current_idx = LOOP_MODES.index(state.loop_mode) if state.loop_mode in LOOP_MODES else 0
-    state.loop_mode = LOOP_MODES[(current_idx + step) % len(LOOP_MODES)]
+    state.loop_mode = LOOP_MODES[(LOOP_MODES.index(state.loop_mode) + step) % len(LOOP_MODES)]
     state.mark_dirty()

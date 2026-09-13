@@ -15,6 +15,7 @@ from clipper.clip_postprocess_pipeline import (
     compute_seam_frames,
     postprocess_clip,
 )
+from clipper.loop_modes import LoopMode
 from clipper.paths import clips_dir
 from clipper.postprocess_options import PostprocessOptions
 
@@ -34,7 +35,7 @@ def test_compute_bridge_frames_caps_to_one_third_of_normalized_frames():
 def test_build_output_frames_keep_length_replaces_tail_with_bridge(frames_of, values_of):
     out_frames, normalized_n = build_output_frames(
         frames_of([1, 2, 3, 4]),
-        loop_mode="base-tip-base",
+        loop_mode=LoopMode.BASE_TIP_BASE,
         bridge_frames=1,
         mode="blend",
         keep_length=True,
@@ -48,7 +49,7 @@ def test_build_output_frames_keep_length_replaces_tail_with_bridge(frames_of, va
 def test_build_output_frames_append_keeps_original_and_adds_bridge(frames_of, values_of):
     out_frames, normalized_n = build_output_frames(
         frames_of([1, 2, 3, 4]),
-        loop_mode="base-tip-base",
+        loop_mode=LoopMode.BASE_TIP_BASE,
         bridge_frames=2,
         mode="blend",
         keep_length=False,
@@ -63,7 +64,7 @@ def test_build_output_frames_register_mode_falls_back_on_tiny_frames(frames_of):
     """Register mode should fall back gracefully on 1x1 frames with no keypoints."""
     out_frames, normalized_n = build_output_frames(
         frames_of([10, 20, 30, 40, 50, 60]),
-        loop_mode="base-tip-base",
+        loop_mode=LoopMode.BASE_TIP_BASE,
         bridge_frames=1,
         mode="register",
         keep_length=True,
@@ -86,7 +87,7 @@ class TestTheRegisteredSeam:
     def _built(self, frames, **overrides):
         return build_output_frames(
             frames,
-            **{"loop_mode": "base-tip-base", "bridge_frames": 2, "mode": "register",
+            **{"loop_mode": LoopMode.BASE_TIP_BASE, "bridge_frames": 2, "mode": "register",
                "keep_length": True, "symmetric_blend": 0, "seam_frames": 3,
                **overrides},
         )
@@ -166,7 +167,7 @@ def test_build_output_frames_rejects_keep_length_when_bridge_is_too_long(frames_
     with pytest.raises(RuntimeError, match="--keep-length bridge is too long"):
         build_output_frames(
             frames_of([1, 2, 3]),
-            loop_mode="base-tip-base",
+            loop_mode=LoopMode.BASE_TIP_BASE,
             bridge_frames=3,
             mode="blend",
             keep_length=True,
@@ -254,7 +255,7 @@ def test_postprocess_clip_reports_the_clip_it_actually_encoded(tmp_path, run_pip
     assert summary == {
         "fps": 24.0,
         "input_frames": 4,
-        "loop_mode": "base-tip-base",
+        "loop_mode": LoopMode.BASE_TIP_BASE,
         "normalized_frames": 4,
         "bridge_frames": 1,
         "output_frames": 4,
@@ -272,7 +273,7 @@ def test_postprocess_clip_reports_the_clip_it_actually_encoded(tmp_path, run_pip
 
 def test_postprocess_clip_normalizes_the_loop_before_bridging(tmp_path, run_pipeline):
     """base-tip mirrors the four frames back to seven before the bridge lands."""
-    summary, encoder = run_pipeline(_options(tmp_path, loop_mode="base-tip"))
+    summary, encoder = run_pipeline(_options(tmp_path, loop_mode=LoopMode.BASE_TIP))
 
     assert summary["normalized_frames"] == 7
     assert summary["output_frames"] == 7
@@ -385,7 +386,7 @@ _BLEND_SOURCE = list(range(10, 170, 10))
 def _blend_run(frames_of, values_of, symmetric_blend):
     """The frames the bridge is built from, for one --symmetric-blend width."""
     out, normalized_n = build_output_frames(
-        frames_of(_BLEND_SOURCE), loop_mode="base-tip-base", bridge_frames=1,
+        frames_of(_BLEND_SOURCE), loop_mode=LoopMode.BASE_TIP_BASE, bridge_frames=1,
         mode="blend", keep_length=False, symmetric_blend=symmetric_blend,
     )
     return values_of(out[:normalized_n]), normalized_n
@@ -426,7 +427,7 @@ def test_the_register_fallback_blends_the_same_way(frames_of, values_of):
     blended, n = _blend_run(frames_of, values_of, 2)
 
     out, registered_n = build_output_frames(
-        frames_of(_BLEND_SOURCE), loop_mode="base-tip-base", bridge_frames=1,
+        frames_of(_BLEND_SOURCE), loop_mode=LoopMode.BASE_TIP_BASE, bridge_frames=1,
         mode="register", keep_length=False, symmetric_blend=2,
     )
 

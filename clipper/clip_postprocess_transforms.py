@@ -9,12 +9,7 @@ import tempfile
 import cv2
 import numpy as np
 
-from .loop_modes import (
-    LOOP_MODE_BASE_TIP,
-    LOOP_MODE_BASE_TIP_BASE,
-    LOOP_MODE_TIP_BASE,
-    LOOP_MODE_TIP_BASE_TIP,
-)
+from .loop_modes import LoopMode
 
 
 def smoothstep01(x: float) -> float:
@@ -361,14 +356,14 @@ def shift_frames_halfway(frames: list[np.ndarray]) -> list[np.ndarray]:
     return list(frames[shift:]) + list(frames[:shift])
 
 
-def normalize_loop_mode(frames: list[np.ndarray], loop_mode: str) -> list[np.ndarray]:
-    if loop_mode == LOOP_MODE_BASE_TIP_BASE:
+def normalize_loop_mode(frames: list[np.ndarray], loop_mode: LoopMode) -> list[np.ndarray]:
+    if loop_mode is LoopMode.BASE_TIP_BASE:
         return [frame.copy() for frame in frames]
-    if loop_mode == LOOP_MODE_TIP_BASE_TIP:
+    if loop_mode is LoopMode.TIP_BASE_TIP:
         return [frame.copy() for frame in shift_frames_halfway(frames)]
-    if loop_mode == LOOP_MODE_BASE_TIP:
+    if loop_mode is LoopMode.BASE_TIP:
         return [frame.copy() for frame in frames] + [frame.copy() for frame in frames[-2::-1]]
-    if loop_mode == LOOP_MODE_TIP_BASE:
+    if loop_mode is LoopMode.TIP_BASE:
         reversed_frames = list(reversed(frames))
         return [frame.copy() for frame in reversed_frames[:-1]] + [frame.copy() for frame in frames]
     raise RuntimeError(f"Unsupported loop mode: {loop_mode}")

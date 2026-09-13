@@ -8,7 +8,9 @@ import os
 from pathlib import Path
 from typing import Any
 
+from .loop_modes import LoopMode
 from .paths import LAST_SESSION_FILE
+from .wrap_modes import WrapMode
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +61,8 @@ def session_payload(
     active_end: int,
     current: int,
     seconds_per_step: float,
-    loop_mode: str,
-    wrap_mode: str,
+    loop_mode: LoopMode,
+    wrap_mode: WrapMode,
     speed: float,
     vr: bool,
 ) -> dict:

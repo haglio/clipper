@@ -5,6 +5,8 @@ from __future__ import annotations
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QVBoxLayout, QWidget
 
+from clipper.loop_modes import LoopMode
+
 
 class TimelineControls(QWidget):
     """Collection of buttons for manipulating timeline bounds and marks."""
@@ -77,5 +79,5 @@ class TimelineControls(QWidget):
         layout.addLayout(bounds_row)
         layout.addLayout(mode_row)
 
-    def set_loop_mode(self, mode: str) -> None:
+    def set_loop_mode(self, mode: LoopMode) -> None:
         self.loop_mode_btn.setText(mode)

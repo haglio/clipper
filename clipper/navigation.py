@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .wrap_modes import WRAP_OVER_ACTIVE, WRAP_OVER_LOADED, wrap_bounds
+from .wrap_modes import WrapMode, wrap_bounds
 
 if TYPE_CHECKING:
     from .state import VideoState
@@ -10,9 +10,9 @@ if TYPE_CHECKING:
 
 def toggle_wrap_mode(state: VideoState) -> None:
     state.wrap_mode = (
-        WRAP_OVER_ACTIVE if state.wrap_mode == WRAP_OVER_LOADED else WRAP_OVER_LOADED
+        WrapMode.OVER_ACTIVE if state.wrap_mode is WrapMode.OVER_LOADED else WrapMode.OVER_LOADED
     )
-    if state.wrap_mode == WRAP_OVER_ACTIVE:
+    if state.wrap_mode is WrapMode.OVER_ACTIVE:
         state.window.hold_within(*wrap_bounds(state))
     state.mark_dirty()
 

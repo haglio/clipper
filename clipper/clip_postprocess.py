@@ -9,12 +9,12 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from clipper.clip_postprocess_pipeline import postprocess_clip
     from clipper.export_progress import progress_line
-    from clipper.loop_modes import LOOP_MODES
+    from clipper.loop_modes import LOOP_MODES, LoopMode
     from clipper.postprocess_options import PostprocessOptions
 else:
     from .clip_postprocess_pipeline import postprocess_clip
     from .export_progress import progress_line
-    from .loop_modes import LOOP_MODES
+    from .loop_modes import LOOP_MODES, LoopMode
     from .postprocess_options import PostprocessOptions
 
 
@@ -31,6 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("-o", "--output", required=True, help="Output video path")
     ap.add_argument(
         "--loop-mode",
+        type=LoopMode,
         choices=LOOP_MODES,
         default=PostprocessOptions.loop_mode,
         help="How to normalize the exported clip before smoothing the seam",

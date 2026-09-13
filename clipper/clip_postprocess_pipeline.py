@@ -15,6 +15,7 @@ from .clip_postprocess_transforms import (
     normalize_loop_mode,
     resize_frames,
 )
+from .loop_modes import LoopMode
 from .postprocess_options import PostprocessOptions
 from .sidecar import record_provenance
 
@@ -113,7 +114,7 @@ def _registered_seam(
 def build_output_frames(
     frames: list,
     *,
-    loop_mode: str,
+    loop_mode: LoopMode,
     bridge_frames: int,
     mode: str,
     keep_length: bool,

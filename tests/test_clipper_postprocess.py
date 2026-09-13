@@ -10,6 +10,7 @@ import pytest
 from clipper.clip_postprocess import main, parse_options
 from clipper.clip_postprocess_transforms import normalize_loop_mode, shift_frames_halfway
 from clipper.export_progress import fraction_in
+from clipper.loop_modes import LoopMode
 from clipper.postprocess_options import PostprocessOptions
 
 pytestmark = pytest.mark.usefixtures("library")
@@ -24,19 +25,19 @@ class TestShiftFramesHalfway:
 class TestNormalizeLoopMode:
     def test_base_tip_base_is_unchanged(self, frames_of, values_of):
         frames = frames_of([1, 2, 3, 2, 1])
-        assert values_of(normalize_loop_mode(frames, "base-tip-base")) == [1, 2, 3, 2, 1]
+        assert values_of(normalize_loop_mode(frames, LoopMode("base-tip-base"))) == [1, 2, 3, 2, 1]
 
     def test_tip_base_tip_rotates_by_half(self, frames_of, values_of):
         frames = frames_of([5, 4, 3, 2, 1, 2])
-        assert values_of(normalize_loop_mode(frames, "tip-base-tip")) == [2, 1, 2, 5, 4, 3]
+        assert values_of(normalize_loop_mode(frames, LoopMode("tip-base-tip"))) == [2, 1, 2, 5, 4, 3]
 
     def test_base_tip_appends_reversed_tail_without_duplicate_tip(self, frames_of, values_of):
         frames = frames_of([1, 2, 3])
-        assert values_of(normalize_loop_mode(frames, "base-tip")) == [1, 2, 3, 2, 1]
+        assert values_of(normalize_loop_mode(frames, LoopMode("base-tip"))) == [1, 2, 3, 2, 1]
 
     def test_tip_base_prepends_reversed_head_without_duplicate_tip(self, frames_of, values_of):
         frames = frames_of([3, 2, 1])
-        assert values_of(normalize_loop_mode(frames, "tip-base")) == [1, 2, 3, 2, 1]
+        assert values_of(normalize_loop_mode(frames, LoopMode("tip-base"))) == [1, 2, 3, 2, 1]
 
 
 class TestTheDefaultsHaveOneHome:

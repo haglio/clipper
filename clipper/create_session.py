@@ -14,15 +14,15 @@ from pathlib import Path
 
 from app_support.subprocess_utils import hidden_subprocess_kwargs
 
-from .loop_modes import LOOP_MODE_BASE_TIP_BASE
+from .loop_modes import LoopMode
 from .paths import LAST_SESSION_FILE, SESSIONS_DIR, sanitize_name
 from .session_persistence import safe_atomic_write_json, session_payload
-from .wrap_modes import WRAP_OVER_LOADED
+from .wrap_modes import WrapMode
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_SECONDS = 5.0
-DEFAULT_LOOP_MODE = LOOP_MODE_BASE_TIP_BASE
+DEFAULT_LOOP_MODE = LoopMode.BASE_TIP_BASE
 
 
 def ffprobe_video_metadata(video_path: str) -> tuple[float, int]:
@@ -83,7 +83,7 @@ def build_session_payload(
     *,
     session_name: str = "",
     seconds: float = DEFAULT_SECONDS,
-    loop_mode: str = DEFAULT_LOOP_MODE,
+    loop_mode: LoopMode = DEFAULT_LOOP_MODE,
     vr: bool = False,
 ) -> dict:
     """Build the session payload dict without touching the filesystem."""
@@ -106,7 +106,7 @@ def build_session_payload(
         current=start_idx,
         seconds_per_step=base_step / fps,
         loop_mode=loop_mode,
-        wrap_mode=WRAP_OVER_LOADED,
+        wrap_mode=WrapMode.OVER_LOADED,
         speed=1.0,
         vr=vr,
     )
@@ -118,7 +118,7 @@ def create_session(
     *,
     session_name: str = "",
     seconds: float = DEFAULT_SECONDS,
-    loop_mode: str = DEFAULT_LOOP_MODE,
+    loop_mode: LoopMode = DEFAULT_LOOP_MODE,
     vr: bool = False,
     sessions_dir: Path | None = None,
 ) -> Path:

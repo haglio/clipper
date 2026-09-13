@@ -16,6 +16,7 @@ from clipper.export_steps import (
     run_clip_postprocess,
     validate_video_file,
 )
+from clipper.loop_modes import LoopMode
 
 
 class _Recorder:
@@ -241,7 +242,7 @@ class TestRunClipPostprocess:
 
     def _run(self, tmp_path: Path, make_state, printed: list[str], returncode: int = 0):
         progress = _Recorder()
-        state = make_state(loop_mode="tip-base")
+        state = make_state(loop_mode=LoopMode.TIP_BASE)
         proc = MagicMock()
         proc.stdout = io.StringIO("".join(f"{line}\n" for line in printed))
         proc.wait.return_value = returncode

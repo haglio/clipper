@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .loop_modes import LOOP_MODE_BASE_TIP, LOOP_MODE_TIP_BASE
+from .loop_modes import LoopMode
 from .suggestion_search import (
     best_duplicate_match_index,
     best_turning_point_index,
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 def update_loop_suggestions(state: VideoState) -> None:
     start_changed, end_changed = state.suggestions.moved(state.active_start, state.active_end)
-    use_turning_point = state.loop_mode in {LOOP_MODE_BASE_TIP, LOOP_MODE_TIP_BASE}
+    use_turning_point = state.loop_mode in {LoopMode.BASE_TIP, LoopMode.TIP_BASE}
 
     suggested_in: int | None = None
     suggested_out: int | None = None
