@@ -36,6 +36,14 @@ dev = ["pytest>=9,<10", "pytest-timeout>=2.4,<3", "vulture>=2.16,<3", "ruff==0.1
 [tool.haglio]
 siblings = ["app_support", "shared_ui"]
 
+# What launch_clipper.vbs, the file the pinned shortcut runs, starts. The
+# launcher is rendered from this by `python -m app_support.launcher --write`.
+[tool.haglio.launchers."launch_clipper.vbs"]
+app = "Clipper"
+run = "-m clipper"
+named-interpreter = "Clipper-Clipper.exe"
+log = 'state\clipper_launcher.log'
+
 [tool.setuptools.packages.find]
 include = ["clipper*"]
 

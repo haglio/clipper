@@ -39,7 +39,6 @@ from app_support.launch_smoke import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = "clipper"
-LAUNCHER = REPO_ROOT / "launch_clipper.vbs"
 
 # The two files ``python -m clipper`` runs. Every helper ``main()`` calls lives
 # in ``app.py``, so between them they hold the whole launch sequence.
@@ -104,25 +103,3 @@ def test_a_launch_import_that_cannot_resolve_fails_here():
     assert_an_unresolvable_import_is_caught(
         _run_the_launchs_way, launch_imports(PACKAGE, LAUNCH_FILES),
         "clipper.state")
-
-
-def test_the_launcher_runs_the_package_from_this_repo_on_its_own_venv():
-    """A python off PATH finds the repo directory as a namespace package instead
-    of the editable install, and dies while importing -- before any window, with
-    nothing on screen to say so. The cd is what this test's ``cwd`` mirrors, so
-    a launcher that stopped doing it would leave this checking a fiction."""
-    text = LAUNCHER.read_text(encoding="utf-8", errors="replace")
-
-    assert ".venv\\Scripts\\python.exe" in text
-    assert "-m clipper" in text
-    assert "cd /d" in text
-
-
-def test_the_launcher_keeps_what_a_failed_launch_wrote_to_its_console():
-    """The launcher runs the app in a hidden window, so a crash during import
-    writes its traceback to a console nobody sees. Redirecting it to
-    ``state/clipper_launcher.log`` is what makes the next one readable."""
-    text = LAUNCHER.read_text(encoding="utf-8", errors="replace")
-
-    assert "clipper_launcher.log" in text
-    assert "2>&1" in text
