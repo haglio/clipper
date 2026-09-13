@@ -9,16 +9,12 @@ from .clip_range import ClipRange
 from .frame_store import load_range
 from .frame_window import FrameWindow
 from .loop_cursor import LoopCursor
-from .loop_modes import LOOP_MODE_BASE_TIP_BASE, LOOP_MODES
+from .loop_modes import read_loop_mode
 from .loop_suggestions import update_loop_suggestions
 from .paths import SESSIONS_DIR, sanitize_name
 from .state import VideoState
 from .suggestions import Suggestions
-from .wrap_modes import WRAP_OVER_LOADED
-
-
-def _normalized_loop_mode(loop_mode: str) -> str:
-    return loop_mode if loop_mode in LOOP_MODES else LOOP_MODE_BASE_TIP_BASE
+from .wrap_modes import read_wrap_mode
 
 
 def _normalized_speed(speed: float) -> float:
@@ -54,8 +50,8 @@ def load_video_state(payload: dict[str, Any], session_name: str) -> VideoState:
     active_start = int(payload["active_start"])
     active_end = int(payload["active_end"])
     current = int(payload.get("current", active_start))
-    loop_mode = _normalized_loop_mode(str(payload.get("loop_mode", LOOP_MODE_BASE_TIP_BASE)))
-    wrap_mode = payload.get("wrap_mode", WRAP_OVER_LOADED)
+    loop_mode = read_loop_mode(payload.get("loop_mode"))
+    wrap_mode = read_wrap_mode(payload.get("wrap_mode"))
     speed = _normalized_speed(float(payload.get("speed", 1.0)))
     vr = bool(payload.get("vr", False))
     session_name = payload.get("session_name", session_name)

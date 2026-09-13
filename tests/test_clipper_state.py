@@ -145,10 +145,6 @@ class TestCurrentPayload:
         s = make_state(base_step=30, fps=30.0)
         assert s.current_payload()["seconds_per_step"] == pytest.approx(1.0)
 
-    def test_wrap_mode_preserved(self, make_state):
-        s = make_state(wrap_mode="red")
-        assert s.current_payload()["wrap_mode"] == "red"
-
     def test_loop_mode_preserved(self, make_state):
         s = make_state(loop_mode="tip-base")
         assert s.current_payload()["loop_mode"] == "tip-base"

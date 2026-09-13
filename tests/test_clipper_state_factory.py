@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from clipper.loop_modes import LOOP_MODE_BASE_TIP_BASE
+from clipper.loop_modes import LoopMode
 from clipper.state_factory import load_video_state
 
 
@@ -51,7 +51,7 @@ def _load(payload: dict, *, frames: dict | None = None, capture=None):
 def test_a_loop_mode_the_app_does_not_have_falls_back_to_the_default():
     state = _load(_payload(loop_mode="not-a-mode"))
 
-    assert state.loop_mode == LOOP_MODE_BASE_TIP_BASE
+    assert state.loop_mode == LoopMode.BASE_TIP_BASE
 
 
 def test_a_speed_past_the_ceiling_is_clamped_to_it():

@@ -1,24 +1,31 @@
 """Which range the cursor wraps within, and the one place that answers it.
 
-The stored value is a color name because it is a key in the version-1 session
-JSON that evolver enumerates and rewrites, and that format is unversioned -- so
-the wire value stays `"blue"`/`"yellow"` and the constants carry the meaning the
-color cannot.  (An enum was the other option and is not taken here: the loader
-accepts whatever `wrap_mode` a session file holds and falls through to the
-active range, so a closed type would start rejecting files it reads today.
-That belongs with the family-wide sweep of bare-string mode sets, which can
-settle the accepted set for all nine at once.)
+The two words are colors because they are values in the version-1 session JSON
+that evolver enumerates and rewrites, and that format is unversioned -- so the
+wire word stays `"blue"`/`"yellow"` and the entries carry the meaning the color
+cannot.  A word this build does not know reads as the range a new session
+wraps within, rather than being rejected or falling through to the active one.
 """
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .state import VideoState
 
-WRAP_OVER_LOADED = "blue"
-WRAP_OVER_ACTIVE = "yellow"
+
+class WrapMode(StrEnum):
+    OVER_LOADED = "blue"
+    OVER_ACTIVE = "yellow"
+
+
+def read_wrap_mode(raw: object) -> WrapMode:
+    try:
+        return WrapMode(raw)
+    except ValueError:
+        return WrapMode.OVER_LOADED
 
 
 def wrap_bounds(state: VideoState) -> tuple[int, int]:
@@ -28,6 +35,6 @@ def wrap_bounds(state: VideoState) -> tuple[int, int]:
     literal in the timeline widget.  A typo in any of them read as the active
     range and said nothing.
     """
-    if state.wrap_mode == WRAP_OVER_LOADED:
+    if state.wrap_mode is WrapMode.OVER_LOADED:
         return state.loaded_start, state.loaded_end
     return state.active_start, state.active_end

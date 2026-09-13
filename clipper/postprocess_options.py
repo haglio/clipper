@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .loop_modes import LOOP_MODE_BASE_TIP_BASE
+from .loop_modes import LoopMode
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,7 @@ class PostprocessOptions:
 
     input: str
     output: str
-    loop_mode: str = LOOP_MODE_BASE_TIP_BASE
+    loop_mode: LoopMode = LoopMode.BASE_TIP_BASE
     bridge_ms: float = 80.0
     bridge_frames: int | None = None
     mode: str = "register"

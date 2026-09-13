@@ -20,7 +20,7 @@ from shared_ui.fonts import FONT_UI, SIZE_HEADING, make_font
 from clipper.frame_store import safe_frame
 from clipper.playback import current_loop_frame_index, loop_preview_indices
 from clipper.timecode import format_seconds
-from clipper.wrap_modes import WRAP_OVER_LOADED, wrap_bounds
+from clipper.wrap_modes import WrapMode, wrap_bounds
 
 from .button_bar import ButtonBar
 from .exit_dialog import ExitDialog
@@ -288,7 +288,7 @@ class ClipperMainWindow(QMainWindow):
             wrap_to=wrap_to,
             wrap_color=(
                 TIMELINE_LOADED
-                if state.wrap_mode == WRAP_OVER_LOADED
+                if state.wrap_mode is WrapMode.OVER_LOADED
                 else TIMELINE_ACTIVE
             ),
         )

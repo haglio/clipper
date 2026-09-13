@@ -314,8 +314,10 @@ def make_state():
     from clipper.clip_range import ClipRange
     from clipper.frame_window import FrameWindow
     from clipper.loop_cursor import LoopCursor
+    from clipper.loop_modes import read_loop_mode
     from clipper.state import VideoState
     from clipper.suggestions import Suggestions
+    from clipper.wrap_modes import read_wrap_mode
 
     def factory(
         *,
@@ -383,8 +385,8 @@ def make_state():
             session_name=session_name,
             session_path=session_path,
             original_session_payload={},
-            loop_mode=loop_mode,
-            wrap_mode=wrap_mode,
+            loop_mode=read_loop_mode(loop_mode),
+            wrap_mode=read_wrap_mode(wrap_mode),
             persist_session=_FakeAutosave(),
         )
 

@@ -10,7 +10,9 @@ from PyQt6.QtWidgets import QApplication
 from shared_ui.colors import BG_SECONDARY
 
 from clipper.gui.app import ClipperApp
+from clipper.loop_modes import LoopMode
 from clipper.playback import change_speed, toggle_loop_pause
+from clipper.wrap_modes import WrapMode
 
 
 @pytest.fixture
@@ -25,8 +27,8 @@ def mock_state():
     state.active_start = 20
     state.active_end = 80
     state.current = 50
-    state.loop_mode = "base-tip-base"
-    state.wrap_mode = "blue"
+    state.loop_mode = LoopMode.BASE_TIP_BASE
+    state.wrap_mode = WrapMode.OVER_LOADED
     state.speed = 1.0
     state.loop_paused = False
     state.suggested_in = None
@@ -164,7 +166,7 @@ class TestOnTick:
         assert live_app.window.warning_label.text() == "Autosave failed: disk full"
 
     def test_it_tells_the_controls_which_loop_mode_is_on(self, live_app):
-        live_app._state.loop_mode = "tip-base"
+        live_app._state.loop_mode = LoopMode.TIP_BASE
 
         live_app._on_tick()
 

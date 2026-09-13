@@ -3,11 +3,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from .loop_modes import (
-    LOOP_MODE_BASE_TIP,
-    LOOP_MODE_TIP_BASE,
-    LOOP_MODE_TIP_BASE_TIP,
-)
+from .loop_modes import LoopMode
 
 if TYPE_CHECKING:
     from .state import VideoState
@@ -21,12 +17,12 @@ def loop_preview_indices(state: VideoState) -> list[int]:
     forward = list(range(state.active_start, state.active_end + 1))
     if not forward:
         return [state.active_start]
-    if state.loop_mode == LOOP_MODE_TIP_BASE_TIP:
+    if state.loop_mode is LoopMode.TIP_BASE_TIP:
         shift = max(1, len(forward) // 2)
         return forward[shift:] + forward[:shift]
-    if state.loop_mode == LOOP_MODE_BASE_TIP:
+    if state.loop_mode is LoopMode.BASE_TIP:
         return forward + forward[-2::-1]
-    if state.loop_mode == LOOP_MODE_TIP_BASE:
+    if state.loop_mode is LoopMode.TIP_BASE:
         backward = list(reversed(forward))
         return backward[:-1] + forward
     return forward

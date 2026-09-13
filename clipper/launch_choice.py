@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .loop_modes import LOOP_MODE_BASE_TIP_BASE
+from .loop_modes import LoopMode
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,7 @@ class NewSession:
     session_name: str
     timestamp: str
     seconds: float
-    loop_mode: str = LOOP_MODE_BASE_TIP_BASE
+    loop_mode: LoopMode = LoopMode.BASE_TIP_BASE
     vr: bool = False
 
 

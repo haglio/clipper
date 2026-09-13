@@ -11,6 +11,8 @@ from PyQt6.QtWidgets import QApplication
 
 from clipper.gui.main_window import ClipperMainWindow, _WrapRow
 from clipper.gui.shortcuts import SHORTCUTS
+from clipper.loop_modes import LoopMode
+from clipper.wrap_modes import WrapMode
 
 
 @pytest.fixture
@@ -25,8 +27,8 @@ def mock_state():
     state.active_start = 20
     state.active_end = 80
     state.current = 50
-    state.loop_mode = "base-tip-base"
-    state.wrap_mode = "blue"
+    state.loop_mode = LoopMode.BASE_TIP_BASE
+    state.wrap_mode = WrapMode.OVER_LOADED
     state.speed = 1.0
     state.loop_paused = False
     state.suggested_in = None
@@ -427,11 +429,11 @@ class TestDynamicPositioning:
         w.timeline.set_active_range(20, 80)
         QApplication.processEvents()
 
-        mock_state.wrap_mode = "blue"
+        mock_state.wrap_mode = WrapMode.OVER_LOADED
         w.update_button_positions()
         blue_style = w.timeline_controls.wrap_btn.styleSheet()
 
-        mock_state.wrap_mode = "yellow"
+        mock_state.wrap_mode = WrapMode.OVER_ACTIVE
         w.update_button_positions()
         yellow_style = w.timeline_controls.wrap_btn.styleSheet()
 
@@ -439,7 +441,7 @@ class TestDynamicPositioning:
 
     def test_wrap_brace_spans_loaded_range_in_blue_mode(self, shown_window, mock_state, rendered):
         w = shown_window
-        mock_state.wrap_mode = "blue"
+        mock_state.wrap_mode = WrapMode.OVER_LOADED
         mock_state.loaded_start = 0
         mock_state.loaded_end = 100
         w.timeline.set_loaded_range(0, 100)
@@ -451,7 +453,7 @@ class TestDynamicPositioning:
 
     def test_wrap_brace_narrows_to_active_range_in_yellow_mode(self, shown_window, mock_state, rendered):
         w = shown_window
-        mock_state.wrap_mode = "yellow"
+        mock_state.wrap_mode = WrapMode.OVER_ACTIVE
         mock_state.active_start = 40
         mock_state.active_end = 60
         mock_state.loaded_start = 0

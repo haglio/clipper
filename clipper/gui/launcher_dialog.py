@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
 )
 
 from clipper.launch_choice import ClipWholeVideo, LaunchChoice, LoadSession, NewSession
-from clipper.loop_modes import LOOP_MODES
+from clipper.loop_modes import LOOP_MODES, LoopMode
 from clipper.paths import SESSIONS_DIR, vr_video_dir
 
 
@@ -117,7 +117,7 @@ class LauncherDialog(QDialog):
             session_name=self.session_name_edit.text().strip(),
             timestamp=self.timestamp_edit.text().strip(),
             seconds=float(self.seconds_edit.text().strip() or "5"),
-            loop_mode=self.loop_mode_combo.currentText(),
+            loop_mode=LoopMode(self.loop_mode_combo.currentText()),
             vr=self.vr_checkbox.isChecked(),
         )
 
