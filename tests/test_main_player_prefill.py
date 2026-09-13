@@ -104,8 +104,11 @@ class TestTheContractWithTheMainPlayer:
     """
 
     @staticmethod
-    def _main_player_status_source() -> Path | None:
-        """``fun_time/main_player/status.py`` beside the primary checkout, if it is there.
+    def _status_sources() -> list[Path]:
+        """The two files the main player's status lines come from, beside the
+        primary checkout: ``player_core/status.py`` for the lines every player
+        publishes, and ``fun_time/main_player/status.py`` for the main player's
+        own on top of them.  Empty where the checkouts are not there.
 
         Resolved through the primary rather than from here, because everything
         runs in a worktree and a worktree's neighbors are other worktrees.
@@ -118,10 +121,11 @@ class TestTheContractWithTheMainPlayer:
                 capture_output=True, text=True, check=True,
             ).stdout.strip()
         except (OSError, subprocess.SubprocessError):
-            return None
-        primary = (PROJECT_DIR / common).resolve().parent
-        source = primary.parent / "fun_time" / "main_player" / "status.py"
-        return source if source.is_file() else None
+            return []
+        siblings = (PROJECT_DIR / common).resolve().parent.parent
+        sources = (siblings / "player_core" / "player_core" / "status.py",
+                   siblings / "fun_time" / "main_player" / "status.py")
+        return [source for source in sources if source.is_file()]
 
     @staticmethod
     def _keys_clipper_reads() -> set[str]:
@@ -163,18 +167,18 @@ class TestTheContractWithTheMainPlayer:
         sibling has nothing to disagree with, and saying so in the assertion
         keeps this a test that always runs and always means something."""
         wanted = self._keys_clipper_reads()
-        source = self._main_player_status_source()
-        published = self._keys_main_player_publishes(source) if source else wanted
+        sources = self._status_sources()
+        published = set().union(*map(self._keys_main_player_publishes, sources)) if sources else wanted
 
         assert wanted and wanted <= published, (
-            f"main_player/status.py publishes {sorted(published)}, which no longer covers "
+            f"the main player publishes {sorted(published)}, which no longer covers "
             f"{sorted(wanted)} -- the launcher would prefill nothing"
         )
 
     def test_the_prefill_reads_a_payload_main_player_itself_produced(self, tmp_path: Path):
         """Not a fixture in our own shape: the writer's key set, whatever it holds."""
-        source = self._main_player_status_source()
-        keys = self._keys_main_player_publishes(source) if source else set(_PLAYING)
+        sources = self._status_sources()
+        keys = set().union(*map(self._keys_main_player_publishes, sources)) if sources else set(_PLAYING)
         payload = {key: _PLAYING.get(key, "0") for key in sorted(keys)}
         payload["video"] = "S:/library/main/beta clip.mp4"
         payload["position_ms"] = "1000"
