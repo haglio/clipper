@@ -22,8 +22,8 @@ requires-python = ">=3.14"
 # other half had not landed turned all of them red at once. Moving to a newer
 # one is this repo's own commit, with its own suite to answer for it.
 dependencies = [
-    "app-support @ git+https://github.com/haglio/app_support@v0.1.140",
-    "shared-ui @ git+https://github.com/haglio/shared_ui@v0.1.123",
+    "app-support @ git+https://github.com/haglio/app_support@v0.1.153",
+    "shared-ui @ git+https://github.com/haglio/shared_ui@v0.1.127",
     "numpy>=2.4,<3",
     "opencv-python>=4.8,<5",
     "PyQt6>=6,<7",
@@ -32,7 +32,7 @@ dependencies = [
 [project.optional-dependencies]
 # Pillow is the suite's, not the app's: the icon check in shared_ui.app_icon reads
 # the .ico with it, and nothing the app runs does.
-dev = ["pytest>=9,<10", "pytest-timeout>=2.4,<3", "vulture>=2.16,<3", "ruff==0.16.6",
+dev = ["pytest>=9,<10", "pytest-cov>=7,<8", "pytest-timeout>=2.4,<3", "vulture>=2.16,<3", "ruff==0.16.6",
        "pillow>=12,<13"]
 
 # The family checkouts this one is installed beside. shared_ui was named nowhere
@@ -70,5 +70,5 @@ include = ["clipper*"]
 # itself: it dumps the stack of the test that stopped, which turns a stalled
 # required check into a one-line diagnosis. tests/test_timeouts.py holds all
 # three halves of it.
-addopts = "-p app_support.sanitize.pytest_plugin --timeout=60 --timeout-method=thread"
+addopts = "-p app_support.sanitize.pytest_plugin -p app_support.coverage_gate --cov --cov-report= --timeout=60 --timeout-method=thread"
 testpaths = ["tests"]
