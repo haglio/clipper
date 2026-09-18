@@ -1,6 +1,6 @@
 """Content overlay — the private values this checkout needs at runtime.
 
-The suite root (where the media library and the sibling apps live) and the
+The library root (where the media library and the sibling apps live) and the
 status file the main player publishes into are machine-specific, so they come
 from ``content.local.json`` (git-ignored) rather than from source.  A committed
 ``content.example.json`` documents the shape and is what a fresh or public

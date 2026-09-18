@@ -224,7 +224,7 @@ def library(tmp_path, content_overlay) -> Path:
     """A media library of the test's own, so nothing a test exports or records
     lands in the one this machine's overlay names."""
     root = tmp_path / "library"
-    content_overlay({"suite_root": str(root)})
+    content_overlay({"library_root": str(root)})
     return root
 
 

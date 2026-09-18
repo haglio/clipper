@@ -60,10 +60,10 @@ def runtime_dirs(library, checkout_dirs):
     """Everything ``ensure_runtime_dirs`` creates, under tmp_path.
 
     Four of the six it had were patched and two were not, so simply running the
-    suite created ``<suite-root>/videos/genau/vr_clips`` and ``.../frames`` for
+    suite created ``<library-root>/videos/genau/vr_clips`` and ``.../frames`` for
     real -- a literal ``C:`` tree inside the checkout on a developer machine,
     and the live media library on the Windows machines the app runs on.  The
-    library folders now move together, by giving the overlay a suite root of its
+    library folders now move together, by giving the overlay a library root of its
     own, so a fourth one added to that loop lands under tmp_path without a line
     here; a third checkout constant would escape, which is what the guard test
     below is for.
@@ -86,15 +86,15 @@ class TestWhereTheLibraryFoldersAre:
     constants by name.
     """
 
-    def test_the_clip_folder_hangs_off_the_suite_root_the_overlay_names(
+    def test_the_clip_folder_hangs_off_the_library_root_the_overlay_names(
         self, tmp_path: Path, content_overlay
     ):
-        content_overlay({"suite_root": "D:/example-suite"})
+        content_overlay({"library_root": "D:/example-suite"})
 
         assert clips_dir() == Path("D:/example-suite/videos/genau/clips")
 
     def test_the_three_of_them_sit_together_under_one_folder(self, content_overlay):
-        content_overlay({"suite_root": "D:/example-suite"})
+        content_overlay({"library_root": "D:/example-suite"})
 
         parents = {clips_dir().parent, vr_clips_dir().parent, audio_dir().parent}
 
@@ -109,16 +109,16 @@ class TestWhereTheLibraryFoldersAre:
         """The proof that the read is at the call and not at the import: this
         overlay did not exist when ``clipper.paths`` was first imported.
         """
-        content_overlay({"suite_root": str(tmp_path / "written just now")})
+        content_overlay({"library_root": str(tmp_path / "written just now")})
 
         assert clips_dir().is_relative_to(tmp_path / "written just now")
 
-    def test_an_overlay_with_no_suite_root_says_so_and_names_the_file(
+    def test_an_overlay_with_no_library_root_says_so_and_names_the_file(
         self, content_overlay
     ):
         local = content_overlay({"main_player_status_file": "D:/example-suite/main_player_status.txt"})
 
-        with pytest.raises(LookupError, match="suite_root"):
+        with pytest.raises(LookupError, match="library_root"):
             clips_dir()
 
         with pytest.raises(LookupError, match=str(local.name)):
@@ -132,7 +132,7 @@ class TestTheVrVideoFolder:
 
     def test_it_is_the_vr_folder_under_the_librarys_own_root(self, content_overlay):
         """The literal tail is written here, so repointing it reds this."""
-        content_overlay({"suite_root": "D:/example-suite"})
+        content_overlay({"library_root": "D:/example-suite"})
 
         assert vr_video_dir() == PureWindowsPath(
             r"D:\example-suite\videos\videos\VR"
@@ -143,7 +143,7 @@ class TestTheVrVideoFolder:
         the folder is a Windows path too -- on POSIX a native one would make
         every match a no-op, and the tests run there.
         """
-        content_overlay({"suite_root": "D:/example-suite"})
+        content_overlay({"library_root": "D:/example-suite"})
 
         typed = PureWindowsPath(r"D:\example-suite\videos\videos\VR\seaside walk.mp4")
 
@@ -153,7 +153,7 @@ class TestTheVrVideoFolder:
 class TestEnsureRuntimeDirs:
     def test_creates_every_directory_the_app_writes_into(self, runtime_dirs):
         """Also the parents a fresh machine has none of: the library folders are
-        four levels under a suite root that does not exist yet either.
+        four levels under a library root that does not exist yet either.
         """
         ensure_runtime_dirs()
 
@@ -175,20 +175,20 @@ class TestEnsureRuntimeDirs:
 
 
 class TestAMachineWithNoLibraryYet:
-    """The committed example's ``suite_root`` is a placeholder, not a library.
+    """The committed example's ``library_root`` is a placeholder, not a library.
 
-    ``C:/path/to/suite-root`` is a *relative* path on POSIX, so deriving the
+    ``C:/path/to/library-root`` is a *relative* path on POSIX, so deriving the
     library folders from it made a literal ``C:`` tree inside the checkout; on
-    Windows the same string is absolute and made ``C:\\path\\to\\suite-root`` on
+    Windows the same string is absolute and made ``C:\\path\\to\\library-root`` on
     the system drive. Neither is anywhere clipper should write, and the next
     export would have put real media there -- inside the repo, one ``git add``
     from a public commit.
     """
 
-    def test_a_suite_root_of_its_own_is_what_makes_a_library(
+    def test_a_library_root_of_its_own_is_what_makes_a_library(
         self, tmp_path: Path, content_overlay
     ):
-        content_overlay({"suite_root": str(tmp_path / "library")})
+        content_overlay({"library_root": str(tmp_path / "library")})
 
         assert library_is_configured() is True
 
