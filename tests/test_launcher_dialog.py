@@ -107,13 +107,13 @@ class TestVrAutoDetect:
     so the assertion held for any value of it: repointing that constant at a
     folder outside the library left both green while every VR clip silently
     routed to the non-VR folder.  The paths below are literals in the two
-    spellings the file dialog returns, under the suite root the fabricated
+    spellings the file dialog returns, under the library root the fabricated
     overlay names.
     """
 
     @pytest.fixture(autouse=True)
     def _fabricated_library(self, content_overlay):
-        content_overlay({"suite_root": "D:/example-suite"})
+        content_overlay({"library_root": "D:/example-suite"})
 
     @pytest.mark.parametrize("typed, is_vr", [
         (r"D:\example-suite\videos\videos\VR\seaside walk.mp4", True),

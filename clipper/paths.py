@@ -15,7 +15,7 @@ LAST_SESSION_FILE = SESSIONS_DIR / ".last_session.txt"
 CLIP_POSTPROCESS_SCRIPT = PACKAGE_DIR / "clip_postprocess.py"
 
 
-def suite_root() -> Path:
+def library_root() -> Path:
     """Where the media library lives, as this machine's overlay names it.
 
     Asked at the call rather than read into a constant at import: a module that
@@ -24,20 +24,20 @@ def suite_root() -> Path:
     happened to be on disk first.  ``load_content`` caches the text, so asking
     repeatedly costs one read.
     """
-    return Path(overlay_value(load_content(), "suite_root", path=LOCAL_CONTENT))
+    return Path(overlay_value(load_content(), "library_root", path=LOCAL_CONTENT))
 
 
-def _placeholder_suite_root() -> Path:
+def _placeholder_library_root() -> Path:
     """What the committed example documents the shape with, and therefore the
-    one ``suite_root`` that names no library.  It is the example that is wanted
+    one ``library_root`` that names no library.  It is the example that is wanted
     whichever overlay this machine has, so both arguments are the example.
     """
-    return Path(load_content(EXAMPLE_CONTENT, EXAMPLE_CONTENT)["suite_root"])
+    return Path(load_content(EXAMPLE_CONTENT, EXAMPLE_CONTENT)["library_root"])
 
 
 def _genau_dir() -> Path:
     """The output tree genau reads, which is what clipper exports into."""
-    return suite_root() / "videos" / "genau"
+    return library_root() / "videos" / "genau"
 
 
 def clips_dir() -> Path:
@@ -53,7 +53,7 @@ def audio_dir() -> Path:
 
 
 def metadata_dir() -> Path:
-    return suite_root() / "videos" / "metadata"
+    return library_root() / "videos" / "metadata"
 
 
 def vr_video_dir() -> PureWindowsPath:
@@ -65,29 +65,29 @@ def vr_video_dir() -> PureWindowsPath:
     is a Windows one.  A native path would make the comparison a no-op
     everywhere else, which is where the tests run.
     """
-    return PureWindowsPath(suite_root()) / "videos" / "videos" / "VR"
+    return PureWindowsPath(library_root()) / "videos" / "videos" / "VR"
 
 
 def library_is_configured() -> bool:
-    """Whether ``suite_root`` names a real library or the example's placeholder.
+    """Whether ``library_root`` names a real library or the example's placeholder.
 
     The value, not which file it came from.  Setting a machine up means copying
     ``content.example.json`` to ``content.local.json`` and then editing it, and
-    between those two steps the overlay is local and ``suite_root`` is still
-    ``C:/path/to/suite-root`` — so "is there a local overlay" answers yes at
+    between those two steps the overlay is local and ``library_root`` is still
+    ``C:/path/to/library-root`` — so "is there a local overlay" answers yes at
     exactly the moment there is still no library.
     """
-    return suite_root() != _placeholder_suite_root()
+    return library_root() != _placeholder_library_root()
 
 
 def ensure_runtime_dirs() -> None:
     """Create what clipper writes into, as far as this machine has somewhere.
 
     The first two are inside the checkout and always made.  The library folders
-    are derived from ``suite_root``, which is a placeholder until a local
-    overlay supplies one: on POSIX ``C:/path/to/suite-root`` is a *relative*
+    are derived from ``library_root``, which is a placeholder until a local
+    overlay supplies one: on POSIX ``C:/path/to/library-root`` is a *relative*
     path, so making them put a literal ``C:`` tree inside the repo, and on
-    Windows it put ``C:\\path\\to\\suite-root`` on the system drive.  A checkout
+    Windows it put ``C:\\path\\to\\library-root`` on the system drive.  A checkout
     with no overlay has no library to export into, so it gets no folders
     pretending otherwise.
     """

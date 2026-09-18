@@ -16,13 +16,13 @@ def _forget_what_was_read():
     load_content.cache_clear()
 
 
-def _overlay(tmp_path: Path, suite_root: str) -> tuple[Path, Path]:
+def _overlay(tmp_path: Path, library_root: str) -> tuple[Path, Path]:
     """A local overlay and the committed example beside it, both fabricated."""
     local = tmp_path / "content.local.json"
-    local.write_text(json.dumps({"suite_root": suite_root}), encoding="utf-8")
+    local.write_text(json.dumps({"library_root": library_root}), encoding="utf-8")
     example = tmp_path / "content.example.json"
     example.write_text(
-        json.dumps({"suite_root": "C:/path/to/suite-root"}), encoding="utf-8"
+        json.dumps({"library_root": "C:/path/to/library-root"}), encoding="utf-8"
     )
     return local, example
 
@@ -38,7 +38,7 @@ class TestTheFileIsReadOnce:
         local, example = _overlay(tmp_path, "D:/example-suite")
         first = load_content(local, example)
 
-        local.write_text(json.dumps({"suite_root": "E:/other-suite"}), encoding="utf-8")
+        local.write_text(json.dumps({"library_root": "E:/other-suite"}), encoding="utf-8")
 
         assert load_content(local, example) == first
 
@@ -46,10 +46,10 @@ class TestTheFileIsReadOnce:
         local, example = _overlay(tmp_path, "D:/example-suite")
         load_content(local, example)
 
-        local.write_text(json.dumps({"suite_root": "E:/other-suite"}), encoding="utf-8")
+        local.write_text(json.dumps({"library_root": "E:/other-suite"}), encoding="utf-8")
         load_content.cache_clear()
 
-        assert load_content(local, example)["suite_root"] == "E:/other-suite"
+        assert load_content(local, example)["library_root"] == "E:/other-suite"
 
     def test_each_caller_gets_a_dictionary_of_its_own(self, tmp_path: Path):
         """The text is cached, not the parse.  Handing every caller the same
@@ -57,20 +57,20 @@ class TestTheFileIsReadOnce:
         """
         local, example = _overlay(tmp_path, "D:/example-suite")
 
-        load_content(local, example)["suite_root"] = "somewhere else entirely"
+        load_content(local, example)["library_root"] = "somewhere else entirely"
 
-        assert load_content(local, example)["suite_root"] == "D:/example-suite"
+        assert load_content(local, example)["library_root"] == "D:/example-suite"
 
 
 class TestWhichFileAnswers:
     def test_the_local_overlay_answers_when_there_is_one(self, tmp_path: Path):
         local, example = _overlay(tmp_path, "D:/example-suite")
 
-        assert load_content(local, example)["suite_root"] == "D:/example-suite"
+        assert load_content(local, example)["library_root"] == "D:/example-suite"
 
     def test_the_committed_example_answers_when_there_is_not(self, tmp_path: Path):
         _local, example = _overlay(tmp_path, "D:/example-suite")
 
         content = load_content(tmp_path / "absent.json", example)
 
-        assert content["suite_root"] == "C:/path/to/suite-root"
+        assert content["library_root"] == "C:/path/to/library-root"

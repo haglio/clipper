@@ -26,7 +26,7 @@ pytest-cache-files-*/
 /tools/rife-ncnn-vulkan-*/
 /tools/rife-ncnn-vulkan-*.zip
 
-# The example overlay's placeholder suite_root, "C:/path/to/suite-root", is a
+# The example overlay's placeholder library_root, "C:/path/to/library-root", is a
 # relative path on POSIX. ensure_runtime_dirs no longer derives library folders
 # from it, so nothing here makes this any more; the line stays because a
 # checkout running an older clipper still can, and what lands under it is media.
