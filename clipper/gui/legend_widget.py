@@ -15,9 +15,9 @@ from .timeline_colors import TEXT_LEGEND_JOIN, TEXT_LEGEND_LABEL
 if TYPE_CHECKING:
     from .shortcuts import LegendEntry
 
-# Keycap metrics.  Every one of these used to appear twice, once in the pass
-# that measures a row and once in the pass that draws it, so changing the size
-# of a keycap meant changing it in both or the row silently mis-centered.
+# Keycap metrics, named once for the pass that measures a row and the pass
+# that draws it: a size written out in both is a size that can change in one
+# and silently mis-center the row.
 KEYCAP_PADDING = 12
 KEYCAP_MIN_WIDTH = 24
 KEYCAP_HEIGHT = 22

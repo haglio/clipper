@@ -130,8 +130,7 @@ def autosave_session(state) -> None:
         except OSError:
             # The session itself reached disk, which is what the warning label
             # exists to report; losing the pointer only costs the launcher its
-            # offer next time.  Two adjacent failures, two strategies, and the
-            # second used to be silent.
+            # offer next time -- which is worth a log line rather than silence.
             logger.warning("Could not update %s", LAST_SESSION_FILE, exc_info=True)
     else:
         state.session_warning = f"Autosave failed: {detail}"
