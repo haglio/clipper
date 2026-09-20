@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from clipper.export_pipeline import run_export
+
 if TYPE_CHECKING:
     from clipper.state import VideoState
 
@@ -61,7 +63,5 @@ class ExportWorker(QThread):
         self.audio_progress.emit(fraction)
 
     def run(self) -> None:
-        from clipper.export_pipeline import run_export
-
         ok, message = run_export(self._state, self)
         self.export_finished.emit(ok, message)

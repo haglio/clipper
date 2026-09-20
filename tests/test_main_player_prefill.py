@@ -15,7 +15,9 @@ import textwrap
 from pathlib import Path
 
 from clipper import main_player_prefill
+from clipper.create_session import build_session_payload
 from clipper.main_player_prefill import SessionPrefill, detect_main_player_session_prefill
+from clipper.paths import PROJECT_DIR
 
 # The main player publishes `key=value` lines. Fabricated values throughout: what matters
 # is the shape, and a real one would name the library.
@@ -57,7 +59,6 @@ class TestWhatItReads:
         here means the same video makes two differently-named sessions
         depending on how the session was started.
         """
-        from clipper.create_session import build_session_payload
 
         prefill = detect_main_player_session_prefill(_status(tmp_path))
         pushed = build_session_payload(prefill.video_file, 0.0, fps=30.0, total_frames=100)
@@ -113,7 +114,6 @@ class TestTheContractWithTheMainPlayer:
         Resolved through the primary rather than from here, because everything
         runs in a worktree and a worktree's neighbors are other worktrees.
         """
-        from clipper.paths import PROJECT_DIR
 
         try:
             common = subprocess.run(

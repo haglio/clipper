@@ -1,6 +1,7 @@
 """Shared pytest fixtures for clipper tests."""
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import shutil
@@ -9,8 +10,19 @@ import time
 import uuid
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pytest
+from PyQt6.QtCore import QEventLoop, QTimer
+
+from clipper import content
+from clipper.clip_range import ClipRange
+from clipper.frame_window import FrameWindow
+from clipper.loop_cursor import LoopCursor
+from clipper.loop_modes import read_loop_mode
+from clipper.state import VideoState
+from clipper.suggestions import Suggestions
+from clipper.wrap_modes import read_wrap_mode
 
 # Render Qt offscreen for the whole suite. Agents run these tests on every commit
 # on the machine clipper is used from; without this, every test that builds a
@@ -121,7 +133,6 @@ def _the_last_session_pointer_is_never_the_real_one():
     checkout. Redirecting the name instead means a test cannot reach the real
     file by forgetting; the tests that assert on the pointer patch their own.
     """
-    import importlib
 
     scratch = TMP_ROOT / ".last_session.txt"
     TMP_ROOT.mkdir(parents=True, exist_ok=True)
@@ -177,7 +188,6 @@ class _FakeAutosave:
 def ticked_within():
     """Whether a Qt signal fires inside a budget; returns as soon as it does."""
     def wait(signal, budget_ms: int) -> bool:
-        from PyQt6.QtCore import QEventLoop, QTimer
 
         seen = []
         loop = QEventLoop()
@@ -205,7 +215,6 @@ def content_overlay(tmp_path, monkeypatch):
     ``load_content`` at the moment it needs a value, so redirecting the file is
     the whole of the injection.
     """
-    from clipper import content
 
     def use(values: dict | None = None) -> Path:
         local = tmp_path / "content.local.json"
@@ -275,7 +284,6 @@ def textured_frames():
     makes solid frames, which have no keypoints at all, so every alignment on
     them fails and the register path is never the one under test.
     """
-    import cv2
 
     def factory(count: int = 10, size: int = 128, seed: int = 10,
                 drift: tuple[int, int] = (8, 6)) -> list[np.ndarray]:
@@ -311,13 +319,6 @@ def make_state():
     __init__.py and pytest prepends the directory to sys.path, so renaming
     test_clipper_state.py broke two unrelated files.
     """
-    from clipper.clip_range import ClipRange
-    from clipper.frame_window import FrameWindow
-    from clipper.loop_cursor import LoopCursor
-    from clipper.loop_modes import read_loop_mode
-    from clipper.state import VideoState
-    from clipper.suggestions import Suggestions
-    from clipper.wrap_modes import read_wrap_mode
 
     def factory(
         *,

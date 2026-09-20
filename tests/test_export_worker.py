@@ -12,7 +12,8 @@ from unittest.mock import patch
 
 import pytest
 
-from clipper.gui.export_worker import ExportWorker
+from clipper.gui.export_dialog import ExportDialog
+from clipper.gui.export_worker import ExportWorker, connect_export
 
 
 @pytest.fixture
@@ -99,7 +100,7 @@ class TestWhatTheRunAnswers:
         worker = ExportWorker(state)
         seen = _recorded(worker)
 
-        with patch("clipper.export_pipeline.run_export", return_value=answer) as export:
+        with patch("clipper.gui.export_worker.run_export", return_value=answer) as export:
             worker.run()
 
         assert seen["export_finished"] == [answer]
@@ -115,8 +116,6 @@ class TestConnectExport:
     """
 
     def test_every_signal_the_worker_emits_reaches_the_dialog(self, state, steps):
-        from clipper.gui.export_dialog import ExportDialog
-        from clipper.gui.export_worker import connect_export
 
         dialog = ExportDialog()
         worker = connect_export(state, dialog)

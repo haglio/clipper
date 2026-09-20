@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 import pytest
+from PyQt6.QtCore import QSize
+from PyQt6.QtGui import QIcon
+from shared_ui.colors import TEXT_PRIMARY
+from shared_ui.icon_geometry import GLYPHS, Polygon
+from shared_ui.icons import glyph_pixmap
 
 from clipper.gui.button_bar import ButtonBar
 
@@ -41,10 +46,6 @@ class TestSignals:
 def test_the_transport_wears_the_familys_marks(bar):
     """Fun Time's bar and Evolver's Run Now draw these same marks, and all three
     apps sit open together.  These were an icon font's, at its weight."""
-    from PyQt6.QtCore import QSize
-    from PyQt6.QtGui import QIcon
-    from shared_ui.colors import TEXT_PRIMARY
-    from shared_ui.icons import glyph_pixmap
 
     size = QSize(48, 48)
 
@@ -59,7 +60,6 @@ def test_the_transport_wears_the_familys_marks(bar):
 def test_the_play_triangle_has_rounded_corners():
     """Which is what the icon font gave it, and what the family's own drawing
     lacked until filled shapes took a corner radius."""
-    from shared_ui.icon_geometry import GLYPHS, Polygon
 
     triangle = next(s for s in GLYPHS["play"] if isinstance(s, Polygon))
     assert triangle.round_radius > 0

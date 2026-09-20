@@ -9,6 +9,7 @@ from app_support.win32 import set_app_user_model_id, stamp_pinned_shortcuts
 
 from .paths import PROJECT_DIR
 from .session_launch import launch_state
+from .window_icons import clipper_icon_path
 
 APP_USER_MODEL_ID = "FunTime.Clipper"
 
@@ -52,13 +53,13 @@ def main() -> int:
     _name_this_process()
     logger = _init_logger()
     try:
-        from PyQt6.QtGui import QIcon
-        from PyQt6.QtWidgets import QApplication, QMessageBox
+        # Local: the toolkit loads when a window is wanted, and the handler
+        # below is what turns a failure to load it into a readable message.
+        from PyQt6.QtGui import QIcon  # noqa: PLC0415
+        from PyQt6.QtWidgets import QApplication, QMessageBox  # noqa: PLC0415
 
         _app = QApplication.instance() or QApplication(sys.argv)
         # Set icon early so the launcher dialog inherits it.
-        from .window_icons import clipper_icon_path
-
         _ico = clipper_icon_path()
         if _ico.exists():
             _app.setWindowIcon(QIcon(str(_ico)))
@@ -66,14 +67,18 @@ def main() -> int:
         if state is None:
             return 0
 
-        from .gui.app import ClipperApp
+        # Local: the editor window, and the toolkit under it, only once the
+        # launcher has said there is a session to open.
+        from .gui.app import ClipperApp  # noqa: PLC0415
 
         clipper_app = ClipperApp(state)
         return clipper_app.run()
     except Exception as exc:
         logger.exception("Clipper crashed")
         try:
-            from PyQt6.QtWidgets import QApplication, QMessageBox
+            # Local: this is the handler for a failure that may BE the
+            # toolkit's import, so it asks for it rather than assuming it.
+            from PyQt6.QtWidgets import QApplication, QMessageBox  # noqa: PLC0415
 
             _app = QApplication.instance() or QApplication(sys.argv)
             QMessageBox.critical(None, "Clipper", f"ERROR: {exc}")

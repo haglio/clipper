@@ -6,11 +6,16 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from PyQt6.QtCore import QPoint, Qt
-from PyQt6.QtGui import QKeyEvent
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QCloseEvent, QKeyEvent
+from PyQt6.QtWidgets import QApplication, QPushButton, QWidget
 
+from clipper.gui.exit_dialog import ExitDialog
+from clipper.gui.floating_controls import FloatingControlLayout
 from clipper.gui.main_window import ClipperMainWindow, _WrapRow
 from clipper.gui.shortcuts import SHORTCUTS
+from clipper.gui.timeline_colors import TIMELINE_LOADED
+from clipper.gui.timeline_controls import TimelineControls
+from clipper.gui.timeline_widget import TimelineWidget
 from clipper.loop_modes import LoopMode
 from clipper.wrap_modes import WrapMode
 
@@ -85,7 +90,6 @@ class TestConstruction:
 
     def test_all_buttons_have_no_focus_policy(self, window):
         """Buttons must not steal focus — arrow/space/enter must reach keyPressEvent."""
-        from PyQt6.QtWidgets import QPushButton
 
         buttons = window.findChildren(QPushButton)
         assert len(buttons) > 0
@@ -98,14 +102,12 @@ class TestConstruction:
 class TestCloseEvent:
     def test_close_accepted_when_no_prompt_needed(self, window, mock_state):
         mock_state.should_prompt_on_exit = False
-        from PyQt6.QtGui import QCloseEvent
 
         event = QCloseEvent()
         window.closeEvent(event)
         assert event.isAccepted()
 
     def _make_exit_dialog_mock(self, choice):
-        from clipper.gui.exit_dialog import ExitDialog
 
         mock_cls = MagicMock()
         mock_cls.SAVE = ExitDialog.SAVE
@@ -118,9 +120,7 @@ class TestCloseEvent:
 
     def test_close_saves_and_accepts_on_save_choice(self, window, mock_state):
         mock_state.should_prompt_on_exit = True
-        from PyQt6.QtGui import QCloseEvent
 
-        from clipper.gui.exit_dialog import ExitDialog
 
         mock_cls = self._make_exit_dialog_mock(ExitDialog.SAVE)
 
@@ -133,9 +133,7 @@ class TestCloseEvent:
 
     def test_close_ignores_on_cancel_choice(self, window, mock_state):
         mock_state.should_prompt_on_exit = True
-        from PyQt6.QtGui import QCloseEvent
 
-        from clipper.gui.exit_dialog import ExitDialog
 
         mock_cls = self._make_exit_dialog_mock(ExitDialog.CANCEL)
 
@@ -148,9 +146,7 @@ class TestCloseEvent:
 
     def test_close_discards_without_saving(self, window, mock_state):
         mock_state.should_prompt_on_exit = True
-        from PyQt6.QtGui import QCloseEvent
 
-        from clipper.gui.exit_dialog import ExitDialog
 
         mock_cls = self._make_exit_dialog_mock(ExitDialog.DISCARD)
 
@@ -494,14 +490,6 @@ class TestFloatingControlsStandAlone:
     indices and knows nothing about a session."""
 
     def test_it_places_the_wrap_button_over_the_range_it_is_given(self):
-        from PyQt6.QtWidgets import QWidget
-
-        from clipper.gui.floating_controls import FloatingControlLayout
-        from clipper.gui.main_window import _WrapRow
-        from clipper.gui.timeline_colors import TIMELINE_LOADED
-        from clipper.gui.timeline_controls import TimelineControls
-        from clipper.gui.timeline_widget import TimelineWidget
-
         host = QWidget()
         host.resize(600, 200)
         timeline = TimelineWidget(host)

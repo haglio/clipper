@@ -16,8 +16,15 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import cv2
 import numpy as np
 import pytest
+
+from clipper.create_session import build_session_payload
+from clipper.editing import set_mark_in
+from clipper.launch_choice import LoadSession
+from clipper.session_launch import build_state
+from clipper.session_persistence import current_payload
 
 # A fabricated session, in the byte layout safe_atomic_write_json produces:
 # json.dump(payload, indent=2) followed by one newline.
@@ -57,7 +64,6 @@ class _StubCapture:
         return True
 
     def get(self, prop):
-        import cv2
 
         return {cv2.CAP_PROP_FPS: self._fps,
                 cv2.CAP_PROP_FRAME_COUNT: float(self._total)}[prop]
@@ -86,8 +92,6 @@ def session_file(tmp_path: Path) -> Path:
 @pytest.fixture
 def load_session(session_file):
     """Open the golden session through the launcher's own load path."""
-    from clipper.launch_choice import LoadSession
-    from clipper.session_launch import build_state
 
     def load():
         golden = json.loads(GOLDEN_SESSION)
@@ -106,8 +110,6 @@ def test_the_two_writers_of_this_format_agree_on_it(make_state):
     the key that decides which directory the clip is exported to.  An added key
     or a moved one now has to be made in both, or this fails.
     """
-    from clipper.create_session import build_session_payload
-    from clipper.session_persistence import current_payload
 
     created = build_session_payload(
         "D:/media/example/beta rehearsal.mp4", 2.0, 30.0, 480,
@@ -128,7 +130,6 @@ def test_a_session_file_survives_a_load_and_a_save_byte_for_byte(session_file, l
 
 def test_an_edit_rewrites_the_values_and_nothing_else(session_file, load_session):
     """An edited session keeps every key, in order -- only the values move."""
-    from clipper.editing import set_mark_in
 
     state = load_session()
     set_mark_in(state)  # current (120) becomes the new active_start (was 90)
