@@ -10,7 +10,7 @@ from app_support.win32 import set_app_user_model_id, stamp_pinned_shortcuts
 from .paths import PROJECT_DIR
 from .session_launch import launch_state
 
-CLIPPER_APP_USER_MODEL_ID = "FunTime.Clipper"
+APP_USER_MODEL_ID = "FunTime.Clipper"
 
 
 def _set_windows_app_user_model_id() -> None:
@@ -23,11 +23,11 @@ def _set_windows_app_user_model_id() -> None:
     if sys.platform != "win32":
         return
     try:
-        set_app_user_model_id(CLIPPER_APP_USER_MODEL_ID)
+        set_app_user_model_id(APP_USER_MODEL_ID)
     except OSError:
         logging.getLogger(__name__).debug(
             "Could not set the AppUserModelID", exc_info=True)
-    stamp_pinned_shortcuts(CLIPPER_APP_USER_MODEL_ID, ["Clipper"])
+    stamp_pinned_shortcuts(APP_USER_MODEL_ID, ["Clipper"])
 
 
 def _init_logger() -> logging.Logger:
