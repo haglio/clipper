@@ -6,6 +6,7 @@ tests here are the guards that stop that happening again.
 from __future__ import annotations
 
 import pytest
+from PyQt6.QtCore import Qt
 
 from clipper.gui.shortcuts import LEGEND_ROWS, SHORTCUTS, legend_rows, shortcut_for
 
@@ -77,7 +78,6 @@ class TestLookup:
         assert found is not None and found.name == name
 
     def test_a_key_code_finds_its_shortcut(self):
-        from PyQt6.QtCore import Qt
 
         found = shortcut_for(Qt.Key.Key_Left, "")
 

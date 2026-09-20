@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
+from PyQt6.QtGui import QFont, QImage, QPainter
 from shared_ui.colors import BG_KEYCAP, BG_PRIMARY
+from shared_ui.fonts import FONT_UI, SIZE_SMALL, SIZE_TINY
 
 from clipper.gui.legend_widget import LegendWidget
 from clipper.gui.shortcuts import legend_rows
@@ -60,8 +67,6 @@ class TestPainting:
         more than two fifths of the three together.  An entry added to the
         wrong row reds this before it reaches the edge.
         """
-        from PyQt6.QtGui import QFont, QImage, QPainter
-        from shared_ui.fonts import FONT_UI, SIZE_SMALL, SIZE_TINY
 
         legend.resize(900, 80)
         image = QImage(900, 80, QImage.Format.Format_RGB32)
@@ -96,10 +101,6 @@ def test_the_legend_does_not_need_the_video_decoder_to_be_imported():
     a fresh interpreter with cv2 blocked, the way the other import checks in
     this suite are.
     """
-    import os
-    import subprocess
-    import sys
-    from pathlib import Path
 
     probe = "import sys; sys.modules['cv2'] = None; import clipper.gui.legend_widget"
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}

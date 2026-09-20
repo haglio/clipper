@@ -77,8 +77,10 @@ def build_state(choice: LoadSession | NewSession) -> VideoState:
 
 def _run_clip_whole_export(video_file: str) -> None:
     """Run the export pipeline for a whole video (no editor UI)."""
-    from .gui.export_dialog import ExportDialog
-    from .gui.export_worker import connect_export
+    # Local: both are Qt, and clipper.app imports this module before it has
+    # decided whether a window is wanted at all.
+    from .gui.export_dialog import ExportDialog  # noqa: PLC0415
+    from .gui.export_worker import connect_export  # noqa: PLC0415
 
     state = build_clip_whole_state(video_file)
     dialog = ExportDialog()

@@ -1,6 +1,8 @@
 """Tests for clipper.wrap_modes — what the cursor wraps within."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from clipper.wrap_modes import WrapMode, wrap_bounds
 
 
@@ -31,7 +33,6 @@ def test_nothing_else_spells_the_wrap_mode_out_as_a_color():
     to them used the constant, so `grep WrapMode.OVER_LOADED` did not find every
     place the default wrap mode is decided.
     """
-    from pathlib import Path
 
     package = Path(__file__).resolve().parents[1] / "clipper"
     offenders = [

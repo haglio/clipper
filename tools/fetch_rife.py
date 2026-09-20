@@ -90,9 +90,9 @@ def runs() -> bool:
     if not is_present():
         return False
 
-    import numpy as np
+    import numpy as np  # noqa: PLC0415
 
-    from clipper.clip_postprocess_transforms import build_rife_bridge
+    from clipper.clip_postprocess_transforms import build_rife_bridge  # noqa: PLC0415
 
     y, x = (a.astype(np.uint8) for a in np.mgrid[0:64, 0:64])
     try:
