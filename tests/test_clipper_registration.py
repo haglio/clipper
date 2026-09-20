@@ -196,7 +196,7 @@ class TestBuildRegisteredSeam:
 
 
 class TestRifeBridge:
-    def test_returns_none_with_zero_frames(self):
+    def test_an_empty_clip_offers_no_seam(self):
         frame = _make_textured_frame(64, 64)
         result = build_rife_bridge(frame, frame, 0)
         assert result is None
@@ -225,11 +225,11 @@ class TestRifeBridge:
 
 
 class TestRifeSeam:
-    def test_returns_none_with_zero_seam_frames(self):
+    def test_a_clip_with_no_seam_frames_offers_no_seam(self):
         frames = [_make_textured_frame(64, 64, seed=i) for i in range(10)]
         assert build_rife_seam(frames, 0) is None
 
-    def test_returns_none_with_too_few_frames(self):
+    def test_a_clip_too_short_to_align_offers_no_seam(self):
         frames = [_make_textured_frame(64, 64, seed=i) for i in range(3)]
         assert build_rife_seam(frames, 1) is None
 

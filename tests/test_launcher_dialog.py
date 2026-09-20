@@ -27,7 +27,7 @@ class TestClipWholeButton:
         assert hasattr(dialog, "clip_whole_btn")
         assert dialog.clip_whole_btn.text() == "Clip whole vid..."
 
-    def test_picking_a_whole_video_returns_it_in_clip_whole_mode(self, dialog):
+    def test_picking_a_whole_video_asks_for_it_whole(self, dialog):
         _choose_file(dialog, r"D:\example-suite\videos\videos\seaside walk.mp4")
 
         assert dialog.build_result() == ClipWholeVideo(

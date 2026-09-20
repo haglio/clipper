@@ -206,7 +206,7 @@ def test_a_canceled_launcher_gives_no_state_to_open():
         assert launch_state() is None
 
 
-def test_launch_state_runs_clip_whole_and_returns_none():
+def test_choosing_a_whole_video_exports_it_and_opens_no_editor():
     mock_dialog = MagicMock()
     mock_dialog.exec.return_value = 1  # Accepted
     mock_dialog.build_result.return_value = ClipWholeVideo(video_file="/path/to/loop.mp4")
@@ -241,7 +241,7 @@ def test_launch_state_builds_state_from_launcher_info():
     open_it.assert_called_once_with(chosen)
 
 
-def test_app_main_returns_zero_when_launch_state_returns_none():
+def test_closing_the_launcher_without_choosing_exits_cleanly():
     with patch("clipper.app.launch_state", return_value=None), \
          patch("clipper.app._set_windows_app_user_model_id"), \
          patch("clipper.app._init_logger"):

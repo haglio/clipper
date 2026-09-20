@@ -73,19 +73,19 @@ class TestParseFfmpegClock:
 # ---------------------------------------------------------------------------
 
 class TestValidateVideoFile:
-    def test_nonexistent_file_returns_false(self, tmp_path: Path):
+    def test_an_export_that_wrote_no_file_is_refused(self, tmp_path: Path):
         ok, msg = validate_video_file(tmp_path / "ghost.mp4")
         assert ok is False
         assert "not created" in msg.lower() or "exist" in msg.lower()
 
-    def test_tiny_file_returns_false(self, tmp_path: Path):
+    def test_a_file_too_small_to_be_a_video_is_refused(self, tmp_path: Path):
         tiny = tmp_path / "tiny.mp4"
         tiny.write_bytes(b"\x00" * 100)  # less than 2048 bytes
         ok, msg = validate_video_file(tiny)
         assert ok is False
         assert "tiny" in msg.lower()
 
-    def test_unreadable_cv2_file_returns_false(self, tmp_path: Path):
+    def test_a_file_the_decoder_cannot_open_is_refused(self, tmp_path: Path):
         fake = tmp_path / "fake.mp4"
         fake.write_bytes(b"\x00" * 4096)  # big enough bytes-wise but invalid video
 
@@ -99,7 +99,7 @@ class TestValidateVideoFile:
         assert ok is False
         assert "unreadable" in msg.lower() or "locked" in msg.lower()
 
-    def test_no_readable_frames_returns_false(self, tmp_path: Path):
+    def test_a_file_that_opens_but_decodes_no_frame_is_refused(self, tmp_path: Path):
         fake = tmp_path / "fake.mp4"
         fake.write_bytes(b"\x00" * 4096)
 
@@ -113,7 +113,7 @@ class TestValidateVideoFile:
         assert ok is False
         assert "no readable frames" in msg.lower()
 
-    def test_valid_file_returns_true(self, tmp_path: Path):
+    def test_a_file_that_decodes_a_frame_is_accepted(self, tmp_path: Path):
         fake = tmp_path / "ok.mp4"
         fake.write_bytes(b"\x00" * 4096)
 
@@ -178,7 +178,7 @@ class TestRunFfmpegWithProgress:
         assert (ok, err) == (True, "")
         assert progress_values[-1] == pytest.approx(1.0)
 
-    def test_nonzero_exit_returns_false(self):
+    def test_an_encoder_that_exits_with_an_error_fails_the_step(self):
         proc = self._make_proc_mock([], returncode=1)
         progress_values: list[float] = []
 
@@ -190,7 +190,7 @@ class TestRunFfmpegWithProgress:
         assert ok is False
         assert "1" in err
 
-    def test_launch_failure_returns_false(self):
+    def test_an_encoder_that_will_not_start_fails_the_step(self):
         with patch("subprocess.Popen", side_effect=FileNotFoundError("not found")):
             ok, err = _run_ffmpeg_with_progress(
                 ["ffmpeg"], 10.0, lambda p: None

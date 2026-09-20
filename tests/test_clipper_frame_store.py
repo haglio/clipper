@@ -13,7 +13,7 @@ from clipper.frame_store import (
 )
 
 
-def test_load_range_returns_empty_when_end_before_start():
+def test_a_backwards_window_loads_no_frames():
     cap = MagicMock()
 
     result = load_range(cap, 10, 5)
