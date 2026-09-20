@@ -157,7 +157,7 @@ class TestSafeAtomicWriteJson:
         tmp = target.with_suffix(target.suffix + ".tmp")
         assert not tmp.exists()
 
-    def test_returns_empty_error_on_success(self, tmp_path: Path):
+    def test_a_saved_session_reports_no_warning(self, tmp_path: Path):
         target = tmp_path / "out.json"
         ok, err = safe_atomic_write_json(target, {})
         assert ok is True
@@ -170,7 +170,7 @@ class TestSafeAtomicWriteJson:
         data = json.loads(target.read_text(encoding="utf-8"))
         assert data["v"] == 2
 
-    def test_returns_false_on_permission_error(self, tmp_path: Path):
+    def test_a_session_that_cannot_be_written_reports_the_failure(self, tmp_path: Path):
         target = tmp_path / "out.json"
         with patch("builtins.open", side_effect=PermissionError("denied")):
             ok, err = safe_atomic_write_json(target, {})

@@ -23,7 +23,7 @@ def _curve(state, ref_idx, direction):
 
 
 class TestSmooth1d:
-    def test_a_radius_of_zero_returns_the_values_untouched(self):
+    def test_a_radius_of_zero_searches_nowhere_and_changes_nothing(self):
         values = np.array([1.0, 5.0, 1.0])
 
         assert list(smooth_1d(values, 0)) == [1.0, 5.0, 1.0]
