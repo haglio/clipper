@@ -1,10 +1,7 @@
 """Every keyboard shortcut, declared once.
 
-This set used to be written out four times in three modules -- a 22-branch
-if/elif chain in `keyPressEvent`, a block of button lambdas in the same
-constructor, the legend's own literal table, and 21 cv2-era keycode constants
-in `paths.py` (deleted by item 28).  The copies had drifted: the legend never
-mentioned `q`, and it showed `-`/`+` while the handler also took `_`/`=`.
+Copies of a key table drift: one lists a key nothing is bound to, another
+omits one that is, and nothing catches either.
 
 Here the keys, the action and the legend wording are one row.  The legend is
 generated from it, so it cannot advertise a key nothing is bound to or omit one

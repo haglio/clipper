@@ -9,9 +9,9 @@ from dataclasses import dataclass
 class ClipRange:
     """Owns `start < end`, and the anchors the suggestion search works around.
 
-    Moving a mark also moves its anchor.  That pairing used to be written out
-    at every one of the five sites that move a mark, and nothing said it was a
-    rule -- so a sixth could have been added without it.
+    Moving a mark also moves its anchor.  That pairing is a rule of this type
+    rather than something each of the five sites that move a mark spells out,
+    so a sixth cannot be added without it.
     """
 
     start: int

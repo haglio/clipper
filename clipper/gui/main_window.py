@@ -298,10 +298,9 @@ class ClipperMainWindow(QMainWindow):
     def render(self, state: VideoState) -> None:
         """Push the state into every widget this window owns.
 
-        `ClipperApp` used to do this from `_on_tick`: seventy lines binding
-        `w = self.window` and then reaching two levels deep into twelve of its
-        widgets, so the clock knew the window's widget names and the state's
-        field names in equal measure.
+        Here rather than in the clock's tick, so the thing that knows this
+        window's widget names is this window, and the clock knows only that it
+        has a state to push.
         """
         loop_idx = self._draw_frames(state)
         self._draw_timeline(state, loop_idx)
@@ -317,8 +316,8 @@ class ClipperMainWindow(QMainWindow):
         Returns the loop frame's index, which the timeline and the loop label
         both want.  A frame that will not decode costs its pane and nothing
         else -- including the RuntimeError `safe_frame` raises when the window
-        spans a frame the decoder never produced, which this used to let out of
-        a Qt slot and so out of the process.
+        spans a frame the decoder never produced, which out of a Qt slot would
+        be out of the process.
         """
         loop_idx = state.active_start
         try:

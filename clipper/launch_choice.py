@@ -1,10 +1,9 @@
 """What the launcher dialog was asked for: one of three shapes.
 
-It used to be one untyped dict keyed on a `"mode"` string, so consumers
-branched on the string and then indexed keys that exist in only one of the
-three shapes -- `info["session_json"]` is a `KeyError` on two of them, and
-nothing said so.  Three types say it instead, and the consumer dispatches on
-which one it is.
+Three types rather than one dict keyed on a `"mode"` string: a key like
+`session_json` exists in only one of the three shapes, so a consumer indexing
+it on a dict gets a `KeyError` with nothing having said which shapes carry it.
+Here the consumer dispatches on which type it was handed.
 
 Qt-free, because `session_launch` reads these and the dialog writes them.
 """

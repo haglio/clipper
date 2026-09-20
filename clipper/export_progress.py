@@ -1,11 +1,8 @@
 """What an export step tells whoever is watching it.
 
-Four calls, so the export steps say what they mean.  They used to write fields
-on an `ExportJob` dataclass instead, and the thing that turned those writes into
-Qt signals was a subclass defined *inside* `ExportWorker.run` that overrode
-`__setattr__` and used `object.__setattr__` / `object.__getattribute__` to dodge
-its own hook -- so what reached the dialog was decided by a name match in a
-metaclass-ish trick two modules away from the code doing the writing.
+Four calls, so an export step says what it means at the point it means it,
+and what reaches the dialog is decided where the reporting happens rather than
+by what a field is named.
 
 No Qt here: the export steps run off the GUI thread and are kept Qt-free.
 """

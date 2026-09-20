@@ -21,8 +21,8 @@ def load_range(cap: cv2.VideoCapture, start_idx: int, end_idx: int) -> dict[int,
     number of times: a damaged patch is got past with only its own frames
     missing, and a file that has ended is given up on with what it had.  The
     caller's edge is the last frame here, never a frame that was merely asked
-    for -- `extend_right` used to fake the edge out to force the next seek
-    past a bad frame, and the window then claimed frames nothing produced.
+    for: an edge faked out to force the next seek past a bad frame would leave
+    the window claiming frames nothing produced.
     """
     result: dict[int, np.ndarray] = {}
     if end_idx < start_idx:

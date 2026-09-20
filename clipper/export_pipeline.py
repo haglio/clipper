@@ -1,9 +1,8 @@
 """The three steps an export runs, and where each one writes.
 
-Off the Qt thread and with no Qt in it: the sequence, the output paths and what
-a failed step means used to live inside ``ExportWorker.run``, so the only way
-to ask any of it was to build a QThread.  The worker calls this and turns the
-answer into its finished signal.
+Off the Qt thread and with no Qt in it, so the sequence, the output paths and
+what a failed step means can all be asked without building a QThread.  The
+worker calls this and turns the answer into its finished signal.
 """
 
 from __future__ import annotations
