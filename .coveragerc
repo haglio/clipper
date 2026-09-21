@@ -10,7 +10,7 @@ relative_files = true
 
 [report]
 precision = 2
-fail_under = 91.7
+fail_under = 92.9
 exclude_also =
     if TYPE_CHECKING:
     if __name__ == "__main__":
