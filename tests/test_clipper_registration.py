@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
-from unittest.mock import patch
 
 import cv2
 import numpy as np
 import pytest
 
+from clipper import clip_postprocess_transforms, interpolator_environment
 from clipper.clip_postprocess_transforms import (
-    _find_rife_exe,
     build_registered_seam,
     build_rife_bridge,
     build_rife_seam,
@@ -17,7 +17,6 @@ from clipper.clip_postprocess_transforms import (
     estimate_alignment,
     fractional_similarity,
 )
-from tools import fetch_rife
 
 
 def _make_textured_frame(w: int = 128, h: int = 128, seed: int = 42) -> np.ndarray:
@@ -25,67 +24,40 @@ def _make_textured_frame(w: int = 128, h: int = 128, seed: int = 42) -> np.ndarr
     return rng.randint(0, 256, (h, w, 3), dtype=np.uint8)
 
 
-# Whether the interpolator *runs* here, not whether the file is on disk. The
-# release is a Windows PE, so on every other machine the old presence check
-# skipped nothing and these four failed on a PermissionError from subprocess
-# instead. The probe spawns a process, so it runs once here rather than four
-# times during collection, inside four decorators.
-_RIFE_RUNS = fetch_rife.runs()
-_NO_RIFE = pytest.mark.skipif(
-    not _RIFE_RUNS,
-    reason="rife-ncnn-vulkan does not run here — see CLAUDE.md, Fetching RIFE",
-)
+@pytest.fixture
+def interpolator(tmp_path: Path, monkeypatch) -> None:
+    """A checkout that has fetched the interpolator, and a stand-in for the
+    binary: it reads the two frames the app wrote and writes a blend of them
+    where the app will look for one.
 
-_VENDORED = ("tools", "rife-ncnn-vulkan-20221029-windows", "rife-ncnn-vulkan.exe")
-
-
-def _vendored_exe(root: Path) -> Path:
-    exe = root.joinpath(*_VENDORED)
-    exe.parent.mkdir(parents=True, exist_ok=True)
-    exe.write_bytes(b"")
-    return exe
-
-
-class TestFindRifeExe:
-    """Whether this returns a path gates four tests and the whole seam path.
-
-    Its only unconditional test used to be `result is None or isinstance(result,
-    str)`, which the return annotation already guarantees -- so a helper that
-    returned a wrong-but-stringy path was indistinguishable from a working one.
+    Everything either side of the process boundary therefore runs for real --
+    the PNGs written and read back, the timesteps, which frames get replaced --
+    and only the neural network is invented.  These four ran nowhere but a
+    machine that had fetched 17 MB of Windows binary and owned a Vulkan device,
+    which is neither the merge gate nor most of the machines here.  A flag the
+    real binary would reject still reds them, since the stand-in reads the same
+    five by name; that it turns them into a frame is asserted by the gate's own
+    ``python tools/fetch_rife.py --require``.
     """
+    exe = tmp_path / interpolator_environment.VENDORED_EXE
+    exe.parent.mkdir(parents=True)
+    exe.write_bytes(b"MZ")
+    model_dir = exe.parent / interpolator_environment.MODEL_DIR_NAME
+    model_dir.mkdir()
+    for name in interpolator_environment.MODEL_FILES:
+        (model_dir / name).write_bytes(b"weights")
+    monkeypatch.setattr(interpolator_environment, "PROJECT_DIR", tmp_path)
 
-    def test_prefers_the_copy_vendored_into_the_checkout(self, tmp_path: Path):
-        exe = _vendored_exe(tmp_path)
+    def _blend(cmd, **_kwargs):
+        args = [str(part) for part in cmd]
+        flags = dict(zip(args[1::2], args[2::2]))
+        timestep = float(flags["-s"])
+        cv2.imwrite(flags["-o"], cv2.addWeighted(
+            cv2.imread(flags["-0"], cv2.IMREAD_COLOR), 1.0 - timestep,
+            cv2.imread(flags["-1"], cv2.IMREAD_COLOR), timestep, 0.0))
+        return subprocess.CompletedProcess(args, 0)
 
-        with patch("clipper.clip_postprocess_transforms.shutil.which", return_value=None):
-            assert _find_rife_exe(str(tmp_path)) == str(exe)
-
-    def test_takes_the_vendored_copy_over_one_on_the_path(self, tmp_path: Path):
-        exe = _vendored_exe(tmp_path)
-        elsewhere = tmp_path / "on_path" / "rife-ncnn-vulkan"
-        elsewhere.parent.mkdir()
-        elsewhere.write_bytes(b"")
-
-        with patch("clipper.clip_postprocess_transforms.shutil.which", return_value=str(elsewhere)):
-            assert _find_rife_exe(str(tmp_path)) == str(exe)
-
-    def test_falls_back_to_the_one_on_the_path(self, tmp_path: Path):
-        elsewhere = tmp_path / "on_path" / "rife-ncnn-vulkan"
-        elsewhere.parent.mkdir()
-        elsewhere.write_bytes(b"")
-
-        with patch("clipper.clip_postprocess_transforms.shutil.which", return_value=str(elsewhere)):
-            assert _find_rife_exe(str(tmp_path)) == str(elsewhere)
-
-    def test_is_none_when_the_checkout_has_no_vendored_copy(self, tmp_path: Path):
-        with patch("clipper.clip_postprocess_transforms.shutil.which", return_value=None):
-            assert _find_rife_exe(str(tmp_path)) is None
-
-    def test_a_directory_where_the_executable_should_be_is_not_an_executable(self, tmp_path: Path):
-        tmp_path.joinpath(*_VENDORED).mkdir(parents=True)
-
-        with patch("clipper.clip_postprocess_transforms.shutil.which", return_value=None):
-            assert _find_rife_exe(str(tmp_path)) is None
+    monkeypatch.setattr(clip_postprocess_transforms.subprocess, "run", _blend)
 
 
 class TestDecomposeComposeSimilarity:
@@ -201,8 +173,7 @@ class TestRifeBridge:
         result = build_rife_bridge(frame, frame, 0)
         assert result is None
 
-    @_NO_RIFE
-    def test_produces_correct_count(self):
+    def test_produces_correct_count(self, interpolator):
         frame_a = _make_textured_frame(128, 128, seed=1)
         frame_b = _make_textured_frame(128, 128, seed=2)
         result = build_rife_bridge(frame_a, frame_b, 3)
@@ -212,8 +183,7 @@ class TestRifeBridge:
             assert f.shape == frame_a.shape
             assert f.dtype == np.uint8
 
-    @_NO_RIFE
-    def test_bridge_frames_differ_from_endpoints(self):
+    def test_bridge_frames_differ_from_endpoints(self, interpolator):
         frame_a = _make_textured_frame(128, 128, seed=10)
         frame_b = _make_textured_frame(128, 128, seed=20)
         result = build_rife_bridge(frame_a, frame_b, 1)
@@ -233,15 +203,13 @@ class TestRifeSeam:
         frames = [_make_textured_frame(64, 64, seed=i) for i in range(3)]
         assert build_rife_seam(frames, 1) is None
 
-    @_NO_RIFE
-    def test_preserves_frame_count(self):
+    def test_preserves_frame_count(self, interpolator):
         frames = [_make_textured_frame(128, 128, seed=i) for i in range(10)]
         result = build_rife_seam(frames, 3)
         assert result is not None
         assert len(result) == len(frames)
 
-    @_NO_RIFE
-    def test_modifies_frames_near_seam(self):
+    def test_modifies_frames_near_seam(self, interpolator):
         frames = [_make_textured_frame(128, 128, seed=i) for i in range(10)]
         result = build_rife_seam(frames, 3)
         assert result is not None

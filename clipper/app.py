@@ -7,6 +7,7 @@ from app_support.logging_utils import configure_logging, install_exception_loggi
 from app_support.process_identity import ProcessNamer
 from app_support.win32 import set_app_user_model_id, stamp_pinned_shortcuts
 
+from .interpolator_environment import complaints
 from .paths import PROJECT_DIR
 from .session_launch import launch_state
 from .window_icons import clipper_icon_path
@@ -39,6 +40,18 @@ def _init_logger() -> logging.Logger:
     return logger
 
 
+def _report_interpolator_environment(logger: logging.Logger) -> None:
+    """Say on the way up when this checkout's frame interpolator cannot be used.
+
+    Here rather than in the suite: the merge gate fetches the interpolator on
+    purpose, so a test of this could only ever pass there, while the machine
+    that makes the clips -- which may never have fetched -- got the geometric
+    seam and no word.  It lands in ``state/clipper.log``.
+    """
+    for said in complaints():
+        logger.warning("Frame interpolator: %s", said)
+
+
 def _name_this_process() -> None:
     """Leave ``launch_clipper.vbs`` an interpreter that says "Clipper" next
     time.  The console interpreter, because that is the one the launcher runs --
@@ -52,6 +65,7 @@ def main() -> int:
     _set_windows_app_user_model_id()
     _name_this_process()
     logger = _init_logger()
+    _report_interpolator_environment(logger)
     try:
         # Local: the toolkit loads when a window is wanted, and the handler
         # below is what turns a failure to load it into a readable message.

@@ -1,10 +1,11 @@
 """The fetch step that stands in for 17 MB of binary this repo stopped tracking.
 
 Two things have to hold or the move is worse than the tracking was. The files
-must land where ``_find_rife_exe`` looks, or the fetch is green and the suite
-skips the RIFE tests anyway; and "the binary is here" has to mean "the binary
-runs here", or a machine that fetched the Windows release gets four failures
-where it meant to get four skips.
+must land where ``clipper.interpolator_environment`` looks, or the fetch is
+green and the loop fix falls back to its geometric seam anyway; and "the binary
+is here" has to mean "the binary runs here", or ``--require`` passes on a
+machine that cannot interpolate -- and that one step is the only place anything
+asks the real binary for a frame.
 """
 from __future__ import annotations
 
@@ -16,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from clipper.clip_postprocess_transforms import _find_rife_exe
+from clipper import interpolator_environment
 from tools import fetch_rife
 
 _RELEASE_BYTES = b"pretend release"
@@ -46,18 +47,22 @@ def _never_called(*_args, **_kwargs):
 
 
 class TestWhereItLands:
-    def test_the_app_finds_what_the_fetch_step_extracts(self, tmp_path: Path):
-        """The script's destination and _find_rife_exe's first candidate agree.
+    """Each of these spells a path for itself, and the app falls back forever
+    and silently if the two ever stop agreeing. These are the tests that red."""
 
-        Each spells the path for itself. This is the test that reds if either
-        one moves.
-        """
-        relative = fetch_rife.DEST.relative_to(fetch_rife.TOOLS_DIR.parent)
-        exe = tmp_path / relative / fetch_rife.RIFE_EXE.name
-        exe.parent.mkdir(parents=True)
-        exe.write_bytes(b"")
+    def test_the_app_looks_where_the_fetch_step_extracts(self):
+        assert (fetch_rife.RIFE_EXE.relative_to(fetch_rife.TOOLS_DIR.parent)
+                == interpolator_environment.VENDORED_EXE)
 
-        assert _find_rife_exe(str(tmp_path)) == str(exe)
+    def test_the_fetch_step_brings_the_weights_the_app_asks_for(self):
+        """The model directory is named twice over -- once in the list of files
+        to extract, once in the app's lookup -- and a release that renamed it
+        would leave a fetch that reported success and an app that never
+        interpolated again."""
+        wanted = {f"{interpolator_environment.MODEL_DIR_NAME}/{name}"
+                  for name in interpolator_environment.MODEL_FILES}
+
+        assert wanted <= set(fetch_rife.FILES)
 
 
 class TestExtract:
@@ -126,13 +131,13 @@ class TestRuns:
         monkeypatch.setattr(fetch_rife, "DEST", tmp_path)
         monkeypatch.setattr(fetch_rife, "RIFE_EXE", tmp_path / "rife-ncnn-vulkan.exe")
         # runs() interpolates through clip_postprocess_transforms, which resolves
-        # the binary with its own _find_rife_exe -- not fetch_rife.RIFE_EXE. Point
-        # that seam at the extracted fake too, or the Windows runner finds the real
-        # vendored exe, produces a frame, and runs() answers True where the whole
-        # point is that a present-but-unrunnable file answers False.
+        # the binary with interpolator_environment -- not fetch_rife.RIFE_EXE.
+        # Point that seam at the extracted fake too, or the Windows runner finds
+        # the real fetched exe, produces a frame, and runs() answers True where
+        # the whole point is that a present-but-unrunnable file answers False.
         monkeypatch.setattr(
-            "clipper.clip_postprocess_transforms._find_rife_exe",
-            lambda *_args, **_kwargs: str(fetch_rife.RIFE_EXE),
+            "clipper.interpolator_environment._find_exe",
+            lambda: fetch_rife.RIFE_EXE,
         )
         fetch_rife.extract(_release_zip(tmp_path / "release.zip"), tmp_path)
         return tmp_path
