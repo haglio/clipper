@@ -9,10 +9,10 @@ eleven models went in stage 1; the remaining 17 MB is fetched here rather than
 tracked, the way ``player_core/vendor/libmpv-2.dll`` is, so a clone stops paying
 for a Windows binary most machines cannot execute.
 
-It lands where ``clip_postprocess_transforms._find_rife_exe`` already looks, so
-nothing in the app changes: with the files absent ``_rife_setup`` returns None
-and the postprocess falls back to its geometric seam, exactly as it does on a
-machine that never fetched.
+It lands where ``clipper.interpolator_environment`` already looks, so nothing in
+the app changes: with the files absent it locates nothing, the postprocess falls
+back to its geometric seam, and the app writes that into ``state/clipper.log``
+on the way up rather than letting the worse clips go unremarked.
 
 Upstream, and the whole of this file's provenance::
 
@@ -45,7 +45,7 @@ DEST = TOOLS_DIR / f"rife-ncnn-vulkan-{RELEASE}-windows"
 RIFE_EXE = DEST / "rife-ncnn-vulkan.exe"
 ZIP_PATH = TOOLS_DIR / ASSET
 
-# The executable, the C runtime it loads, the one model _rife_setup names, and
+# The executable, the C runtime it loads, the one model the app names, and
 # upstream's own notice and usage.
 FILES = (
     "LICENSE",

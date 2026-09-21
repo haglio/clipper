@@ -29,17 +29,23 @@ A fresh checkout has no `tools/rife-ncnn-vulkan-20221029-windows/`; fetch it onc
 ```
 
 That pulls upstream's 432 MB release, keeps the six files clipper uses (17 MB),
-puts them where `clip_postprocess_transforms._find_rife_exe` looks, and deletes
-the zip. The directory is git-ignored. `--require` additionally exits non-zero
+puts them where `clipper/interpolator_environment.py` looks, and deletes the
+zip. The directory is git-ignored. `--require` additionally exits non-zero
 unless the binary actually *runs*, which is what the merge gate uses.
 
 Same shape as `player_core/vendor/libmpv-2.dll`, with one difference worth
 knowing: player_core deliberately does *not* give CI its DLL, because fun_time's
 hidden-desktop suite covers the real player. Clipper has no second suite, and
 windows-latest is the only place a Windows PE can execute — so clipper's gate
-does fetch it, and fails rather than skipping the four tests that drive the seam
-bridge. Everywhere else those four skip; without the binary the postprocess falls
-back to its geometric seam, which is also what happens in production.
+fetches it and `--require`s it, and that one step is the whole assertion that
+the real binary turns these flags into a frame.
+
+**The suite itself never needs it.** The seam-bridge tests drive the pipeline
+through a stand-in for the process, so they run on a checkout that never
+fetched. A checkout that never fetched still exports clips — the loop fix falls
+back to its geometric seam — and `clipper/interpolator_environment.py` writes
+that into `state/clipper.log` on the way up, because the fallback is otherwise
+silent and the clips are just quietly worse.
 
 ## Bump the loop fix's recipe version when its output changes
 

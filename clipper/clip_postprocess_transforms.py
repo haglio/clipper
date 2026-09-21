@@ -5,10 +5,12 @@ import os
 import shutil
 import subprocess
 import tempfile
+from pathlib import Path
 
 import cv2
 import numpy as np
 
+from .interpolator_environment import locate
 from .loop_modes import LoopMode
 
 
@@ -186,40 +188,9 @@ def build_registered_seam(
     return out, True
 
 
-def _find_rife_exe(project_root: str | None = None) -> str | None:
-    """Locate the rife-ncnn-vulkan executable relative to the project root.
-
-    ``project_root`` defaults to the checkout this module lives in; a caller
-    passes one so the lookup can be exercised against a directory it controls.
-    """
-    if project_root is None:
-        # Walk up from this file to find the project root (contains tools/)
-        here = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(here)
-    candidates = [
-        os.path.join(project_root, "tools", "rife-ncnn-vulkan-20221029-windows", "rife-ncnn-vulkan.exe"),
-        shutil.which("rife-ncnn-vulkan"),
-    ]
-    for path in candidates:
-        if path and os.path.isfile(path):
-            return path
-    return None
-
-
-def _rife_setup() -> tuple[str, str] | None:
-    """Return (rife_exe, model_dir) or None if RIFE is unavailable."""
-    rife_exe = _find_rife_exe()
-    if rife_exe is None:
-        return None
-    model_dir = os.path.join(os.path.dirname(rife_exe), "rife-v4.6")
-    if not os.path.isdir(model_dir):
-        return None
-    return rife_exe, model_dir
-
-
 def _rife_interpolate_frame(
-    rife_exe: str,
-    model_dir: str,
+    rife_exe: Path,
+    model_dir: Path,
     frame_a: np.ndarray,
     frame_b: np.ndarray,
     timestep: float,
@@ -233,8 +204,8 @@ def _rife_interpolate_frame(
     cv2.imwrite(input0, frame_a)
     cv2.imwrite(input1, frame_b)
     cmd = [
-        rife_exe, "-0", input0, "-1", input1, "-o", out_path,
-        "-s", str(timestep), "-m", model_dir,
+        str(rife_exe), "-0", input0, "-1", input1, "-o", out_path,
+        "-s", str(timestep), "-m", str(model_dir),
     ]
     try:
         subprocess.run(cmd, check=True, capture_output=True, timeout=30)
@@ -255,10 +226,10 @@ def build_rife_bridge(
     """Generate bridge frames using RIFE neural frame interpolation."""
     if bridge_frames <= 0:
         return None
-    setup = _rife_setup()
-    if setup is None:
+    found = locate()
+    if found is None:
         return None
-    rife_exe, model_dir = setup
+    rife_exe, model_dir = found
 
     tmpdir = tempfile.mkdtemp(prefix="rife_bridge_")
     try:
@@ -293,10 +264,10 @@ def build_rife_seam(
         return None
     # Ensure we don't overlap the two sides (each pair uses one from each side)
     seam_frames = min(seam_frames, n // 2)
-    setup = _rife_setup()
-    if setup is None:
+    found = locate()
+    if found is None:
         return None
-    rife_exe, model_dir = setup
+    rife_exe, model_dir = found
 
     out = list(frames)  # shallow copy; we replace individual elements
     tmpdir = tempfile.mkdtemp(prefix="rife_seam_")
