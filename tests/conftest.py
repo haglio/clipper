@@ -4,16 +4,15 @@ from __future__ import annotations
 import importlib
 import json
 import os
-import shutil
 import sys
 import time
-import uuid
 from pathlib import Path
 
 import cv2
 import numpy as np
 import pytest
 from PyQt6.QtCore import QEventLoop, QTimer
+from scratch import scratch_dir
 
 from clipper import content
 from clipper.clip_range import ClipRange
@@ -92,7 +91,7 @@ if _spec is None or _spec.origin is None:
 
 TMP_ROOT = Path(
     os.environ.get(
-        "FUN_TIME_PYTEST_TMP_ROOT",
+        "CLIPPER_PYTEST_TMP_ROOT",
         str(Path(__file__).resolve().parent.parent / ".tmp-pytest-local"),
     )
 ).resolve()
@@ -100,13 +99,8 @@ TMP_ROOT = Path(
 
 @pytest.fixture
 def tmp_path() -> Path:
-    TMP_ROOT.mkdir(parents=True, exist_ok=True)
-    path = (TMP_ROOT / f"case_{uuid.uuid4().hex}").resolve()
-    path.mkdir()
-    try:
+    with scratch_dir(TMP_ROOT) as path:
         yield path
-    finally:
-        shutil.rmtree(path, ignore_errors=True)
 
 
 @pytest.fixture(autouse=True, scope="session")
