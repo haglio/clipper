@@ -43,3 +43,15 @@ def test_a_launch_that_dies_importing_leaves_its_traceback_in_state():
     report = dry_run(LAUNCHER)
 
     assert Path(report.value("log")) == REPO_ROOT / "state" / "clipper_launcher.log"
+
+
+@on_windows
+def test_a_branch_preview_runs_its_own_checkout_on_the_primary_checkouts_venv():
+    report = dry_run(REPO_ROOT / "launch_preview_branch.vbs")
+
+    primary = REPO_ROOT.parents[2]
+    assert Path(report.value("interpreter")) == primary / ".venv" / "Scripts" / "python.exe"
+    assert Path(report.value("directory")) == REPO_ROOT
+    assert report.value("arguments") == "-m clipper"
+    overlay = "content.local.json"
+    assert report.value("copy") == f"{primary / overlay} > {REPO_ROOT / overlay}"

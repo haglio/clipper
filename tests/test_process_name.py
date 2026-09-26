@@ -21,7 +21,8 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 APP_NAME = "Clipper"
 ROLE = "Clipper"
 
-(LAUNCHER,) = launchers(PROJECT_DIR)
+(LAUNCHER,) = [launcher for launcher in launchers(PROJECT_DIR)
+               if launcher.file == "launch_clipper.vbs"]
 
 
 def test_the_launcher_prefers_the_copy_named_for_this_app():
