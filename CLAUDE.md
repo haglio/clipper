@@ -105,6 +105,15 @@ already uses. The near miss that still counts: taking a real filename and
 changing a character or two — it is still that clip, still that performer. Make
 it up from scratch, don't lightly edit a real one.
 
+## Judging a branch before it lands
+
+Every checkout carries `launch_preview_branch.vbs`, rendered from its spec in
+`pyproject.toml`: it runs that worktree's code on the primary checkout's venv,
+copying the primary's `content.local.json` in first, beside any Clipper he has
+open. Hand him a claunch link to it. A branch that needs a sibling version the
+venv does not hold gets a launcher of its own in the worktree's git-ignored
+`state/` that also puts checkouts of those versions first on `PYTHONPATH`.
+
 ## Landing — GitHub merge queue, not local ff-merge
 
 This repo is public at `github.com/haglio/clipper` with a merge-queue ruleset on

@@ -51,6 +51,13 @@ run = "-m clipper"
 named-interpreter = "Clipper-Clipper.exe"
 log = 'state\clipper_launcher.log'
 
+[tool.haglio.launchers."launch_preview_branch.vbs"]
+app = "Clipper (branch preview)"
+run = "-m clipper"
+venv = "primary"
+log = 'state\clipper_launcher.log'
+copy-from-primary = ["content.local.json"]
+
 [tool.setuptools.packages.find]
 include = ["clipper*"]
 
