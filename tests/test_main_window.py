@@ -5,9 +5,10 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-from PyQt6.QtCore import QPoint, Qt
+from PyQt6.QtCore import QPoint, QSize, Qt
 from PyQt6.QtGui import QCloseEvent, QKeyEvent
 from PyQt6.QtWidgets import QApplication, QPushButton, QWidget
+from shared_ui.spacing import BUTTON_SIZE
 
 from clipper.gui.exit_dialog import ExitDialog
 from clipper.gui.floating_controls import FloatingControlLayout
@@ -71,22 +72,27 @@ class TestConstruction:
         assert window.windowTitle() == "Clipper"
 
     def test_the_compact_controls_all_come_out_the_same_size(self, window):
-        """The bound, shift and mark buttons are one family metric, so a row of
-        them lines up; the three that carry a word are wider than that."""
+        """The bound, shift and mark buttons are one metric, so a row of them
+        lines up; the two that carry a whole word are wider than that."""
         tc, bb = window.timeline_controls, window.button_bar
         compact = {
             (btn.width(), btn.height())
             for btn in (tc.shift_left_btn, tc.shift_right_btn,
                         tc.extend_left_btn, tc.contract_left_btn,
                         tc.contract_right_btn, tc.extend_right_btn,
-                        tc.mark_in_btn, tc.mark_out_btn,
-                        bb.speed_down_btn, bb.speed_up_btn)
+                        tc.mark_in_btn, tc.mark_out_btn)
         }
 
         assert len(compact) == 1, compact
         narrow = compact.pop()[0]
-        for wider in (bb.play_pause_btn, bb.export_btn, tc.wrap_btn):
+        for wider in (bb.export_btn, tc.wrap_btn):
             assert wider.width() > narrow
+
+    def test_the_transport_buttons_keep_the_familys_square(self, window):
+        bb = window.button_bar
+
+        for button in (bb.speed_down_btn, bb.speed_up_btn, bb.play_pause_btn):
+            assert button.size() == QSize(BUTTON_SIZE, BUTTON_SIZE)
 
     def test_all_buttons_have_no_focus_policy(self, window):
         """Buttons must not steal focus — arrow/space/enter must reach keyPressEvent."""

@@ -26,9 +26,7 @@ CHROME_STYLE = f"""
     }}
 """
 
-# Compact square buttons; the wider ones the labels they carry need.
 SMALL_BUTTON = (32, 28)
-PLAY_BUTTON = (40, 28)
 EXPORT_BUTTON = (72, 28)
 WRAP_BUTTON = (64, 28)
 
@@ -41,15 +39,12 @@ def small_font() -> QFont:
 
 
 def size_controls(button_bar, timeline_controls) -> None:
-    """Give every control the family's button metrics."""
     tc, bb = timeline_controls, button_bar
     for button in (tc.shift_left_btn, tc.shift_right_btn,
                    tc.extend_left_btn, tc.contract_left_btn,
                    tc.contract_right_btn, tc.extend_right_btn,
-                   tc.mark_in_btn, tc.mark_out_btn,
-                   bb.speed_down_btn, bb.speed_up_btn):
+                   tc.mark_in_btn, tc.mark_out_btn):
         button.setFixedSize(*SMALL_BUTTON)
-    bb.play_pause_btn.setFixedSize(*PLAY_BUTTON)
     bb.export_btn.setFixedSize(*EXPORT_BUTTON)
     tc.wrap_btn.setFixedSize(*WRAP_BUTTON)
 

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import pytest
-from PyQt6.QtCore import QSize
+from PyQt6.QtCore import QPoint, QRect, QSize
 from PyQt6.QtGui import QIcon
+from shared_ui.chrome import family_stylesheet
 from shared_ui.colors import TEXT_PRIMARY
 from shared_ui.icon_geometry import GLYPHS, Polygon
 from shared_ui.icons import glyph_pixmap
+from shared_ui.spacing import BUTTON_SIZE
 
 from clipper.gui.button_bar import ButtonBar
 
@@ -63,3 +65,33 @@ def test_the_play_triangle_has_rounded_corners():
 
     triangle = next(s for s in GLYPHS["play"] if isinstance(s, Polygon))
     assert triangle.round_radius > 0
+
+
+def _where_the_mark_lands(button) -> QRect:
+    worn = button.grab().toImage()
+    icon = button.icon()
+    button.setIcon(QIcon())
+    bare = button.grab().toImage()
+    button.setIcon(icon)
+    inked = [(x, y) for y in range(worn.height()) for x in range(worn.width())
+             if worn.pixel(x, y) != bare.pixel(x, y)]
+    xs, ys = [x for x, _ in inked], [y for _, y in inked]
+    return QRect(QPoint(min(xs), min(ys)), QPoint(max(xs), max(ys)))
+
+
+def _transport(bar):
+    return (bar.speed_down_btn, bar.speed_up_btn, bar.play_pause_btn)
+
+
+def test_each_transport_button_is_the_familys_ordinary_square(bar):
+    for button in _transport(bar):
+        assert button.size() == QSize(BUTTON_SIZE, BUTTON_SIZE)
+
+
+def test_each_transport_mark_spans_more_than_half_its_button(bar):
+    bar.setStyleSheet(family_stylesheet())
+    bar.show()
+
+    for button in _transport(bar):
+        mark = _where_the_mark_lands(button)
+        assert max(mark.width(), mark.height()) > BUTTON_SIZE / 2

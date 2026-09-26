@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-from PyQt6.QtCore import QSize, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 from shared_ui.colors import TEXT_PRIMARY
 from shared_ui.icons import glyph_icon
-from shared_ui.spacing import BUTTON_ICON
+from shared_ui.mark_button import fill_square_with_mark
 
 # The chrome's own text color, so a glyph on a button matches the label beside it.
 _ICON_COLOR = TEXT_PRIMARY
-# The family's icon size, so a mark on a button here is the size a mark on a
-# button anywhere else is.
-_ICON_SIZE = QSize(BUTTON_ICON, BUTTON_ICON)
 
 
 class ButtonBar(QWidget):
@@ -37,7 +34,7 @@ class ButtonBar(QWidget):
         self.export_btn = QPushButton("export")
 
         for btn in (self.speed_down_btn, self.speed_up_btn, self.play_pause_btn):
-            btn.setIconSize(_ICON_SIZE)
+            fill_square_with_mark(btn)
 
         self.speed_down_btn.clicked.connect(self.speed_down_clicked)
         self.speed_up_btn.clicked.connect(self.speed_up_clicked)
