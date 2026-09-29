@@ -23,7 +23,7 @@ requires-python = ">=3.14"
 # one is this repo's own commit, with its own suite to answer for it.
 dependencies = [
     "app-support @ git+https://github.com/haglio/app_support@v0.1.156",
-    "shared-ui @ git+https://github.com/haglio/shared_ui@v0.1.138",
+    "shared-ui @ git+https://github.com/haglio/shared_ui@v0.1.142",
     "numpy>=2.4,<3",
     "opencv-python>=4.8,<5",
     "PyQt6>=6,<7",
