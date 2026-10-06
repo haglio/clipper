@@ -58,6 +58,15 @@ venv = "primary"
 log = 'state\clipper_launcher.log'
 copy-from-primary = ["content.local.json"]
 
+# What Clipper relies on Windows to keep: the shortcut it is pinned from.
+# `python -m app_support.windows_settings --write` makes this machine match
+# every checkout's list.
+[tool.haglio.shortcuts."Clipper"]
+launcher = "launch_clipper.vbs"
+icon = "clipper.ico"
+app-id = "FunTime.Clipper"
+places = ["taskbar", "checkout"]
+
 [tool.setuptools.packages.find]
 include = ["clipper*"]
 
