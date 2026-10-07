@@ -144,7 +144,7 @@ class TestWhereTheComplaintsGo:
     def test_the_launch_writes_what_the_checker_says_into_clippers_log(self, monkeypatch):
         logged = _RecordingLog()
         monkeypatch.setattr(app, "complaints", lambda: ["no interpolator here"])
-        monkeypatch.setattr(app, "_set_windows_app_user_model_id", lambda: None)
+        monkeypatch.setattr(app, "_set_windows_app_user_model_id", lambda preview: None)
         monkeypatch.setattr(app, "_name_this_process", lambda: None)
         monkeypatch.setattr(app, "_init_logger", lambda: logged)
         monkeypatch.setattr(app, "launch_state", lambda: None)

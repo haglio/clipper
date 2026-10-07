@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
 )
 from shared_ui.colors import BORDER_DEFAULT
 from shared_ui.fonts import FONT_UI, SIZE_HEADING, make_font
+from shared_ui.preview import Preview, window_title
 
 from clipper.frame_store import safe_frame
 from clipper.playback import current_loop_frame_index, loop_preview_indices
@@ -80,10 +81,10 @@ class _WrapRow(QWidget):
 class ClipperMainWindow(QMainWindow):
     """Main Clipper window containing all UI widgets."""
 
-    def __init__(self, state: VideoState, parent=None):
+    def __init__(self, state: VideoState, parent=None, *, preview: Preview | None = None):
         super().__init__(parent)
         self._state = state
-        self.setWindowTitle("Clipper")
+        self.setWindowTitle(window_title("Clipper", preview))
         self.setMinimumSize(900, 600)
         self.resize(1520, 960)
 

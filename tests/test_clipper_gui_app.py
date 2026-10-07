@@ -8,6 +8,8 @@ import numpy as np
 import pytest
 from PyQt6.QtWidgets import QApplication
 from shared_ui.colors import BG_SECONDARY
+from shared_ui.palette import PREVIEW_INK
+from shared_ui.preview import Preview
 
 from clipper.gui.app import ClipperApp
 from clipper.loop_modes import LoopMode
@@ -57,6 +59,13 @@ class TestConstruction:
         ClipperApp(mock_state)
 
         assert not QApplication.instance().windowIcon().isNull()
+
+    def test_a_preview_wears_its_letter_in_the_preview_ink_and_is_titled_for_its_feature(self, mock_state):
+        app = ClipperApp(mock_state, preview=Preview(feature="the new loop"))
+
+        bar_of_the_c = QApplication.instance().windowIcon().pixmap(32, 32).toImage().pixelColor(16, 8)
+        assert (bar_of_the_c.red(), bar_of_the_c.green(), bar_of_the_c.blue()) == PREVIEW_INK
+        assert app.window.windowTitle() == "Clipper — preview of the new loop"
 
 
 # The state _on_tick is driven against: a real one, with frames it can decode.
