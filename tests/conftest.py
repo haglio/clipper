@@ -233,8 +233,9 @@ def library(tmp_path, content_overlay) -> Path:
 
 @pytest.fixture
 def genau_sidecar(library):
-    """Where the family files the metadata of a clip in Genau's folder."""
-    return lambda clip_name: library / "videos" / "metadata" / "genau" / "clips" / f"{clip_name}.json"
+    """Where the family files the metadata of a clip Clipper cut into Genau's folder."""
+    return lambda clip_name: (library / "videos" / "metadata" / "genau" / "clips" / "2D" / "non_AI"
+                              / f"{clip_name}.json")
 
 
 @pytest.fixture

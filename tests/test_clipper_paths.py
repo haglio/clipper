@@ -71,8 +71,8 @@ def runtime_dirs(library, checkout_dirs):
     genau = library / "videos" / "genau"
     return {
         **checkout_dirs,
-        "clips_dir": genau / "clips",
-        "vr_clips_dir": genau / "vr_clips",
+        "clips_dir": genau / "clips" / "2D" / "non_AI",
+        "vr_clips_dir": genau / "clips" / "VR",
         "audio_dir": genau / "audio",
     }
 
@@ -91,17 +91,17 @@ class TestWhereTheLibraryFoldersAre:
     ):
         content_overlay({"library_root": "D:/example-suite"})
 
-        assert clips_dir() == Path("D:/example-suite/videos/genau/clips")
+        assert clips_dir() == Path("D:/example-suite/videos/genau/clips/2D/non_AI")
 
-    def test_the_three_of_them_sit_together_under_one_folder(self, content_overlay):
+    def test_a_cut_goes_where_genau_keeps_the_clips_cut_from_real_videos(self, content_overlay):
+        """Genau's clips folder is laid out as the library's videos are: a 2D
+        folder split into AI and non_AI, and a VR folder.  What Clipper cuts is
+        cut from real videos, and its soundtrack sits beside the clips folder."""
         content_overlay({"library_root": "D:/example-suite"})
+        genau = Path("D:/example-suite/videos/genau")
 
-        parents = {clips_dir().parent, vr_clips_dir().parent, audio_dir().parent}
-
-        assert parents == {Path("D:/example-suite/videos/genau")}
-        assert {clips_dir().name, vr_clips_dir().name, audio_dir().name} == {
-            "clips", "vr_clips", "audio",
-        }
+        assert (clips_dir(), vr_clips_dir(), audio_dir()) == (
+            genau / "clips" / "2D" / "non_AI", genau / "clips" / "VR", genau / "audio")
 
     def test_an_overlay_written_after_the_import_is_the_one_that_answers(
         self, tmp_path: Path, content_overlay
