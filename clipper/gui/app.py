@@ -5,9 +5,10 @@ from __future__ import annotations
 import sys
 from typing import TYPE_CHECKING
 
-from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 from shared_ui.chrome import family_stylesheet
+from shared_ui.preview import Preview
+from shared_ui.preview_icon import app_icon
 
 from clipper.window_icons import clipper_icon_path
 
@@ -27,7 +28,7 @@ def dress(app: QApplication) -> None:
 class ClipperApp:
     """Creates QApplication, main window, and playback timer."""
 
-    def __init__(self, state: VideoState):
+    def __init__(self, state: VideoState, *, preview: Preview | None = None):
         self._state = state
 
         # AppUserModelID is already set by app.main() before we get here;
@@ -40,11 +41,9 @@ class ClipperApp:
         self._app.setApplicationName("Clipper")
         dress(self._app)
 
-        icon_path = clipper_icon_path()
-        if icon_path.exists():
-            self._app.setWindowIcon(QIcon(str(icon_path)))
+        self._app.setWindowIcon(app_icon(clipper_icon_path(), preview))
 
-        self.window = ClipperMainWindow(state)
+        self.window = ClipperMainWindow(state, preview=preview)
         self.playback_timer = PlaybackTimer()
 
         # Wire playback timer tick to frame update

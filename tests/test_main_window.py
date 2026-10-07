@@ -8,6 +8,7 @@ import pytest
 from PyQt6.QtCore import QPoint, QSize, Qt
 from PyQt6.QtGui import QCloseEvent, QKeyEvent
 from PyQt6.QtWidgets import QApplication, QPushButton, QWidget
+from shared_ui.preview import Preview
 from shared_ui.spacing import BUTTON_SIZE
 
 from clipper.gui.exit_dialog import ExitDialog
@@ -70,6 +71,11 @@ class TestConstruction:
 
     def test_window_title(self, window):
         assert window.windowTitle() == "Clipper"
+
+    def test_a_preview_is_titled_for_the_feature_it_demos(self, mock_state):
+        window = ClipperMainWindow(mock_state, preview=Preview(feature="the new loop"))
+
+        assert window.windowTitle() == "Clipper — preview of the new loop"
 
     def test_the_compact_controls_all_come_out_the_same_size(self, window):
         """The bound, shift and mark buttons are one metric, so a row of them

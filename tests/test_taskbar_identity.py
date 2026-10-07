@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import sys
 
+from shared_ui.preview import Preview
+
 from clipper import app
 
 
@@ -14,7 +16,7 @@ def test_the_pin_is_stamped_with_the_identity_the_process_claims(monkeypatch):
     monkeypatch.setattr(app, "stamp_pinned_shortcuts",
                         lambda app_id, names: stamped.append((app_id, tuple(names))) or {})
 
-    app._set_windows_app_user_model_id()
+    app._set_windows_app_user_model_id(None)
 
     assert claimed == [app.APP_USER_MODEL_ID]
     assert stamped == [(app.APP_USER_MODEL_ID, ("Clipper",))]
@@ -31,6 +33,20 @@ def test_a_process_windows_refuses_an_identity_still_stamps_its_pin(monkeypatch)
     monkeypatch.setattr(app, "stamp_pinned_shortcuts",
                         lambda app_id, names: stamped.append(app_id) or {})
 
-    app._set_windows_app_user_model_id()
+    app._set_windows_app_user_model_id(None)
 
+    assert stamped == [app.APP_USER_MODEL_ID]
+
+
+def test_a_preview_claims_a_taskbar_button_of_its_own_and_leaves_the_pin_to_the_live_app(monkeypatch):
+    claimed: list[str] = []
+    stamped: list[str] = []
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(app, "set_app_user_model_id", claimed.append)
+    monkeypatch.setattr(app, "stamp_pinned_shortcuts",
+                        lambda app_id, names: stamped.append(app_id) or {})
+
+    app._set_windows_app_user_model_id(Preview(feature=None))
+
+    assert claimed == [f"{app.APP_USER_MODEL_ID}.Preview"]
     assert stamped == [app.APP_USER_MODEL_ID]

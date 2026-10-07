@@ -18,11 +18,13 @@ from unittest.mock import MagicMock, patch
 import cv2
 import numpy as np
 import pytest
+from shared_ui.preview import Preview
 
 from clipper import create_session as create_session_module
 from clipper import session_launch, state_factory
 from clipper.app import main as app_main
 from clipper.launch_choice import ClipWholeVideo, LoadSession, NewSession
+from clipper.paths import PROJECT_DIR
 from clipper.session_launch import build_clip_whole_state, build_state, launch_state
 
 
@@ -248,3 +250,32 @@ def test_closing_the_launcher_without_choosing_exits_cleanly():
         result = app_main()
 
     assert result == 0
+
+
+def test_the_launch_hands_this_checkouts_preview_to_the_taskbar_and_the_window():
+    a_preview = object()
+    built_state = object()
+    with patch("clipper.app.preview_of", return_value=a_preview) as asked, \
+         patch("clipper.app.launch_state", return_value=built_state), \
+         patch("clipper.app._set_windows_app_user_model_id") as claimed, \
+         patch("clipper.app._name_this_process"), \
+         patch("clipper.app._init_logger"), \
+         patch("clipper.gui.app.ClipperApp") as clipper_app:
+        clipper_app.return_value.run.return_value = 0
+        app_main()
+
+    asked.assert_called_once_with(PROJECT_DIR)
+    claimed.assert_called_once_with(a_preview)
+    clipper_app.assert_called_once_with(built_state, preview=a_preview)
+
+
+def test_a_preview_that_crashes_says_which_preview_it_was():
+    with patch("clipper.app.preview_of", return_value=Preview(feature="the new loop")), \
+         patch("clipper.app.launch_state", side_effect=RuntimeError("no session")), \
+         patch("clipper.app._set_windows_app_user_model_id"), \
+         patch("clipper.app._name_this_process"), \
+         patch("clipper.app._init_logger"), \
+         patch("PyQt6.QtWidgets.QMessageBox.critical") as critical:
+        assert app_main() == 1
+
+    assert critical.call_args.args[1] == "Clipper \u2014 preview of the new loop"

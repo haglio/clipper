@@ -6,6 +6,8 @@ import sys
 from app_support.logging_utils import configure_logging, install_exception_logging
 from app_support.process_identity import ProcessNamer
 from app_support.win32 import set_app_user_model_id, stamp_pinned_shortcuts
+from shared_ui.preview import Preview, preview_of, taskbar_identity, window_title
+from shared_ui.preview_icon import app_icon
 
 from .interpolator_environment import complaints
 from .paths import PROJECT_DIR
@@ -15,7 +17,7 @@ from .window_icons import clipper_icon_path
 APP_USER_MODEL_ID = "FunTime.Clipper"
 
 
-def _set_windows_app_user_model_id() -> None:
+def _set_windows_app_user_model_id(preview: Preview | None) -> None:
     """Claim the identity the pinned shortcut carries, and stamp the pin with it,
     before any window exists.
 
@@ -25,7 +27,7 @@ def _set_windows_app_user_model_id() -> None:
     if sys.platform != "win32":
         return
     try:
-        set_app_user_model_id(APP_USER_MODEL_ID)
+        set_app_user_model_id(taskbar_identity(APP_USER_MODEL_ID, preview))
     except OSError:
         logging.getLogger(__name__).debug(
             "Could not set the AppUserModelID", exc_info=True)
@@ -62,21 +64,19 @@ def _name_this_process() -> None:
 
 
 def main() -> int:
-    _set_windows_app_user_model_id()
+    preview = preview_of(PROJECT_DIR)
+    _set_windows_app_user_model_id(preview)
     _name_this_process()
     logger = _init_logger()
     _report_interpolator_environment(logger)
     try:
         # Local: the toolkit loads when a window is wanted, and the handler
         # below is what turns a failure to load it into a readable message.
-        from PyQt6.QtGui import QIcon  # noqa: PLC0415
         from PyQt6.QtWidgets import QApplication, QMessageBox  # noqa: PLC0415
 
         _app = QApplication.instance() or QApplication(sys.argv)
         # Set icon early so the launcher dialog inherits it.
-        _ico = clipper_icon_path()
-        if _ico.exists():
-            _app.setWindowIcon(QIcon(str(_ico)))
+        _app.setWindowIcon(app_icon(clipper_icon_path(), preview))
         state = launch_state()
         if state is None:
             return 0
@@ -85,7 +85,7 @@ def main() -> int:
         # launcher has said there is a session to open.
         from .gui.app import ClipperApp  # noqa: PLC0415
 
-        clipper_app = ClipperApp(state)
+        clipper_app = ClipperApp(state, preview=preview)
         return clipper_app.run()
     except Exception as exc:
         logger.exception("Clipper crashed")
@@ -95,7 +95,7 @@ def main() -> int:
             from PyQt6.QtWidgets import QApplication, QMessageBox  # noqa: PLC0415
 
             _app = QApplication.instance() or QApplication(sys.argv)
-            QMessageBox.critical(None, "Clipper", f"ERROR: {exc}")
+            QMessageBox.critical(None, window_title("Clipper", preview), f"ERROR: {exc}")
         except Exception:
             print(f"ERROR: {exc}", file=sys.stderr)
         return 1
