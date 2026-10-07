@@ -41,11 +41,11 @@ def _genau_dir() -> Path:
 
 
 def clips_dir() -> Path:
-    return _genau_dir() / "clips"
+    return _genau_dir() / "clips" / "2D" / "non_AI"
 
 
 def vr_clips_dir() -> Path:
-    return _genau_dir() / "vr_clips"
+    return _genau_dir() / "clips" / "VR"
 
 
 def audio_dir() -> Path:
@@ -58,7 +58,7 @@ def metadata_dir() -> Path:
 
 def vr_video_dir() -> PureWindowsPath:
     """The library folder whose videos are VR, which is what the launcher's
-    checkbox reads to decide whether an export lands in ``vr_clips``.
+    checkbox reads to decide whether an export lands in Genau's VR folder.
 
     A pure Windows path: what it is compared against is whatever the file
     dialog handed the launcher on the machine the app runs on, and that machine
