@@ -16,7 +16,7 @@ from genaumacher.clip_postprocess_pipeline import (
     postprocess_clip,
 )
 from genaumacher.loop_modes import LoopMode
-from genaumacher.paths import clips_dir
+from genaumacher.paths import flicks_dir
 from genaumacher.postprocess_options import PostprocessOptions
 
 pytestmark = pytest.mark.usefixtures("library")
@@ -354,8 +354,8 @@ def test_a_clip_it_writes_into_the_library_says_the_loop_fix_made_it(
 ):
     """The recipe's name is what a sweep for clips made before a change filters
     on, so it is written out here rather than read back off the module."""
-    clips_dir().mkdir(parents=True)
-    options = replace(_options(tmp_path), output=str(clips_dir() / "scene one.mp4"))
+    flicks_dir().mkdir(parents=True)
+    options = replace(_options(tmp_path), output=str(flicks_dir() / "scene one.mp4"))
 
     run_pipeline(options)
 

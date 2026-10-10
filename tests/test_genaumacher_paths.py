@@ -12,11 +12,11 @@ from genaumacher import content, paths
 from genaumacher.paths import (
     FORBIDDEN_NAME_CHARS,
     audio_dir,
-    clips_dir,
     ensure_runtime_dirs,
+    flicks_dir,
     library_is_configured,
     sanitize_name,
-    vr_clips_dir,
+    vr_flicks_dir,
     vr_video_dir,
 )
 
@@ -28,8 +28,8 @@ from genaumacher.paths import (
 _RUNTIME_DIRS = (
     "SESSIONS_DIR",
     "RAW_CLIPS_DIR",
-    "clips_dir",
-    "vr_clips_dir",
+    "flicks_dir",
+    "vr_flicks_dir",
     "audio_dir",
 )
 
@@ -71,8 +71,8 @@ def runtime_dirs(library, checkout_dirs):
     genau = library / "videos" / "genau"
     return {
         **checkout_dirs,
-        "clips_dir": genau / "clips" / "2D" / "non_AI",
-        "vr_clips_dir": genau / "clips" / "VR",
+        "flicks_dir": genau / "flicks" / "2D" / "non_AI",
+        "vr_flicks_dir": genau / "flicks" / "VR",
         "audio_dir": genau / "audio",
     }
 
@@ -89,19 +89,25 @@ class TestWhereTheLibraryFoldersAre:
     def test_the_clip_folder_hangs_off_the_library_root_the_overlay_names(
         self, tmp_path: Path, content_overlay
     ):
-        content_overlay({"library_root": "D:/example-suite"})
+        content_overlay({"library_root": "D:/example-suite", "genau_flicks_folder": "flicks"})
 
-        assert clips_dir() == Path("D:/example-suite/videos/genau/clips/2D/non_AI")
+        assert flicks_dir() == Path("D:/example-suite/videos/genau/flicks/2D/non_AI")
 
-    def test_a_cut_goes_where_genau_keeps_the_clips_cut_from_real_videos(self, content_overlay):
+    def test_a_cut_goes_where_genau_keeps_the_flicks_cut_from_real_videos(self, content_overlay):
         """Genau's clips folder is laid out as the library's videos are: a 2D
         folder split into AI and non_AI, and a VR folder.  What Genaumacher cuts is
         cut from real videos, and its soundtrack sits beside the clips folder."""
-        content_overlay({"library_root": "D:/example-suite"})
+        content_overlay({"library_root": "D:/example-suite", "genau_flicks_folder": "flicks"})
         genau = Path("D:/example-suite/videos/genau")
 
-        assert (clips_dir(), vr_clips_dir(), audio_dir()) == (
-            genau / "clips" / "2D" / "non_AI", genau / "clips" / "VR", genau / "audio")
+        assert (flicks_dir(), vr_flicks_dir(), audio_dir()) == (
+            genau / "flicks" / "2D" / "non_AI", genau / "flicks" / "VR", genau / "audio")
+
+    def test_genaus_flicks_folder_is_the_one_the_overlay_names(self, content_overlay):
+        content_overlay({"library_root": "D:/example-suite", "genau_flicks_folder": "example-flicks"})
+        flicks = Path("D:/example-suite/videos/genau/example-flicks")
+
+        assert (flicks_dir(), vr_flicks_dir()) == (flicks / "2D" / "non_AI", flicks / "VR")
 
     def test_an_overlay_written_after_the_import_is_the_one_that_answers(
         self, tmp_path: Path, content_overlay
@@ -109,9 +115,10 @@ class TestWhereTheLibraryFoldersAre:
         """The proof that the read is at the call and not at the import: this
         overlay did not exist when ``genaumacher.paths`` was first imported.
         """
-        content_overlay({"library_root": str(tmp_path / "written just now")})
+        content_overlay({"library_root": str(tmp_path / "written just now"),
+                         "genau_flicks_folder": "flicks"})
 
-        assert clips_dir().is_relative_to(tmp_path / "written just now")
+        assert flicks_dir().is_relative_to(tmp_path / "written just now")
 
     def test_an_overlay_with_no_library_root_says_so_and_names_the_file(
         self, content_overlay
@@ -119,10 +126,10 @@ class TestWhereTheLibraryFoldersAre:
         local = content_overlay({"main_player_status_file": "D:/example-suite/main_player_status.txt"})
 
         with pytest.raises(LookupError, match="library_root"):
-            clips_dir()
+            flicks_dir()
 
         with pytest.raises(LookupError, match=str(local.name)):
-            clips_dir()
+            flicks_dir()
 
 
 class TestTheVrVideoFolder:
@@ -228,7 +235,7 @@ class TestAMachineWithNoLibraryYet:
         that tree on its system drive and would answer "is there" yes.
         """
         content_overlay()
-        library = (clips_dir(), vr_clips_dir(), audio_dir())
+        library = (flicks_dir(), vr_flicks_dir(), audio_dir())
         already = [folder for folder in library if folder.is_dir()]
 
         ensure_runtime_dirs()

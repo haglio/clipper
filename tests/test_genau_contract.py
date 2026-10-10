@@ -1,4 +1,4 @@
-"""Where Genaumacher puts a cut, held to what Genau says its clips folder holds.
+"""Where Genaumacher puts a cut, held to what Genau says its flicks folder holds.
 
 Genau publishes ``genau_contract.json`` at its checkout root.  Neither gate
 clones the other, so on a machine with no Genau beside this one there is
@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from genaumacher.paths import clips_dir, library_root, vr_clips_dir
+from genaumacher.paths import flicks_dir, library_root, vr_flicks_dir
 
 CONTRACT = Path("genau") / "genau_contract.json"
 SECTION_BEFORE_THE_RENAME = "inside_the_clips_folder"
@@ -36,8 +36,8 @@ def inside_the_flicks_folder() -> dict:
 def test_a_cut_lands_in_genaus_2d_folder_and_a_vr_cut_in_its_vr_folder(
     inside_the_flicks_folder, content_overlay,
 ):
-    content_overlay({"library_root": "D:/example-suite"})
-    genau_flicks = library_root() / "videos" / "genau" / "clips"
+    content_overlay({"library_root": "D:/example-suite", "genau_flicks_folder": "example-flicks"})
+    genau_flicks = library_root() / "videos" / "genau" / "example-flicks"
 
-    assert clips_dir().parent == genau_flicks / inside_the_flicks_folder["flat"]
-    assert vr_clips_dir() == genau_flicks / inside_the_flicks_folder["vr"]
+    assert flicks_dir().parent == genau_flicks / inside_the_flicks_folder["flat"]
+    assert vr_flicks_dir() == genau_flicks / inside_the_flicks_folder["vr"]

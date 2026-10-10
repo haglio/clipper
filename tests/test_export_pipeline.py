@@ -13,7 +13,7 @@ from unittest.mock import patch
 import pytest
 
 from genaumacher.export_pipeline import run_export
-from genaumacher.paths import RAW_CLIPS_DIR, audio_dir, clips_dir, vr_clips_dir
+from genaumacher.paths import RAW_CLIPS_DIR, audio_dir, flicks_dir, vr_flicks_dir
 from genaumacher.sidecar import record_provenance
 
 pytestmark = pytest.mark.usefixtures("library")
@@ -112,7 +112,7 @@ class TestWhatEachStepIsGiven:
         post_state, raw_in, clip_out, progress = steps["post"].calls[0]
         assert post_state is state
         assert raw_in == steps["raw"].calls[0][1]
-        assert clip_out.parent == clips_dir()
+        assert clip_out.parent == flicks_dir()
         assert progress is watcher
 
     def test_the_audio_step_writes_beside_the_clip(self, state, steps, watcher):
@@ -158,7 +158,7 @@ class TestWhatItReports:
         ok, message = run_export(state, watcher)
 
         assert ok is True
-        assert str(clips_dir()) in message
+        assert str(flicks_dir()) in message
 
 
 class TestFailures:
@@ -197,14 +197,14 @@ class TestVrExportPath:
 
         run_export(state, watcher)
 
-        assert steps["post"].calls[0][2].parent == clips_dir()
+        assert steps["post"].calls[0][2].parent == flicks_dir()
 
     def test_a_vr_clip_lands_in_the_vr_clips_folder(self, state, steps, watcher):
         state.vr = True
 
         run_export(state, watcher)
 
-        assert steps["post"].calls[0][2].parent == vr_clips_dir()
+        assert steps["post"].calls[0][2].parent == vr_flicks_dir()
 
 
 class TestALoopedClipsRecord:
@@ -242,7 +242,7 @@ class TestSkipPostprocess:
     ):
         run_export(state, watcher)
 
-        assert steps["raw"].calls[0][1].parent == clips_dir()
+        assert steps["raw"].calls[0][1].parent == flicks_dir()
 
     def test_the_skipped_stage_still_reports_itself_finished(
         self, state, steps, watcher

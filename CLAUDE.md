@@ -78,7 +78,7 @@ not bump it. The near miss that still counts: a default tuned in
 
 - The test environment is the project `.venv`, not system Python or Conda.
 - `sessions/` and `raw_clips/` are at the project root (not inside `genaumacher/`). They are gitignored runtime data.
-- A test that runs an export or the loop fix into `clips_dir()` writes that clip's metadata sidecar for real. Ask for the `library` fixture, which gives the test a library under tmp; without it the sidecar lands in the library this machine's overlay names.
+- A test that runs an export or the loop fix into `flicks_dir()` writes that flick's metadata sidecar for real. Ask for the `library` fixture, which gives the test a library under tmp; without it the sidecar lands in the library this machine's overlay names.
 
 ## Test fixtures must be fabricated, never copied from the real library
 
