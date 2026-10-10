@@ -11,7 +11,7 @@ from pathlib import Path
 
 from . import export_steps
 from .export_progress import ExportProgress
-from .paths import RAW_CLIPS_DIR, audio_dir, clips_dir, sanitize_name, vr_clips_dir
+from .paths import RAW_CLIPS_DIR, audio_dir, flicks_dir, sanitize_name, vr_flicks_dir
 from .sidecar import record_provenance
 from .state import VideoState
 
@@ -23,10 +23,10 @@ def _output_paths(state: VideoState) -> tuple[Path, Path, Path]:
     launcher's checkbox decided when the session was made.
     """
     session_base = sanitize_name(state.session_name)
-    clip_folder = vr_clips_dir() if state.vr else clips_dir()
+    flick_folder = vr_flicks_dir() if state.vr else flicks_dir()
     return (
         RAW_CLIPS_DIR / f"{session_base}.mp4",
-        clip_folder / f"{session_base}.mp4",
+        flick_folder / f"{session_base}.mp4",
         audio_dir() / f"{session_base}.mp3",
     )
 

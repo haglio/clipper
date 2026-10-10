@@ -1,4 +1,5 @@
 {
-  "_comment": "Placeholder content overlay. The real values live in content.local.json (git-ignored). library_root is the folder holding the media library. Evolver and Origenerator read the same key from their own overlays and the three must agree. main_player_status_file is optional: the full path to Fun Time's main_player_status.txt (in its state_dir), the file the main player publishes what it is playing into -- it lets the launcher prefill a new session from whatever the main player is showing, and omitting it simply opens the launcher blank.",
-  "library_root": "C:/path/to/library-root"
+  "_comment": "Placeholder content overlay. The real values live in content.local.json (git-ignored). library_root is the folder holding the media library. Evolver and Origenerator read the same key from their own overlays and the three must agree. main_player_status_file is optional: the full path to Fun Time's main_player_status.txt (in its state_dir), the file the main player publishes what it is playing into -- it lets the launcher prefill a new session from whatever the main player is showing, and omitting it simply opens the launcher blank. genau_flicks_folder names the folder under videos/genau that Genau's flicks sit in, which a cut is exported into; a folder's name is library vocabulary, so it lives here, and Evolver reads the same key from its own overlay and the two must agree.",
+  "library_root": "C:/path/to/library-root",
+  "genau_flicks_folder": "flicks"
 }

@@ -40,12 +40,16 @@ def _genau_dir() -> Path:
     return library_root() / "videos" / "genau"
 
 
-def clips_dir() -> Path:
-    return _genau_dir() / "clips" / "2D" / "non_AI"
+def _genau_flicks_dir() -> Path:
+    return _genau_dir() / overlay_value(load_content(), "genau_flicks_folder", path=LOCAL_CONTENT)
 
 
-def vr_clips_dir() -> Path:
-    return _genau_dir() / "clips" / "VR"
+def flicks_dir() -> Path:
+    return _genau_flicks_dir() / "2D" / "non_AI"
+
+
+def vr_flicks_dir() -> Path:
+    return _genau_flicks_dir() / "VR"
 
 
 def audio_dir() -> Path:
@@ -95,7 +99,7 @@ def ensure_runtime_dirs() -> None:
         directory.mkdir(parents=True, exist_ok=True)
     if not library_is_configured():
         return
-    for directory in (clips_dir(), vr_clips_dir(), audio_dir()):
+    for directory in (flicks_dir(), vr_flicks_dir(), audio_dir()):
         directory.mkdir(parents=True, exist_ok=True)
 
 
