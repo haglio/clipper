@@ -1,6 +1,6 @@
-"""What the main player is playing, so the launcher can open a session on it.
+"""What the Main Funestra is playing, so the launcher can open a session on it.
 
-Fun Time's ``;`` already does this from the other side: it reads the main player's status
+Fun Time's ``;`` already does this from the other side: it reads the Main Funestra's status
 file and runs ``genaumacher.create_session --video <path> --time <seconds>``, so
 genaumacher is told and has to know nothing.  This is the pull side, for opening
 genaumacher on its own rather than from a session — and it reads the same file and
@@ -9,14 +9,14 @@ the same two fields, so the two routes cannot disagree about what was playing.
 That is the whole of genaumacher's interface to the rest of the suite.  It replaces
 a probe that polled VLC's HTTP port and scraped VLC window titles, and then
 hunted the filename it recovered across four folder lists out of fun_time's
-config.  The main player publishes an absolute path and an exact playhead, so none of that
+config.  The Main Funestra publishes an absolute path and an exact playhead, so none of that
 searching has anything left to do; and genaumacher no longer reads fun_time's
 config, which is how every other app in the family already works.
 
 Where the file is, is machine-specific, so it comes from genaumacher's own content
 overlay under the name fun_time gives it: ``main_player_status_file``.  An overlay that
 says nothing means no prefill and a blank launcher, which is also what a
-machine with the main player switched off gets.
+machine with the Main Funestra switched off gets.
 """
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ def main_player_status_file() -> Path | None:
 
 
 def _published_values(status_file: Path) -> dict[str, str]:
-    """The ``key=value`` lines the main player last wrote, or nothing readable.
+    """The ``key=value`` lines the Main Funestra last wrote, or nothing readable.
 
     The file is replaced whole rather than truncated in place, so a torn read
     is not expected — but it is one poll of a file another process owns, and
@@ -59,8 +59,8 @@ def _published_values(status_file: Path) -> dict[str, str]:
     )
 
 
-def detect_main_player_session_prefill(status_file: Path | None = None) -> SessionPrefill | None:
-    """What the main player is showing, or None when there is nothing to open a session on."""
+def detect_main_funestra_session_prefill(status_file: Path | None = None) -> SessionPrefill | None:
+    """What the Main Funestra is showing, or None when there is nothing to open a session on."""
     status_file = main_player_status_file() if status_file is None else status_file
     if status_file is None:
         return None
@@ -77,7 +77,7 @@ def detect_main_player_session_prefill(status_file: Path | None = None) -> Sessi
         # the session simply starts at the beginning.
         position_seconds = 0.0
 
-    # The path is the main player's, so it is written the way Windows writes one whatever
+    # The path is the Main Funestra's, so it is written the way Windows writes one whatever
     # is reading it here.
     name = PureWindowsPath(video).stem
     return SessionPrefill(

@@ -12,7 +12,7 @@ Shared rules are in the global `~/.claude/CLAUDE.md`. This file contains only ge
 
 Genaumacher is a standalone PyQt6/OpenCV video clip editor, extracted from the fun_time project. Key relationships:
 
-- **What the suite tells genaumacher**: exactly two things, both about one video. Fun Time's `;` pushes — it reads the main player's status file and runs `python -m genaumacher.create_session --video <path> --time <seconds>`. `genaumacher/main_player_prefill.py` pulls the same two fields out of the same file, for the case where genaumacher is opened on its own; the file's location is one optional key in genaumacher's own `content.local.json`. **Genaumacher does not read fun_time's config**, and has no path to the fun_time checkout. It used to do both, for a VLC prefill the suite outgrew.
+- **What the suite tells genaumacher**: exactly two things, both about one video. Fun Time's `;` pushes — it reads the Main Funestra's status file and runs `python -m genaumacher.create_session --video <path> --time <seconds>`. `genaumacher/main_funestra_prefill.py` pulls the same two fields out of the same file, for the case where genaumacher is opened on its own; the file's location is one optional key in genaumacher's own `content.local.json`. **Genaumacher does not read fun_time's config**, and has no path to the fun_time checkout. It used to do both, for a VLC prefill the suite outgrew.
 - **Output dirs**: Clips export to `<library-root>/videos/genau/clips/2D/non_AI/`, VR clips to `<library-root>/videos/genau/clips/VR/`, audio to `<library-root>/videos/genau/audio/`. Genau's `genau_contract.json` names the 2D and VR folders, and `tests/test_genau_contract.py` holds these to it.
 - **What an export records**: what made each finished clip, as `provenance.cut` on the clip's metadata sidecar (`<library-root>/videos/metadata/genau/clips/2D/non_AI/<name>.json`, the record Evolver keeps for that clip). A sweep reads it to find the clips made before a change and remake them.
 - **Entry point**: `python -m genaumacher` -> `__main__.py` -> `app.py:main()` -> launcher dialog -> UI.
@@ -35,7 +35,7 @@ unless the binary actually *runs*, which is what the merge gate uses.
 
 Same shape as `player_core/vendor/libmpv-2.dll`, with one difference worth
 knowing: player_core deliberately does *not* give CI its DLL, because fun_time's
-hidden-desktop suite covers the real player. Genaumacher has no second suite, and
+hidden-desktop suite covers the real engine. Genaumacher has no second suite, and
 windows-latest is the only place a Windows PE can execute — so genaumacher's gate
 fetches it and `--require`s it, and that one step is the whole assertion that
 the real binary turns these flags into a frame.
@@ -70,7 +70,7 @@ not bump it. The near miss that still counts: a default tuned in
 
 ## Testing principles
 
-- **Test through realistic inputs, not mocked internals.** Feed the real thing through the real function, with only the outside world stubbed. `tests/test_main_player_prefill.py` builds its status payload from the key set it reads out of the main player's own `status_fields`, rather than from a fixture in the shape genaumacher happens to want — so the test fails when the producer's format moves, which is the whole reason to have it.
+- **Test through realistic inputs, not mocked internals.** Feed the real thing through the real function, with only the outside world stubbed. `tests/test_main_funestra_prefill.py` builds its status payload from the key set it reads out of the Main Funestra's own `status_fields`, rather than from a fixture in the shape genaumacher happens to want — so the test fails when the producer's format moves, which is the whole reason to have it.
 - **Test each resolution path independently.** If a function has a primary path and a fallback, write separate tests proving each works — and that the fallback is not reached when the primary succeeds. `tests/test_fetch_rife.py` does this for the archive: an intact copy already on disk is reused, and `mock.assert_not_called()`-style stubs prove nothing was downloaded.
 - **Mock at the boundary, not in the middle.** Patch the I/O (`clip_postprocess_media`'s `ffprobe_video`, `read_frames`, `encode_with_ffmpeg`) and let everything above it run for real, as `tests/test_genaumacher_postprocess_pipeline.py` does. Stubbing the intermediate logic tests the stubs.
 
