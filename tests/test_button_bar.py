@@ -1,4 +1,4 @@
-"""Tests for clipper.gui.button_bar — transport control buttons."""
+"""Tests for genaumacher.gui.button_bar — transport control buttons."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from shared_ui.icon_geometry import GLYPHS, Polygon
 from shared_ui.icons import glyph_pixmap
 from shared_ui.spacing import BUTTON_SIZE
 
-from clipper.gui.button_bar import ButtonBar
+from genaumacher.gui.button_bar import ButtonBar
 
 
 @pytest.fixture

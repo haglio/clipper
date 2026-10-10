@@ -1,10 +1,10 @@
-"""Tests for clipper.gui.export_dialog — export progress dialog."""
+"""Tests for genaumacher.gui.export_dialog — export progress dialog."""
 
 from __future__ import annotations
 
 import pytest
 
-from clipper.gui.export_dialog import ExportDialog
+from genaumacher.gui.export_dialog import ExportDialog
 
 
 @pytest.fixture

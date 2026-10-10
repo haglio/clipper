@@ -1,4 +1,4 @@
-"""Tests for clipper.gui.shortcuts — the one keymap.
+"""Tests for genaumacher.gui.shortcuts — the one keymap.
 
 It was written out four times in three modules and the copies had drifted; the
 tests here are the guards that stop that happening again.
@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 from PyQt6.QtCore import Qt
 
-from clipper.gui.shortcuts import LEGEND_ROWS, SHORTCUTS, legend_rows, shortcut_for
+from genaumacher.gui.shortcuts import LEGEND_ROWS, SHORTCUTS, legend_rows, shortcut_for
 
 
 class TestTheTableIsWellFormed:

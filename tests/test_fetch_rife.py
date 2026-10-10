@@ -1,7 +1,7 @@
 """The fetch step that stands in for 17 MB of binary this repo stopped tracking.
 
 Two things have to hold or the move is worse than the tracking was. The files
-must land where ``clipper.interpolator_environment`` looks, or the fetch is
+must land where ``genaumacher.interpolator_environment`` looks, or the fetch is
 green and the loop fix falls back to its geometric seam anyway; and "the binary
 is here" has to mean "the binary runs here", or ``--require`` passes on a
 machine that cannot interpolate -- and that one step is the only place anything
@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from clipper import interpolator_environment
+from genaumacher import interpolator_environment
 from tools import fetch_rife
 
 _RELEASE_BYTES = b"pretend release"
@@ -136,7 +136,7 @@ class TestRuns:
         # the real fetched exe, produces a frame, and runs() answers True where
         # the whole point is that a present-but-unrunnable file answers False.
         monkeypatch.setattr(
-            "clipper.interpolator_environment._find_exe",
+            "genaumacher.interpolator_environment._find_exe",
             lambda: fetch_rife.RIFE_EXE,
         )
         fetch_rife.extract(_release_zip(tmp_path / "release.zip"), tmp_path)
@@ -155,7 +155,7 @@ class TestRuns:
         self, extracted: Path, monkeypatch
     ):
         monkeypatch.setattr(
-            "clipper.clip_postprocess_transforms.build_rife_bridge",
+            "genaumacher.clip_postprocess_transforms.build_rife_bridge",
             _bridge_returning([object()]),
         )
 
@@ -166,7 +166,7 @@ class TestRuns:
     ):
         """The Vulkan-less case: the process runs, the bridge comes back empty."""
         monkeypatch.setattr(
-            "clipper.clip_postprocess_transforms.build_rife_bridge",
+            "genaumacher.clip_postprocess_transforms.build_rife_bridge",
             _bridge_returning(None),
         )
 
@@ -174,7 +174,7 @@ class TestRuns:
 
     def test_a_bridge_that_raises_does_not_run(self, extracted: Path, monkeypatch):
         monkeypatch.setattr(
-            "clipper.clip_postprocess_transforms.build_rife_bridge",
+            "genaumacher.clip_postprocess_transforms.build_rife_bridge",
             _bridge_returning(subprocess.TimeoutExpired(cmd="rife", timeout=1)),
         )
 

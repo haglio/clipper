@@ -1,4 +1,4 @@
-"""Tests for clipper.gui.export_worker — the QThread that runs an export.
+"""Tests for genaumacher.gui.export_worker — the QThread that runs an export.
 
 What the export itself does -- the order of the steps, where each output lands,
 what a failed one means -- is `tests/test_export_pipeline.py`, which drives it
@@ -12,8 +12,8 @@ from unittest.mock import patch
 
 import pytest
 
-from clipper.gui.export_dialog import ExportDialog
-from clipper.gui.export_worker import ExportWorker, connect_export
+from genaumacher.gui.export_dialog import ExportDialog
+from genaumacher.gui.export_worker import ExportWorker, connect_export
 
 
 @pytest.fixture
@@ -44,11 +44,11 @@ class _Step:
 @pytest.fixture
 def steps():
     """The three export steps, stubbed at the module they are called through."""
-    with patch("clipper.export_steps.export_raw_clip",
+    with patch("genaumacher.export_steps.export_raw_clip",
                _Step(stage="clipping", reports="clip")), \
-         patch("clipper.export_steps.run_clip_postprocess",
+         patch("genaumacher.export_steps.run_clip_postprocess",
                _Step(stage="fixing the loop", reports="fix")), \
-         patch("clipper.export_steps.export_full_audio_mp3",
+         patch("genaumacher.export_steps.export_full_audio_mp3",
                _Step(stage="pulling audio", reports="audio")):
         yield
 
@@ -100,7 +100,7 @@ class TestWhatTheRunAnswers:
         worker = ExportWorker(state)
         seen = _recorded(worker)
 
-        with patch("clipper.gui.export_worker.run_export", return_value=answer) as export:
+        with patch("genaumacher.gui.export_worker.run_export", return_value=answer) as export:
             worker.run()
 
         assert seen["export_finished"] == [answer]

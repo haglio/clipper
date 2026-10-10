@@ -20,11 +20,11 @@ import cv2
 import numpy as np
 import pytest
 
-from clipper.create_session import build_session_payload
-from clipper.editing import set_mark_in
-from clipper.launch_choice import LoadSession
-from clipper.session_launch import build_state
-from clipper.session_persistence import current_payload
+from genaumacher.create_session import build_session_payload
+from genaumacher.editing import set_mark_in
+from genaumacher.launch_choice import LoadSession
+from genaumacher.session_launch import build_state
+from genaumacher.session_persistence import current_payload
 
 # A fabricated session, in the byte layout safe_atomic_write_json produces:
 # json.dump(payload, indent=2) followed by one newline.
@@ -96,7 +96,7 @@ def load_session(session_file):
     def load():
         golden = json.loads(GOLDEN_SESSION)
         capture = _StubCapture(golden["fps"], golden["total_frames"])
-        with patch("clipper.state_factory.cv2.VideoCapture", return_value=capture):
+        with patch("genaumacher.state_factory.cv2.VideoCapture", return_value=capture):
             return build_state(LoadSession(session_json=str(session_file)))
 
     return load

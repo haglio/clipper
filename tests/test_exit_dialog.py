@@ -1,10 +1,10 @@
-"""Tests for clipper.gui.exit_dialog — exit confirmation dialog."""
+"""Tests for genaumacher.gui.exit_dialog — exit confirmation dialog."""
 
 from __future__ import annotations
 
 import pytest
 
-from clipper.gui.exit_dialog import ExitDialog
+from genaumacher.gui.exit_dialog import ExitDialog
 
 
 @pytest.fixture

@@ -20,12 +20,12 @@ from app_support.dependencies import (
 )
 
 ROOT = Path(__file__).resolve().parent.parent
-TREES = [ROOT / "clipper", ROOT / "tests", ROOT / "tools", ROOT / "vulture_whitelist.py"]
+TREES = [ROOT / "genaumacher", ROOT / "tests", ROOT / "tools", ROOT / "vulture_whitelist.py"]
 
 
 def test_every_third_party_import_is_declared():
     assert_every_import_is_declared(
-        ROOT, [ROOT / "clipper"], ROOT / "pyproject.toml", local=("clipper",))
+        ROOT, [ROOT / "genaumacher"], ROOT / "pyproject.toml", local=("genaumacher",))
 
 
 def test_every_requirement_has_an_upper_bound():

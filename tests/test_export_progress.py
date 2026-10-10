@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from clipper.export_progress import fraction_in, progress_line
+from genaumacher.export_progress import fraction_in, progress_line
 
 
 class TestTheLineTheSubprocessPrints:

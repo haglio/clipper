@@ -1,4 +1,4 @@
-"""Tests for clipper.gui.video_pane — video frame display widget."""
+"""Tests for genaumacher.gui.video_pane — video frame display widget."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 from shared_ui.colors import BG_SECONDARY
 
-from clipper.gui.frame_converter import bgr_to_qimage
-from clipper.gui.video_pane import VideoPane
+from genaumacher.gui.frame_converter import bgr_to_qimage
+from genaumacher.gui.video_pane import VideoPane
 
 
 @pytest.fixture

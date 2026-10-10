@@ -12,9 +12,9 @@ from unittest.mock import patch
 
 import pytest
 
-from clipper.export_pipeline import run_export
-from clipper.paths import RAW_CLIPS_DIR, audio_dir, clips_dir, vr_clips_dir
-from clipper.sidecar import record_provenance
+from genaumacher.export_pipeline import run_export
+from genaumacher.paths import RAW_CLIPS_DIR, audio_dir, clips_dir, vr_clips_dir
+from genaumacher.sidecar import record_provenance
 
 pytestmark = pytest.mark.usefixtures("library")
 
@@ -82,9 +82,9 @@ def steps():
         "post": _Step(stage="fixing the loop", reports="fix", detail="clip.mp4"),
         "audio": _Step(stage="pulling audio", reports="audio", detail="audio.mp3"),
     }
-    with patch("clipper.export_steps.export_raw_clip", stubs["raw"]), \
-         patch("clipper.export_steps.run_clip_postprocess", stubs["post"]), \
-         patch("clipper.export_steps.export_full_audio_mp3", stubs["audio"]):
+    with patch("genaumacher.export_steps.export_raw_clip", stubs["raw"]), \
+         patch("genaumacher.export_steps.run_clip_postprocess", stubs["post"]), \
+         patch("genaumacher.export_steps.export_full_audio_mp3", stubs["audio"]):
         yield stubs
 
 
@@ -187,7 +187,7 @@ class TestFailures:
         def explode(*_args):
             raise RuntimeError("the disk went away")
 
-        with patch("clipper.export_steps.export_raw_clip", explode):
+        with patch("genaumacher.export_steps.export_raw_clip", explode):
             assert run_export(state, watcher) == (False, "the disk went away")
 
 
@@ -218,7 +218,7 @@ class TestALoopedClipsRecord:
             record_provenance(clip_path, recipe="clip_postprocess", recipe_version="3")
             return True, str(clip_path)
 
-        with patch("clipper.export_steps.run_clip_postprocess", loop_fix):
+        with patch("genaumacher.export_steps.run_clip_postprocess", loop_fix):
             run_export(state, watcher)
 
         recorded = recorded_cut(state.session_name)
@@ -256,7 +256,7 @@ class TestSkipPostprocess:
 
         assert steps["audio"].called
 
-    def test_the_clip_says_clipper_made_it_and_that_no_recipe_did(
+    def test_the_clip_says_genaumacher_made_it_and_that_no_recipe_did(
         self, state, steps, watcher, recorded_cut
     ):
         """Nothing but the cut touched it, so a sweep for clips made before a
@@ -265,5 +265,5 @@ class TestSkipPostprocess:
 
         recorded = recorded_cut(state.session_name)
         assert (recorded["app"], recorded["recipe"], recorded["recipe_version"]) == (
-            "clipper", None, None,
+            "genaumacher", None, None,
         )

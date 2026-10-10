@@ -1,6 +1,6 @@
 """The candidate window the loop-point search walks.
 
-`clipper/suggestion_search.py` is reached only through `loop_suggestions`, and
+`genaumacher/suggestion_search.py` is reached only through `loop_suggestions`, and
 the word `direction` -- the parameter that decides which way the window runs --
 appeared nowhere in tests/ until this file.
 """
@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from clipper.suggestion_search import (
+from genaumacher.suggestion_search import (
     best_duplicate_match_index,
     best_turning_point_index,
     candidate_similarity_curve,

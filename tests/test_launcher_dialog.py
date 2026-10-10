@@ -1,4 +1,4 @@
-"""Tests for clipper.gui.launcher_dialog — session launcher dialog."""
+"""Tests for genaumacher.gui.launcher_dialog — session launcher dialog."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from unittest.mock import patch
 import pytest
 from PyQt6.QtWidgets import QFileDialog
 
-from clipper.gui.launcher_dialog import LauncherDialog
-from clipper.launch_choice import ClipWholeVideo, LoadSession, NewSession
+from genaumacher.gui.launcher_dialog import LauncherDialog
+from genaumacher.launch_choice import ClipWholeVideo, LoadSession, NewSession
 
 
 @pytest.fixture

@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for clipper tests."""
+"""Shared pytest fixtures for genaumacher tests."""
 from __future__ import annotations
 
 import importlib
@@ -14,17 +14,17 @@ import pytest
 from PyQt6.QtCore import QEventLoop, QTimer
 from scratch import scratch_dir
 
-from clipper import content
-from clipper.clip_range import ClipRange
-from clipper.frame_window import FrameWindow
-from clipper.loop_cursor import LoopCursor
-from clipper.loop_modes import read_loop_mode
-from clipper.state import VideoState
-from clipper.suggestions import Suggestions
-from clipper.wrap_modes import read_wrap_mode
+from genaumacher import content
+from genaumacher.clip_range import ClipRange
+from genaumacher.frame_window import FrameWindow
+from genaumacher.loop_cursor import LoopCursor
+from genaumacher.loop_modes import read_loop_mode
+from genaumacher.state import VideoState
+from genaumacher.suggestions import Suggestions
+from genaumacher.wrap_modes import read_wrap_mode
 
 # Render Qt offscreen for the whole suite. Agents run these tests on every commit
-# on the machine clipper is used from; without this, every test that builds a
+# on the machine genaumacher is used from; without this, every test that builds a
 # widget throws a real window onto that screen for a few milliseconds, so a run
 # flashes a burst of them. Must be set before the QApplication below exists, so
 # it goes here rather than in a fixture; the merge gate sets it too, which does
@@ -52,46 +52,46 @@ def qapp():
 
 
 # ---------------------------------------------------------------------------
-# sys.path fix — must run before clipper is imported
+# sys.path fix — must run before genaumacher is imported
 # ---------------------------------------------------------------------------
 # pytest inserts ancestor directories of the test root into sys.path.  When
-# the monorepo "projects" directory ends up there, Python resolves "clipper"
+# the monorepo "projects" directory ends up there, Python resolves "genaumacher"
 # as the *project root* directory (a namespace package) instead of the real
-# clipper package installed via editable pip.  That causes clipper.state to
+# genaumacher package installed via editable pip.  That causes genaumacher.state to
 # resolve to the runtime ``state/`` log directory rather than state.py,
 # breaking every import of VideoState.
 #
-# Fix: force-import clipper from the editable-install finder before pytest
+# Fix: force-import genaumacher from the editable-install finder before pytest
 # collection triggers a namespace-package resolution.  Once the correct
 # module is in sys.modules the bad path can't win.
 import importlib as _importlib
 
-_spec = _importlib.util.find_spec("clipper")
+_spec = _importlib.util.find_spec("genaumacher")
 if _spec is None or _spec.origin is None:
     # The editable finder lost the race.  Flush the stale entry and retry
     # by looking up the installed package location directly.
-    sys.modules.pop("clipper", None)
+    sys.modules.pop("genaumacher", None)
     _importlib.invalidate_caches()
 
     # Import the editable-install's finder and ask it directly.
-    import __editable___clipper_0_1_0_finder as _finder  # type: ignore[import-untyped]
-    _pkg_path = _finder.MAPPING.get("clipper")
+    import __editable___genaumacher_0_1_0_finder as _finder  # type: ignore[import-untyped]
+    _pkg_path = _finder.MAPPING.get("genaumacher")
     if _pkg_path:
         _init = Path(_pkg_path) / "__init__.py"
         if _init.is_file():
             _new_spec = _importlib.util.spec_from_file_location(
-                "clipper", str(_init),
+                "genaumacher", str(_init),
                 submodule_search_locations=[_pkg_path],
             )
             if _new_spec and _new_spec.loader:
                 _mod = _importlib.util.module_from_spec(_new_spec)
-                sys.modules["clipper"] = _mod
+                sys.modules["genaumacher"] = _mod
                 _new_spec.loader.exec_module(_mod)
 
 
 TMP_ROOT = Path(
     os.environ.get(
-        "CLIPPER_PYTEST_TMP_ROOT",
+        "GENAUMACHER_PYTEST_TMP_ROOT",
         str(Path(__file__).resolve().parent.parent / ".tmp-pytest-local"),
     )
 ).resolve()
@@ -131,8 +131,8 @@ def _the_last_session_pointer_is_never_the_real_one():
     scratch = TMP_ROOT / ".last_session.txt"
     TMP_ROOT.mkdir(parents=True, exist_ok=True)
     with pytest.MonkeyPatch.context() as patcher:
-        for name in ("clipper.paths", "clipper.create_session",
-                     "clipper.session_launch", "clipper.session_persistence"):
+        for name in ("genaumacher.paths", "genaumacher.create_session",
+                     "genaumacher.session_launch", "genaumacher.session_persistence"):
             patcher.setattr(importlib.import_module(name),
                             "LAST_SESSION_FILE", scratch)
         yield
@@ -233,7 +233,7 @@ def library(tmp_path, content_overlay) -> Path:
 
 @pytest.fixture
 def genau_sidecar(library):
-    """Where the family files the metadata of a clip Clipper cut into Genau's folder."""
+    """Where the family files the metadata of a clip Genaumacher cut into Genau's folder."""
     return lambda clip_name: (library / "videos" / "metadata" / "genau" / "clips" / "2D" / "non_AI"
                               / f"{clip_name}.json")
 
@@ -312,7 +312,7 @@ def make_state():
     Two modules held their own version of this and two more imported one of
     them across module boundaries -- which worked only because tests/ has no
     __init__.py and pytest prepends the directory to sys.path, so renaming
-    test_clipper_state.py broke two unrelated files.
+    test_genaumacher_state.py broke two unrelated files.
     """
 
     def factory(

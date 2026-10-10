@@ -1,4 +1,4 @@
-"""Clipper's chrome takes its colors from the family's palette, not its own.
+"""Genaumacher's chrome takes its colors from the family's palette, not its own.
 
 Most of it always did -- the timeline, the legend and the video pane all read
 shared_ui tokens.  What was left were the strays: the button fill, its hover and
@@ -17,9 +17,9 @@ from pathlib import Path
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QApplication
 
-from clipper.gui.app import dress
+from genaumacher.gui.app import dress
 
-_GUI = Path(__file__).resolve().parent.parent / "clipper" / "gui"
+_GUI = Path(__file__).resolve().parent.parent / "genaumacher" / "gui"
 
 # "#abc" and "#aabbcc" -- how a color reaches a Qt stylesheet when it did not
 # come from a token.

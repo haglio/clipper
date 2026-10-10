@@ -9,7 +9,7 @@ the files, writes visibly worse clips and looks fine doing it.
 The check used to be four tests gated on the interpolator running, which meant
 the merge gate -- which fetches it on purpose -- enforced nothing about a
 machine that had not, while the suite stayed permanently four skips short of
-zero.  The check now lives in :mod:`clipper.interpolator_environment`, which the
+zero.  The check now lives in :mod:`genaumacher.interpolator_environment`, which the
 app runs at startup on the machine that actually makes clips -- and what is
 tested here is the checker itself, against a stand-in checkout, so it runs
 everywhere and skips nowhere.
@@ -20,8 +20,8 @@ from pathlib import Path
 
 import pytest
 
-from clipper import app, interpolator_environment
-from clipper.interpolator_environment import complaints, locate
+from genaumacher import app, interpolator_environment
+from genaumacher.interpolator_environment import complaints, locate
 
 
 @pytest.fixture
@@ -126,7 +126,7 @@ class TestWhichInterpolatorIsUsed:
 
 
 class _RecordingLog:
-    """Clipper's logger, as far as ``main`` uses one."""
+    """Genaumacher's logger, as far as ``main`` uses one."""
 
     def __init__(self):
         self.warnings: list[str] = []
@@ -141,7 +141,7 @@ class _RecordingLog:
 class TestWhereTheComplaintsGo:
     """A checker nothing calls is the skip it replaced, wearing a module."""
 
-    def test_the_launch_writes_what_the_checker_says_into_clippers_log(self, monkeypatch):
+    def test_the_launch_writes_what_the_checker_says_into_genaumachers_log(self, monkeypatch):
         logged = _RecordingLog()
         monkeypatch.setattr(app, "complaints", lambda: ["no interpolator here"])
         monkeypatch.setattr(app, "_set_windows_app_user_model_id", lambda preview: None)

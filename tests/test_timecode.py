@@ -1,9 +1,9 @@
-"""Tests for clipper.timecode -- seconds to and from a clock string."""
+"""Tests for genaumacher.timecode -- seconds to and from a clock string."""
 from __future__ import annotations
 
 import pytest
 
-from clipper.timecode import format_seconds, parse_timestamp
+from genaumacher.timecode import format_seconds, parse_timestamp
 
 _CLOCKS = [
     ("00:00:00", 0.0),
