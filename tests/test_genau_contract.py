@@ -14,6 +14,7 @@ import pytest
 from clipper.paths import clips_dir, library_root, vr_clips_dir
 
 CONTRACT = Path("genau") / "genau_contract.json"
+SECTION_BEFORE_THE_RENAME = "inside_the_clips_folder"
 
 
 def _promise() -> dict | None:
@@ -25,18 +26,18 @@ def _promise() -> dict | None:
 
 
 @pytest.fixture
-def inside_the_clips_folder() -> dict:
+def inside_the_flicks_folder() -> dict:
     promise = _promise()
     if promise is None:
         pytest.skip(f"no {CONTRACT.as_posix()} beside this checkout")
-    return promise["inside_the_clips_folder"]
+    return promise.get("inside_the_flicks_folder") or promise[SECTION_BEFORE_THE_RENAME]
 
 
 def test_a_cut_lands_in_genaus_2d_folder_and_a_vr_cut_in_its_vr_folder(
-    inside_the_clips_folder, content_overlay,
+    inside_the_flicks_folder, content_overlay,
 ):
     content_overlay({"library_root": "D:/example-suite"})
-    genau_clips = library_root() / "videos" / "genau" / "clips"
+    genau_flicks = library_root() / "videos" / "genau" / "clips"
 
-    assert clips_dir().parent == genau_clips / inside_the_clips_folder["flat"]
-    assert vr_clips_dir() == genau_clips / inside_the_clips_folder["vr"]
+    assert clips_dir().parent == genau_flicks / inside_the_flicks_folder["flat"]
+    assert vr_clips_dir() == genau_flicks / inside_the_flicks_folder["vr"]
