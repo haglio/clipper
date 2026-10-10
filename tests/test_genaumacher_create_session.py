@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import runpy
 import subprocess
 import sys
 from pathlib import Path
@@ -292,3 +293,14 @@ def test_cli_failure(capsys):
 
     assert code == 1
     assert "no video" in capsys.readouterr().err
+
+
+def test_the_command_fun_time_sent_before_the_rename_still_makes_a_session(monkeypatch):
+    handed = []
+    monkeypatch.setattr("genaumacher.create_session.main", lambda: handed.append(sys.argv[1:]) or 0)
+    monkeypatch.setattr(sys, "argv", ["create_session", "--video", "scene one.mp4", "--time", "5.0"])
+
+    with pytest.raises(SystemExit) as ended:
+        runpy.run_module("clipper.create_session", run_name="__main__")
+
+    assert (ended.value.code, handed) == (0, [["--video", "scene one.mp4", "--time", "5.0"]])
