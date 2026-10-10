@@ -26,7 +26,7 @@ htmlcov/
 # untracked one dirties main and blocks merges. '[' escaped to match literally.
 *\[conflicted*
 
-# --- clipper's own ---
+# --- genaumacher's own ---
 
 # Where the app works: the clips it is given, the sessions it cuts, its state.
 raw_clips/
@@ -49,5 +49,5 @@ pytest-cache-files-*/
 # The example overlay's placeholder library_root, "C:/path/to/library-root", is a
 # relative path on POSIX. ensure_runtime_dirs no longer derives library folders
 # from it, so nothing here makes this any more; the line stays because a
-# checkout running an older clipper still can, and what lands under it is media.
+# checkout running an older genaumacher still can, and what lands under it is media.
 /C:/

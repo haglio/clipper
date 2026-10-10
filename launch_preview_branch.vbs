@@ -17,10 +17,10 @@ Else
 End If
 
 Sub Decide()
-  app = "Clipper (branch preview)"
+  app = "Genaumacher (branch preview)"
   primary = fso.GetParentFolderName(fso.GetParentFolderName(fso.GetParentFolderName(root)))
-  logPath = fso.BuildPath(root, "state\clipper_launcher.log")
-  arguments = "-m clipper"
+  logPath = fso.BuildPath(root, "state\genaumacher_launcher.log")
+  arguments = "-m genaumacher"
   interpreter = fso.BuildPath(primary, ".venv\Scripts\python.exe")
   directory = root
 End Sub

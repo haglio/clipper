@@ -1,9 +1,9 @@
-"""Tests for clipper.wrap_modes — what the cursor wraps within."""
+"""Tests for genaumacher.wrap_modes — what the cursor wraps within."""
 from __future__ import annotations
 
 from pathlib import Path
 
-from clipper.wrap_modes import WrapMode, wrap_bounds
+from genaumacher.wrap_modes import WrapMode, wrap_bounds
 
 
 class TestWrapBounds:
@@ -34,7 +34,7 @@ def test_nothing_else_spells_the_wrap_mode_out_as_a_color():
     place the default wrap mode is decided.
     """
 
-    package = Path(__file__).resolve().parents[1] / "clipper"
+    package = Path(__file__).resolve().parents[1] / "genaumacher"
     offenders = [
         f"{path.relative_to(package.parent).as_posix()}:{n}"
         for path in sorted(package.rglob("*.py"))

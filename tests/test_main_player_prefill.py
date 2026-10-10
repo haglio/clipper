@@ -1,8 +1,8 @@
 """What the launcher prefills from: the suite's main player.
 
 Fun Time's `;` already pushes the video and the playhead into
-``clipper.create_session`` without asking clipper anything.  This is the pull
-side, for opening clipper on its own, and it reads the same two fields out of
+``genaumacher.create_session`` without asking genaumacher anything.  This is the pull
+side, for opening genaumacher on its own, and it reads the same two fields out of
 the same file, so the two ways of starting a session cannot disagree about what
 was playing.
 """
@@ -14,10 +14,10 @@ import subprocess
 import textwrap
 from pathlib import Path
 
-from clipper import main_player_prefill
-from clipper.create_session import build_session_payload
-from clipper.main_player_prefill import SessionPrefill, detect_main_player_session_prefill
-from clipper.paths import PROJECT_DIR
+from genaumacher import main_player_prefill
+from genaumacher.create_session import build_session_payload
+from genaumacher.main_player_prefill import SessionPrefill, detect_main_player_session_prefill
+from genaumacher.paths import PROJECT_DIR
 
 # The main player publishes `key=value` lines. Fabricated values throughout: what matters
 # is the shape, and a real one would name the library.
@@ -53,7 +53,7 @@ class TestWhatItReads:
         assert prefill.timestamp == "00:01:12.500"
 
     def test_the_session_is_named_the_way_the_push_side_names_it(self, tmp_path: Path):
-        """Pressing `;` and opening clipper by hand must agree on the name.
+        """Pressing `;` and opening genaumacher by hand must agree on the name.
 
         create_session defaults it to ``sanitize_name(stem)``; anything else
         here means the same video makes two differently-named sessions
@@ -97,11 +97,11 @@ class TestWhenThereIsNothingToPrefill:
 
 
 class TestTheContractWithTheMainPlayer:
-    """The two field names clipper depends on, checked against their producer.
+    """The two field names genaumacher depends on, checked against their producer.
 
-    The main player publishes these; fun_time and clipper both read them. This is the check
+    The main player publishes these; fun_time and genaumacher both read them. This is the check
     that fires by itself on a machine that has the fun_time checkout, so a rename
-    on the main player's side reds clipper's suite instead of quietly emptying the launcher.
+    on the main player's side reds genaumacher's suite instead of quietly emptying the launcher.
     """
 
     @staticmethod
@@ -128,7 +128,7 @@ class TestTheContractWithTheMainPlayer:
         return [source for source in sources if source.is_file()]
 
     @staticmethod
-    def _keys_clipper_reads() -> set[str]:
+    def _keys_genaumacher_reads() -> set[str]:
         """Every field name the reader asks the status file for, off its own tree.
 
         Read rather than declared, so there is no second list of these names to
@@ -162,11 +162,11 @@ class TestTheContractWithTheMainPlayer:
                 }
         return set()
 
-    def test_main_player_still_publishes_both_fields_clipper_reads(self):
+    def test_main_player_still_publishes_both_fields_genaumacher_reads(self):
         """Asserted, not skipped, when genau is absent: a checkout without the
         sibling has nothing to disagree with, and saying so in the assertion
         keeps this a test that always runs and always means something."""
-        wanted = self._keys_clipper_reads()
+        wanted = self._keys_genaumacher_reads()
         sources = self._status_sources()
         published = set().union(*map(self._keys_main_player_publishes, sources)) if sources else wanted
 

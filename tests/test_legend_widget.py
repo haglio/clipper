@@ -1,4 +1,4 @@
-"""Tests for clipper.gui.legend_widget — the painted hotkey legend."""
+"""Tests for genaumacher.gui.legend_widget — the painted hotkey legend."""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ from PyQt6.QtGui import QFont, QImage, QPainter
 from shared_ui.colors import BG_KEYCAP, BG_PRIMARY
 from shared_ui.fonts import FONT_UI, SIZE_SMALL, SIZE_TINY
 
-from clipper.gui.legend_widget import LegendWidget
-from clipper.gui.shortcuts import legend_rows
+from genaumacher.gui.legend_widget import LegendWidget
+from genaumacher.gui.shortcuts import legend_rows
 
 
 @pytest.fixture
@@ -102,7 +102,7 @@ def test_the_legend_does_not_need_the_video_decoder_to_be_imported():
     this suite are.
     """
 
-    probe = "import sys; sys.modules['cv2'] = None; import clipper.gui.legend_widget"
+    probe = "import sys; sys.modules['cv2'] = None; import genaumacher.gui.legend_widget"
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
 
     result = subprocess.run([sys.executable, "-c", probe],

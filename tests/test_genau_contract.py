@@ -1,4 +1,4 @@
-"""Where Clipper puts a cut, held to what Genau says its clips folder holds.
+"""Where Genaumacher puts a cut, held to what Genau says its clips folder holds.
 
 Genau publishes ``genau_contract.json`` at its checkout root.  Neither gate
 clones the other, so on a machine with no Genau beside this one there is
@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from clipper.paths import clips_dir, library_root, vr_clips_dir
+from genaumacher.paths import clips_dir, library_root, vr_clips_dir
 
 CONTRACT = Path("genau") / "genau_contract.json"
 SECTION_BEFORE_THE_RENAME = "inside_the_clips_folder"

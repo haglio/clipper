@@ -1,7 +1,7 @@
-"""Tests for clipper.frame_window — the loaded stretch and the cursor in it."""
+"""Tests for genaumacher.frame_window — the loaded stretch and the cursor in it."""
 from __future__ import annotations
 
-from clipper.frame_window import FrameWindow
+from genaumacher.frame_window import FrameWindow
 
 
 def _window(**overrides) -> FrameWindow:

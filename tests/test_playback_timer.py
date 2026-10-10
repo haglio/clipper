@@ -1,11 +1,11 @@
-"""Tests for clipper.gui.playback_timer — QTimer-driven playback loop."""
+"""Tests for genaumacher.gui.playback_timer — QTimer-driven playback loop."""
 
 from __future__ import annotations
 
 import pytest
 from PyQt6.QtWidgets import QApplication
 
-from clipper.gui.playback_timer import PlaybackTimer
+from genaumacher.gui.playback_timer import PlaybackTimer
 
 
 @pytest.fixture

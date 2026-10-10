@@ -1,4 +1,4 @@
-"""Tests for clipper.gui.main_window — main application window."""
+"""Tests for genaumacher.gui.main_window — main application window."""
 
 from __future__ import annotations
 
@@ -11,15 +11,15 @@ from PyQt6.QtWidgets import QApplication, QPushButton, QWidget
 from shared_ui.preview import Preview
 from shared_ui.spacing import BUTTON_SIZE
 
-from clipper.gui.exit_dialog import ExitDialog
-from clipper.gui.floating_controls import FloatingControlLayout
-from clipper.gui.main_window import ClipperMainWindow, _WrapRow
-from clipper.gui.shortcuts import SHORTCUTS
-from clipper.gui.timeline_colors import TIMELINE_LOADED
-from clipper.gui.timeline_controls import TimelineControls
-from clipper.gui.timeline_widget import TimelineWidget
-from clipper.loop_modes import LoopMode
-from clipper.wrap_modes import WrapMode
+from genaumacher.gui.exit_dialog import ExitDialog
+from genaumacher.gui.floating_controls import FloatingControlLayout
+from genaumacher.gui.main_window import GenaumacherMainWindow, _WrapRow
+from genaumacher.gui.shortcuts import SHORTCUTS
+from genaumacher.gui.timeline_colors import TIMELINE_LOADED
+from genaumacher.gui.timeline_controls import TimelineControls
+from genaumacher.gui.timeline_widget import TimelineWidget
+from genaumacher.loop_modes import LoopMode
+from genaumacher.wrap_modes import WrapMode
 
 
 @pytest.fixture
@@ -48,7 +48,7 @@ def mock_state():
 
 @pytest.fixture
 def window(mock_state):
-    w = ClipperMainWindow(mock_state)
+    w = GenaumacherMainWindow(mock_state)
     return w
 
 
@@ -70,12 +70,12 @@ class TestConstruction:
         assert window.legend is not None
 
     def test_window_title(self, window):
-        assert window.windowTitle() == "Clipper"
+        assert window.windowTitle() == "Genaumacher"
 
     def test_a_preview_is_titled_for_the_feature_it_demos(self, mock_state):
-        window = ClipperMainWindow(mock_state, preview=Preview(feature="the new loop"))
+        window = GenaumacherMainWindow(mock_state, preview=Preview(feature="the new loop"))
 
-        assert window.windowTitle() == "Clipper — preview of the new loop"
+        assert window.windowTitle() == "Genaumacher — preview of the new loop"
 
     def test_the_compact_controls_all_come_out_the_same_size(self, window):
         """The bound, shift and mark buttons are one metric, so a row of them
@@ -136,7 +136,7 @@ class TestCloseEvent:
 
         mock_cls = self._make_exit_dialog_mock(ExitDialog.SAVE)
 
-        with patch("clipper.gui.main_window.ExitDialog", mock_cls):
+        with patch("genaumacher.gui.main_window.ExitDialog", mock_cls):
             event = QCloseEvent()
             window.closeEvent(event)
 
@@ -149,7 +149,7 @@ class TestCloseEvent:
 
         mock_cls = self._make_exit_dialog_mock(ExitDialog.CANCEL)
 
-        with patch("clipper.gui.main_window.ExitDialog", mock_cls):
+        with patch("genaumacher.gui.main_window.ExitDialog", mock_cls):
             event = QCloseEvent()
             window.closeEvent(event)
 
@@ -162,7 +162,7 @@ class TestCloseEvent:
 
         mock_cls = self._make_exit_dialog_mock(ExitDialog.DISCARD)
 
-        with patch("clipper.gui.main_window.ExitDialog", mock_cls):
+        with patch("genaumacher.gui.main_window.ExitDialog", mock_cls):
             event = QCloseEvent()
             window.closeEvent(event)
 
@@ -175,8 +175,8 @@ class TestExportWiring:
         mock_worker = MagicMock()
         mock_dialog = MagicMock()
 
-        with patch("clipper.gui.export_worker.ExportWorker", return_value=mock_worker) as MockWorker, \
-             patch("clipper.gui.main_window.ExportDialog", return_value=mock_dialog) as MockDialog:
+        with patch("genaumacher.gui.export_worker.ExportWorker", return_value=mock_worker) as MockWorker, \
+             patch("genaumacher.gui.main_window.ExportDialog", return_value=mock_dialog) as MockDialog:
             window.start_export()
 
         MockDialog.assert_called_once_with(window)
@@ -251,7 +251,7 @@ class TestKeyDispatch:
     def test_a_key_makes_its_edit(self, make_state, key, text, prepare, observe, expected):
         state = make_state(**_DISPATCH_STATE)
         prepare(state)
-        window = ClipperMainWindow(state)
+        window = GenaumacherMainWindow(state)
 
         _press(window, key, text)
 
@@ -276,7 +276,7 @@ class TestKeyDispatch:
 
     def test_an_unbound_key_changes_nothing(self, make_state):
         state = make_state(**_DISPATCH_STATE)
-        window = ClipperMainWindow(state)
+        window = GenaumacherMainWindow(state)
         before = (state.current, state.active_start, state.active_end,
                   state.loaded_start, state.loaded_end, state.wrap_mode,
                   state.loop_mode, state.speed, state.dirty)
@@ -290,10 +290,10 @@ class TestKeyDispatch:
     @pytest.mark.parametrize("key", [Qt.Key.Key_Return, Qt.Key.Key_Enter])
     def test_enter_starts_an_export(self, make_state, key):
         state = make_state(**_DISPATCH_STATE)
-        window = ClipperMainWindow(state)
+        window = GenaumacherMainWindow(state)
 
-        with patch("clipper.gui.export_worker.ExportWorker") as worker_cls, \
-             patch("clipper.gui.main_window.ExportDialog") as dialog_cls:
+        with patch("genaumacher.gui.export_worker.ExportWorker") as worker_cls, \
+             patch("genaumacher.gui.main_window.ExportDialog") as dialog_cls:
             _press(window, key)
 
         dialog_cls.return_value.show.assert_called_once()
@@ -301,7 +301,7 @@ class TestKeyDispatch:
 
     def test_q_closes_the_window(self, make_state):
         state = make_state(**_DISPATCH_STATE)
-        window = ClipperMainWindow(state)
+        window = GenaumacherMainWindow(state)
         window.show()
         assert window.isVisible()
 
@@ -326,7 +326,7 @@ def _brace_width(window, rendered) -> int:
 @pytest.fixture
 def shown_window(mock_state):
     """Window that has been shown so geometry is computed."""
-    w = ClipperMainWindow(mock_state)
+    w = GenaumacherMainWindow(mock_state)
     w.resize(1520, 960)
     w.show()
     QApplication.processEvents()

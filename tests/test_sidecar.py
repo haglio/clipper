@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 import logging
 
-from clipper.paths import clips_dir
-from clipper.sidecar import record_provenance
+from genaumacher.paths import clips_dir
+from genaumacher.sidecar import record_provenance
 
 
 def test_an_exported_clip_is_recorded_where_evolver_files_that_clips_metadata(recorded_cut):
@@ -12,7 +12,7 @@ def test_an_exported_clip_is_recorded_where_evolver_files_that_clips_metadata(re
 
     recorded = recorded_cut("scene one")
     assert (recorded["app"], recorded["recipe"], recorded["recipe_version"]) == (
-        "clipper", "a recipe", "7",
+        "genaumacher", "a recipe", "7",
     )
 
 
@@ -54,7 +54,7 @@ def test_a_sidecar_it_cannot_read_is_left_for_its_owner_and_the_export_goes_on(
     sidecar.parent.mkdir(parents=True)
     sidecar.write_text("{ not json", encoding="utf-8")
 
-    with caplog.at_level(logging.WARNING, logger="clipper.sidecar"):
+    with caplog.at_level(logging.WARNING, logger="genaumacher.sidecar"):
         record_provenance(clips_dir() / "scene one.mp4")
 
     assert sidecar.read_text(encoding="utf-8") == "{ not json"
@@ -65,7 +65,7 @@ def test_a_record_it_cannot_write_does_not_stop_the_export(library, caplog):
     (library / "videos").mkdir(parents=True)
     (library / "videos" / "metadata").write_text("a file where the folder goes", encoding="utf-8")
 
-    with caplog.at_level(logging.WARNING, logger="clipper.sidecar"):
+    with caplog.at_level(logging.WARNING, logger="genaumacher.sidecar"):
         record_provenance(clips_dir() / "scene one.mp4")
 
     assert "scene one.mp4" in caplog.text

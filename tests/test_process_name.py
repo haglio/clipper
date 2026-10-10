@@ -1,4 +1,4 @@
-"""Clipper says its own name in the Windows task list.
+"""Genaumacher says its own name in the Windows task list.
 
 Why an app names its processes, and why its own is the one it can only name for
 the run after, is :mod:`app_support.process_identity`'s to say.  What is left
@@ -15,14 +15,14 @@ from app_support.launcher import launchers
 from app_support.process_identity import ProcessNamer
 from app_support.process_identity_check import assert_the_app_names_its_process
 
-from clipper.app import _name_this_process
+from genaumacher.app import _name_this_process
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
-APP_NAME = "Clipper"
-ROLE = "Clipper"
+APP_NAME = "Genaumacher"
+ROLE = "Genaumacher"
 
 (LAUNCHER,) = [launcher for launcher in launchers(PROJECT_DIR)
-               if launcher.file == "launch_clipper.vbs"]
+               if launcher.file == "launch_genaumacher.vbs"]
 
 
 def test_the_launcher_prefers_the_copy_named_for_this_app():
@@ -42,4 +42,4 @@ def test_the_app_prepares_that_copy_for_next_time(tmp_path: Path):
     launch down: nothing to copy from costs the name and nothing else."""
     assert_the_app_names_its_process(
         _name_this_process, tmp_path, app_name=APP_NAME, role=ROLE,
-        interpreter=LAUNCHER.interpreter, row=APP_NAME, icon=PROJECT_DIR / "clipper.ico")
+        interpreter=LAUNCHER.interpreter, row=APP_NAME, icon=PROJECT_DIR / "genaumacher.ico")

@@ -1,0 +1,60 @@
+"""GenaumacherApp — owns the QApplication, the window and the playback clock."""
+
+from __future__ import annotations
+
+import sys
+from typing import TYPE_CHECKING
+
+from PyQt6.QtWidgets import QApplication
+from shared_ui.chrome import family_stylesheet
+from shared_ui.preview import Preview
+from shared_ui.preview_icon import app_icon
+
+from genaumacher.window_icons import genaumacher_icon_path
+
+from .main_window import GenaumacherMainWindow
+from .playback_timer import PlaybackTimer
+
+if TYPE_CHECKING:
+    from genaumacher.state import VideoState
+
+
+def dress(app: QApplication) -> None:
+    """The family's chrome, on the application rather than the window: a
+    tooltip is a top-level popup, and a sheet on a window never reaches it."""
+    app.setStyleSheet(family_stylesheet())
+
+
+class GenaumacherApp:
+    """Creates QApplication, main window, and playback timer."""
+
+    def __init__(self, state: VideoState, *, preview: Preview | None = None):
+        self._state = state
+
+        # AppUserModelID is already set by app.main() before we get here;
+        # do NOT override it — it must stay "FunTime.Genaumacher" to match the
+        # shortcut so Windows groups the taskbar entry correctly.
+
+        self._app = QApplication.instance()
+        if self._app is None:
+            self._app = QApplication(sys.argv)
+        self._app.setApplicationName("Genaumacher")
+        dress(self._app)
+
+        self._app.setWindowIcon(app_icon(genaumacher_icon_path(), preview))
+
+        self.window = GenaumacherMainWindow(state, preview=preview)
+        self.playback_timer = PlaybackTimer()
+
+        # Wire playback timer tick to frame update
+        self.playback_timer.tick.connect(self._on_tick)
+
+    def run(self) -> int:
+        """Show the window and enter the event loop."""
+        self.window.show()
+        self.playback_timer.start()
+        return self._app.exec()
+
+    def _on_tick(self) -> None:
+        """Called ~60fps -- redraw the window from the state."""
+        self.window.render(self._state)

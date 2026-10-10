@@ -1,11 +1,11 @@
-"""Tests for clipper.gui.frame_converter — BGR numpy array to QImage."""
+"""Tests for genaumacher.gui.frame_converter — BGR numpy array to QImage."""
 
 from __future__ import annotations
 
 import numpy as np
 from PyQt6.QtGui import QImage
 
-from clipper.gui.frame_converter import bgr_to_qimage, scale_to_fit
+from genaumacher.gui.frame_converter import bgr_to_qimage, scale_to_fit
 
 
 class TestBgrToQImage:

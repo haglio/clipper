@@ -1,7 +1,7 @@
-"""Tests for clipper.clip_range — the in and out points of the clip."""
+"""Tests for genaumacher.clip_range — the in and out points of the clip."""
 from __future__ import annotations
 
-from clipper.clip_range import ClipRange
+from genaumacher.clip_range import ClipRange
 
 
 class TestMarkIn:

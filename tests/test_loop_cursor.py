@@ -1,11 +1,11 @@
-"""Tests for clipper.loop_cursor — where the loop preview is, and how fast.
+"""Tests for genaumacher.loop_cursor — where the loop preview is, and how fast.
 
 The cursor is handed the clock rather than reading one, so none of this needs
 a patched `time.monotonic`.
 """
 from __future__ import annotations
 
-from clipper.loop_cursor import LoopCursor
+from genaumacher.loop_cursor import LoopCursor
 
 SEQUENCE = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 FPS = 10.0

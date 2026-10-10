@@ -1,10 +1,10 @@
-"""Tests for clipper.gui.timeline_controls — timeline manipulation buttons."""
+"""Tests for genaumacher.gui.timeline_controls — timeline manipulation buttons."""
 
 from __future__ import annotations
 
 import pytest
 
-from clipper.gui.timeline_controls import TimelineControls
+from genaumacher.gui.timeline_controls import TimelineControls
 
 
 @pytest.fixture

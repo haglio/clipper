@@ -1,11 +1,11 @@
-"""Clipper's window groups under its pinned taskbar shortcut."""
+"""Genaumacher's window groups under its pinned taskbar shortcut."""
 from __future__ import annotations
 
 import sys
 
 from shared_ui.preview import Preview
 
-from clipper import app
+from genaumacher import app
 
 
 def test_the_pin_is_stamped_with_the_identity_the_process_claims(monkeypatch):
@@ -19,7 +19,7 @@ def test_the_pin_is_stamped_with_the_identity_the_process_claims(monkeypatch):
     app._set_windows_app_user_model_id(None)
 
     assert claimed == [app.APP_USER_MODEL_ID]
-    assert stamped == [(app.APP_USER_MODEL_ID, ("Clipper",))]
+    assert stamped == [(app.APP_USER_MODEL_ID, ("Genaumacher",))]
 
 
 def test_a_process_windows_refuses_an_identity_still_stamps_its_pin(monkeypatch):

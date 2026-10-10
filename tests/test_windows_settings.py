@@ -1,7 +1,7 @@
-"""What Clipper relies on Windows to keep, as its pyproject lists it.
+"""What Genaumacher relies on Windows to keep, as its pyproject lists it.
 
 ``python -m app_support.windows_settings`` makes the machine match the list;
-what is Clipper's own about it is held here.
+what is Genaumacher's own about it is held here.
 """
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 
 from app_support.launcher import launchers
 
-from clipper.app import APP_USER_MODEL_ID
+from genaumacher.app import APP_USER_MODEL_ID
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LISTED = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["haglio"]
