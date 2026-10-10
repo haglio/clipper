@@ -107,7 +107,8 @@ class TestTheContractWithTheMainPlayer:
     @staticmethod
     def _status_sources() -> list[Path]:
         """The two files the main player's status lines come from, beside the
-        primary checkout: ``player_core/status.py`` for the lines every player
+        primary checkout: the players' engine's ``status.py`` (in ``funestra_core``, or
+        ``player_core`` before that package's rename) for the lines every player
         publishes, and ``fun_time/main_player/status.py`` for the main player's
         own on top of them.  Empty where the checkouts are not there.
 
@@ -123,7 +124,8 @@ class TestTheContractWithTheMainPlayer:
         except (OSError, subprocess.SubprocessError):
             return []
         siblings = (PROJECT_DIR / common).resolve().parent.parent
-        sources = (siblings / "player_core" / "player_core" / "status.py",
+        sources = (siblings / "player_core" / "funestra_core" / "status.py",
+                   siblings / "player_core" / "player_core" / "status.py",
                    siblings / "fun_time" / "main_player" / "status.py")
         return [source for source in sources if source.is_file()]
 
